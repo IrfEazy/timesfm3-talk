@@ -1,0 +1,22 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Raw/cached data — large, re-downloadable via scripts/01_fetch_data.py.
+# results/ (metrics + figures) is committed on purpose: the demo notebook
+# and slides must work offline, without Colab or network, on talk day.
+data/raw/
+data/cache/
+
+# Editors, OS, caches
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+*.ipynb_checkpoints/
