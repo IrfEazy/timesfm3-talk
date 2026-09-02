@@ -15,6 +15,15 @@ wheels/
 data/raw/
 data/cache/
 
+# The only result file excluded from that rule: 33 MB even at zstd
+# compression, over GitHub's warning threshold, and re-generated every time
+# scripts/02_exp_mtg.py runs. scripts/02_exp_mtg.py writes a small (~8 MB)
+# committed slice — exp_mtg_demo_slice.parquet — alongside it in the same
+# run, which is what notebooks/demo.ipynb and scripts/06_make_figures.py
+# actually read. Only scripts/04_exp_calibration.py needs the full file,
+# and it already requires scripts/02 and 03 to have been run first.
+results/exp_mtg_raw_predictions.parquet
+
 # Editors, OS, caches
 .ruff_cache/
 .pytest_cache/

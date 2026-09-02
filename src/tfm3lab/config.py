@@ -32,7 +32,9 @@ CACHE_DIR = DATA_ROOT / "cache"
 # data cache. Without the override (plain local dev), stays under the repo
 # so `results/` keeps being the thing you commit.
 RESULTS_DIR = (
-    Path(_DATA_ROOT_OVERRIDE).resolve() / "results" if _DATA_ROOT_OVERRIDE else REPO_ROOT / "results"
+    Path(_DATA_ROOT_OVERRIDE).resolve() / "results"
+    if _DATA_ROOT_OVERRIDE
+    else REPO_ROOT / "results"
 )
 FIGURES_DIR = RESULTS_DIR / "figures"
 

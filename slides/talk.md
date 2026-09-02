@@ -44,11 +44,11 @@ Mettere alla prova un foundation model per serie temporali su dati che
 Dominio quasi certamente assente dal pretraining. Dati **post-cutoff**
 (TCGCSV, storico dal 2024-02-08).
 
-- Relative MAE (< 1 = batte il naive): h=1 **{{mtg_relative_mae_h1}}**, h={{mtg_hlast}}
-  **{{mtg_relative_mae_hlast}}** — mai sotto 1
-- Diebold-Mariano: modello **peggio** nel **{{mtg_dm_significant_worse_pct}}%** delle
-  celle (p<0.05), **meglio** nel {{mtg_dm_significant_better_pct}}%
-- Multivariato vs univariato: relative MAE **{{mtg_relative_mae_multivariate}}**
+- Relative MAE (< 1 = batte il naive): h=1 **1.153**, h=28
+  **1.076** — mai sotto 1
+- Diebold-Mariano: modello **peggio** nel **14%** delle
+  celle (p<0.05), **meglio** nel 0%
+- Multivariato vs univariato: relative MAE **1.060**
 
 ---
 
@@ -57,8 +57,8 @@ Dominio quasi certamente assente dal pretraining. Dati **post-cutoff**
 **Il cuore del talk.** Stesso protocollo su eventi dentro e fuori la
 finestra di pretraining.
 
-- Adaptation lag medio, **pre-cutoff**: **{{lag_pre_cutoff}}** giorni
-- Adaptation lag medio, **post-cutoff**: **{{lag_post_cutoff}}** giorni
+- Adaptation lag medio, **pre-cutoff**: **1.7** giorni
+- Adaptation lag medio, **post-cutoff**: **9.5** giorni
 
 <span class="small">Demo live qui — notebooks/demo.ipynb</span>
 
@@ -66,8 +66,8 @@ finestra di pretraining.
 
 ## Esperimento C — calibrazione
 
-- Copertura P10-P90, mercato calmo (h=1): **{{coverage_market_calm}}**
-- Copertura P10-P90, mercato shock (h=1): **{{coverage_market_shock}}**
+- Copertura P10-P90, mercato calmo (h=1): **0.827**
+- Copertura P10-P90, mercato shock (h=1): **0.664**
 - (nominale: 0.80 — stesso orizzonte in entrambi i regimi, mai mischiato con MTG)
 
 ---
@@ -77,8 +77,8 @@ finestra di pretraining.
 - Covariata lecita (giorno della settimana, uscita set): miglioramento reale
   ma modesto.
 - **Controllo negativo**: si passa il prezzo futuro reale come covariata —
-  {{leakage_summary}}.
-  <span class="small">MAE pulito {{leakage_mae_clean}} — MAE con leak {{leakage_mae_leaked}}</span>
+  controllo negativo **non si è ancora acceso** (MAE con leak >= MAE pulito) — risultato inconcludente, non un successo del modello.
+  <span class="small">MAE pulito 0.2578 — MAE con leak 0.2749</span>
 
 ---
 

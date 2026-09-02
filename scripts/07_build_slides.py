@@ -20,7 +20,7 @@ import re
 
 import pandas as pd
 
-from tfm3lab import config
+from tfm3lab import config, figdata
 
 TEMPLATE_PATH = config.REPO_ROOT / "slides" / "talk.md.template"
 OUTPUT_PATH = config.REPO_ROOT / "slides" / "talk.md"
@@ -33,33 +33,66 @@ def _missing(placeholder: str) -> str:
 def build_values() -> dict[str, str]:
     values: dict[str, str] = {}
 
-    mtg_path = config.RESULTS_DIR / "exp_mtg_accuracy.parquet"
-    if mtg_path.exists():
-        df = pd.read_parquet(mtg_path)
-        identity_uni = df[(df["transform"] == "identity") & (df["mode"] == "timesfm3_univariate")]
-        values["mtg_mase_model"] = f"{identity_uni['mase_model'].mean():.3f}"
-        values["mtg_mase_naive"] = f"{identity_uni['mase_baseline_naive'].mean():.3f}"
-        dm_valid = identity_uni["dm_pvalue"].dropna()
-        values["mtg_dm_pvalue"] = (
-            f"{dm_valid.mean():.3f}" if len(dm_valid) else _missing("mtg_dm_pvalue")
-        )
-        multi = df[(df["transform"] == "identity") & (df["mode"] == "timesfm3_multivariate")]
-        rel_mae = multi["relative_mae_vs_baseline"].mean()
-        values["mtg_relative_mae_multivariate"] = f"{rel_mae:.3f}"
+    # --- Esperimento A -----------------------------------------------------
+    # MASE used to be printed here (10.77 vs 10.21) — dropped. Its scale is
+    # a one-step in-sample scale applied unchanged across 28 horizons (MASE
+    # rises 1.54 -> 17.95 mechanically with h), and the cross-series mean is
+    # dominated by Mishra's Factory (near-flat first 64 days, implied scale
+    # 0.00032). Relative MAE per horizon is the honest, interpretable number.
+    mtg_acc_path = config.RESULTS_DIR / "exp_mtg_accuracy.parquet"
+    mtg_cal_path = config.RESULTS_DIR / "exp_mtg_calibration.parquet"
+    if mtg_acc_path.exists() and mtg_cal_path.exists():
+        accuracy = pd.read_parquet(mtg_acc_path)
+        calibration = pd.read_parquet(mtg_cal_path)
+        profile = figdata.horizon_profile(accuracy, calibration)
+        h1 = profile[profile["horizon_step"] == profile["horizon_step"].min()].iloc[0]
+        h_last = profile[profile["horizon_step"] == profile["horizon_step"].max()].iloc[0]
+        values["mtg_relative_mae_h1"] = f"{h1['relative_mae_mean']:.3f}"
+        values["mtg_relative_mae_hlast"] = f"{h_last['relative_mae_mean']:.3f}"
+        values["mtg_hlast"] = str(int(h_last["horizon_step"]))
+
+        # A DM p-value MEAN (the old {{mtg_dm_pvalue}}) is not a p-value and
+        # pointed the wrong way (0.190 read as "no difference" while the
+        # model actually loses significantly in most cells). Report the
+        # fraction of significant cells in each direction instead.
+        identity_uni = accuracy[
+            (accuracy["transform"] == "identity") & (accuracy["mode"] == "timesfm3_univariate")
+        ]
+        dm_valid = identity_uni.dropna(subset=["dm_pvalue"])
+        if len(dm_valid):
+            significant = dm_valid[dm_valid["dm_pvalue"] < 0.05]
+            worse = (significant["dm_stat"] > 0).sum() / len(dm_valid) * 100
+            better = (significant["dm_stat"] < 0).sum() / len(dm_valid) * 100
+            values["mtg_dm_significant_worse_pct"] = f"{worse:.0f}"
+            values["mtg_dm_significant_better_pct"] = f"{better:.0f}"
+        else:
+            values["mtg_dm_significant_worse_pct"] = _missing("mtg_dm_significant_worse_pct")
+            values["mtg_dm_significant_better_pct"] = _missing("mtg_dm_significant_better_pct")
+
+        multi = accuracy[
+            (accuracy["transform"] == "identity") & (accuracy["mode"] == "timesfm3_multivariate")
+        ]
+        values["mtg_relative_mae_multivariate"] = f"{multi['relative_mae_vs_baseline'].mean():.3f}"
     else:
-        mtg_keys = (
-            "mtg_mase_model",
-            "mtg_mase_naive",
-            "mtg_dm_pvalue",
+        for key in (
+            "mtg_relative_mae_h1",
+            "mtg_relative_mae_hlast",
+            "mtg_hlast",
+            "mtg_dm_significant_worse_pct",
+            "mtg_dm_significant_better_pct",
             "mtg_relative_mae_multivariate",
-        )
-        for key in mtg_keys:
+        ):
             values[key] = _missing(key)
 
+    # --- Esperimento B -------------------------------------------------------
+    # Filtered to mode=="timesfm3_multivariate": the unfiltered version pools
+    # univariate and multivariate lags together (pre-cutoff 2.0 instead of
+    # 1.67), silently disagreeing with the multivariate-only panel shown
+    # alongside it in the demo and in exp_shock_adaptation_dots.png.
     lag_path = config.RESULTS_DIR / "exp_shock_adaptation_lag.parquet"
     if lag_path.exists():
         df = pd.read_parquet(lag_path)
-        at_headline = df[df["multiplier"] == 1.5]
+        at_headline = df[(df["multiplier"] == 1.5) & (df["mode"] == "timesfm3_multivariate")]
         by_arm = at_headline.groupby("arm")["adaptation_lag_days"].mean()
         values["lag_pre_cutoff"] = f"{by_arm.get('pre_cutoff', float('nan')):.1f}"
         values["lag_post_cutoff"] = f"{by_arm.get('post_cutoff', float('nan')):.1f}"
@@ -67,32 +100,61 @@ def build_values() -> dict[str, str]:
         values["lag_pre_cutoff"] = _missing("lag_pre_cutoff")
         values["lag_post_cutoff"] = _missing("lag_post_cutoff")
 
+    # --- Esperimento C ---------------------------------------------------
+    # scripts/04_exp_calibration.py now writes three same-horizon (h=1)
+    # regimes instead of pooling MTG's 28 horizons into "calm" against
+    # market's h=1 "shock" — that pooling made shock look better calibrated
+    # than calm, the opposite of the truth (see that script's docstring).
     cal_path = config.RESULTS_DIR / "exp_calibration_summary.parquet"
     if cal_path.exists():
         df = pd.read_parquet(cal_path).set_index("regime")
-        if "calm" in df.index:
-            values["coverage_calm"] = f"{df.loc['calm', 'coverage_p10_p90']:.3f}"
-        else:
-            values["coverage_calm"] = _missing("coverage_calm")
-        if "shock" in df.index:
-            values["coverage_shock"] = f"{df.loc['shock', 'coverage_p10_p90']:.3f}"
-        else:
-            values["coverage_shock"] = _missing("coverage_shock")
+        for key, regime in (
+            ("coverage_market_calm", "market_calm"),
+            ("coverage_market_shock", "market_shock"),
+        ):
+            values[key] = (
+                f"{df.loc[regime, 'coverage_p10_p90']:.3f}" if regime in df.index else _missing(key)
+            )
     else:
-        values["coverage_calm"] = _missing("coverage_calm")
-        values["coverage_shock"] = _missing("coverage_shock")
+        values["coverage_market_calm"] = _missing("coverage_market_calm")
+        values["coverage_market_shock"] = _missing("coverage_market_shock")
 
+    # --- Esperimento D -----------------------------------------------------
+    # Reframed: the negative control (leaking the actual future price as a
+    # covariate) did not visibly fire with a constant-past covariate — see
+    # scripts/05_exp_covariates.py's leakage_demo for the fix and the
+    # leaked_flat_past control arm kept alongside it. Report whichever
+    # result the current results/ actually contains, never a hand-typed
+    # assumption that the control worked.
     leak_path = config.RESULTS_DIR / "exp_covariates_leakage_demo.parquet"
     if leak_path.exists():
         from tfm3lab.metrics import mae
 
         df = pd.read_parquet(leak_path)
-        clean, leaked = df[~df["leaked"]], df[df["leaked"]]
-        values["leakage_mae_clean"] = f"{mae(clean['actual'], clean['forecast']):.4f}"
-        values["leakage_mae_leaked"] = f"{mae(leaked['actual'], leaked['forecast']):.4f}"
+        if "arm" in df.columns:
+            clean = df[df["arm"] == "clean"]
+            leaked = df[df["arm"] == "leaked"]
+        else:
+            clean, leaked = df[~df["leaked"]], df[df["leaked"]]
+        mae_clean = mae(clean["actual"], clean["forecast"])
+        mae_leaked = mae(leaked["actual"], leaked["forecast"])
+        values["leakage_mae_clean"] = f"{mae_clean:.4f}"
+        values["leakage_mae_leaked"] = f"{mae_leaked:.4f}"
+        if mae_leaked < mae_clean:
+            ratio = mae_leaked / mae_clean
+            values["leakage_summary"] = (
+                f"controllo negativo confermato: il MAE crolla al **{ratio:.0%}** del "
+                "pulito quando il prezzo futuro reale filtra nella covariata"
+            )
+        else:
+            values["leakage_summary"] = (
+                "controllo negativo **non si è ancora acceso** (MAE con leak >= MAE "
+                "pulito) — risultato inconcludente, non un successo del modello"
+            )
     else:
         values["leakage_mae_clean"] = _missing("leakage_mae_clean")
         values["leakage_mae_leaked"] = _missing("leakage_mae_leaked")
+        values["leakage_summary"] = _missing("leakage_summary")
 
     return values
 

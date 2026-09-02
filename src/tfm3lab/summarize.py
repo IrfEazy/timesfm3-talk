@@ -103,8 +103,21 @@ def summarize_accuracy(
                 "relative_mae_vs_baseline": relative_mae_val,
             }
         )
-        if len(group) >= MIN_OBSERVATIONS_FOR_DM_TEST:
-            dm_stat, dm_p = diebold_mariano(model_abs_err, baseline_abs_err, horizon=1)
+        # diebold_mariano's `horizon` must be the fixed horizon step h these
+        # errors were forecast at: h-step rolling forecasts have MA(h-1)
+        # autocorrelation in the loss differential that its long-run
+        # variance estimate must account for. Using horizon=1 unconditionally
+        # (as this used to) understates that variance at h>1 and makes
+        # every p-value anti-conservative — optimistic in the direction that
+        # happens to overstate a *negative* result here (the model losing),
+        # but still wrong. Falls back to 1 when horizon_step isn't a group
+        # column (e.g. the shock experiment, which only ever has h=1 rows).
+        if "horizon_step" in group_cols:
+            dm_horizon = int(keys[group_cols.index("horizon_step")])
+        else:
+            dm_horizon = 1
+        if len(group) >= max(MIN_OBSERVATIONS_FOR_DM_TEST, 2 * dm_horizon):
+            dm_stat, dm_p = diebold_mariano(model_abs_err, baseline_abs_err, horizon=dm_horizon)
         else:
             dm_stat, dm_p = np.nan, np.nan
         row["dm_stat"] = dm_stat

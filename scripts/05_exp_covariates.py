@@ -139,28 +139,55 @@ def leakage_demo(forecaster, s: SeriesData, origins: np.ndarray) -> pd.DataFrame
     """NEGATIVE CONTROL: hands the model the series' own actual FUTURE
     values as a 'covariate'. Must show a dramatic, artificial accuracy
     improvement — if it doesn't, the demo itself is broken, not the model.
+
+    Three arms, not two — "clean" plus TWO leaked variants:
+
+    - "leaked_flat_past": the first version of this fix, kept as a
+      documented dead end. It padded the covariate's PAST with a constant
+      (`ctx[-1]` repeated) before appending the real future. TimesFM-3
+      treats a past_future_covariate as an extra variate and RevIN-
+      normalizes it with its OWN per-variate running mean/std (see the
+      installed timesfm3.model.py's `_preprocess`, which calls
+      `util.get_running_stats` per variate before `util.revin`). A
+      constant past has zero variance, so `util._make_safe_for_division`
+      clamps that variate's std to 1.0 — an arbitrary scale unrelated to
+      every other variate's real scale — AND gives the model nothing in
+      the covariate's past to recognize as "this tracks the target",
+      since a flat line correlates with nothing. The leak is present but
+      illegible: measured effect on this card was ~0.33% (see
+      docs/talk-outline.md), not the dramatic blowup the demo needs.
+    - "leaked": the actual fix. The covariate's past IS the series' own
+      real past (`ctx`), so it shares the target's real scale and a
+      genuine, recognizable one-step-behind relationship with it before
+      the leaked future ever appears.
+    - "clean": no covariate, the baseline both leaked arms are compared
+      against.
     """
     rows = []
-    for leaked in (False, True):
+    arms = ("clean", "leaked_flat_past", "leaked")
+    for arm in arms:
         contexts, covariates, ts_ids = [], [], []
         for origin in origins:
             origin = int(origin)
             ctx = s.values[context_slice(origin, CONTEXT_LEN)]
             contexts.append(ctx)
-            ts_ids.append(f"{s.name}::{origin}::{'leaked' if leaked else 'clean'}")
-            if leaked:
-                future = s.values[target_indices(origin, HORIZON)]
-                past_filler = np.full(CONTEXT_LEN, ctx[-1])  # content doesn't matter here
-                covariates.append(np.concatenate([past_filler, future])[None, :])
-            else:
+            ts_ids.append(f"{s.name}::{origin}::{arm}")
+            if arm == "clean":
                 covariates.append(None)
+            elif arm == "leaked_flat_past":
+                future = s.values[target_indices(origin, HORIZON)]
+                past_filler = np.full(CONTEXT_LEN, ctx[-1])
+                covariates.append(np.concatenate([past_filler, future])[None, :])
+            else:  # "leaked": real past + real future
+                future = s.values[target_indices(origin, HORIZON)]
+                covariates.append(np.concatenate([ctx, future])[None, :])
 
         batch = forecast_batch(
             forecaster,
             contexts,
             HORIZON,
             ts_ids=ts_ids,
-            past_future_covariates=covariates if leaked else None,
+            past_future_covariates=covariates if arm != "clean" else None,
         )
         for i, origin in enumerate(origins):
             origin = int(origin)
@@ -171,7 +198,8 @@ def leakage_demo(forecaster, s: SeriesData, origins: np.ndarray) -> pd.DataFrame
                         "series": s.name,
                         "origin_index": origin,
                         "horizon_step": h + 1,
-                        "leaked": leaked,
+                        "arm": arm,
+                        "leaked": arm != "clean",  # back-compat column, see build_values() below
                         "actual": float(s.values[t_idx]),
                         "forecast": float(batch.forecast[i, h]),
                     }
@@ -238,17 +266,22 @@ def main() -> None:
     _print_ablation_summary(mtg_df, "covariate", "with_covariate")
 
     print("\n=== NEGATIVE CONTROL: leaking the actual future into the covariate ===")
+    print("  three arms: clean (no covariate), leaked_flat_past (documented dead end,")
+    print("  see leakage_demo's docstring), leaked (real past + real future)")
     leakage_df = leakage_demo(forecaster, card, origins_mtg)
     leakage_df.to_parquet(config.RESULTS_DIR / "exp_covariates_leakage_demo.parquet", index=False)
-    clean = leakage_df[~leakage_df["leaked"]]
-    leaked = leakage_df[leakage_df["leaked"]]
-    mae_clean = mae(clean["actual"], clean["forecast"])
-    mae_leaked = mae(leaked["actual"], leaked["forecast"])
-    print(f"  MAE clean={mae_clean:.4f}, MAE leaked={mae_leaked:.4f}")
+    mae_by_arm = {
+        arm: mae(g["actual"], g["forecast"]) for arm, g in leakage_df.groupby("arm")
+    }
+    for arm, value in mae_by_arm.items():
+        print(f"  MAE {arm}={value:.4f}")
+    mae_clean = mae_by_arm["clean"]
+    mae_leaked = mae_by_arm["leaked"]
     if mae_leaked >= mae_clean:
         print(
-            "  WARNING: leaking the future did not improve MAE — the demo did not "
-            "reproduce the expected leakage effect, check the covariate wiring."
+            "  WARNING: leaking the future (real past + real future) did not improve "
+            "MAE — the demo did not reproduce the expected leakage effect even with a "
+            "readable covariate. Report this as-is, don't force a positive result."
         )
     else:
         ratio = relative_mae(mae_leaked, mae_clean)
@@ -256,6 +289,11 @@ def main() -> None:
             f"  Confirmed: leaking the future drops MAE to {ratio:.1%} of the clean "
             "error — DO NOT present this as a real result."
         )
+    flat_ratio = relative_mae(mae_by_arm["leaked_flat_past"], mae_clean)
+    print(
+        f"  For comparison, leaked_flat_past (the illegible variant) moved MAE to "
+        f"{flat_ratio:.1%} of clean — the size of the effect a badly-wired leak produces."
+    )
 
     print(f"\nWrote covariate experiment results to {config.RESULTS_DIR}")
 

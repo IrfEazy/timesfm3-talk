@@ -127,7 +127,31 @@ def main() -> None:
         )
 
     raw_df = pd.concat(all_results, ignore_index=True)
-    raw_df.to_parquet(config.RESULTS_DIR / "exp_mtg_raw_predictions.parquet", index=False)
+    # zstd instead of the default snappy: ~33% smaller for the same content
+    # (measured: 49.3 MB -> 32.8 MB on the full run), which matters because
+    # this file is gitignored (see .gitignore) but the repo still has to
+    # move it around (Kaggle -> Drive -> local) more than once per talk.
+    raw_df.to_parquet(
+        config.RESULTS_DIR / "exp_mtg_raw_predictions.parquet", index=False, compression="zstd"
+    )
+
+    # A small, committed slice for notebooks/demo.ipynb and scripts/06_make_figures.py:
+    # the full file is gitignored (49 MB, over GitHub's warning threshold),
+    # but the demo must still work fully offline. Written here, in the same
+    # block that writes the parent file, rather than in a separate script —
+    # a separate script is a second thing that can be forgotten after a
+    # re-run and would silently describe a *previous* run's forecasts.
+    # transform=="identity" & mode=="timesfm3_univariate" is the one
+    # combination every demo/slide chart actually reads; measured at 8.42 MB
+    # with all 9 quantile columns kept (dropping to q10/q90 only saves
+    # little and breaks the PIT histogram, which needs the full grid).
+    demo_slice = raw_df[
+        (raw_df["transform"] == "identity") & (raw_df["mode"] == "timesfm3_univariate")
+    ].drop(columns=["mode", "transform", "baseline_drift", "baseline_ets"])
+    demo_slice = demo_slice.assign(series=demo_slice["series"].astype("category"))
+    demo_slice.to_parquet(
+        config.RESULTS_DIR / "exp_mtg_demo_slice.parquet", index=False, compression="zstd"
+    )
 
     mase_scales = compute_mase_scales(series_list, boundary_index=int(origins.min()))
     accuracy = summarize_accuracy(raw_df, mase_scales, group_cols=GROUP_COLS)
@@ -137,8 +161,9 @@ def main() -> None:
     calibration.to_parquet(config.RESULTS_DIR / "exp_mtg_calibration.parquet", index=False)
 
     print(
-        f"\nWrote {len(raw_df)} prediction rows, {len(accuracy)} accuracy rows, "
-        f"{len(calibration)} calibration rows to {config.RESULTS_DIR}"
+        f"\nWrote {len(raw_df)} prediction rows, {len(demo_slice)} demo-slice rows, "
+        f"{len(accuracy)} accuracy rows, {len(calibration)} calibration rows "
+        f"to {config.RESULTS_DIR}"
     )
 
 
