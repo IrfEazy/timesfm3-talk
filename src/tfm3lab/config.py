@@ -23,10 +23,17 @@ SEED = 42
 # codebase, hybrid execution" design.
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DATA_ROOT = Path(os.environ.get("TFM3LAB_DATA_ROOT", REPO_ROOT / "data")).resolve()
+_DATA_ROOT_OVERRIDE = os.environ.get("TFM3LAB_DATA_ROOT")
+DATA_ROOT = Path(_DATA_ROOT_OVERRIDE or REPO_ROOT / "data").resolve()
 RAW_DIR = DATA_ROOT / "raw"
 CACHE_DIR = DATA_ROOT / "cache"
-RESULTS_DIR = REPO_ROOT / "results"
+# Same override as DATA_ROOT: on Colab with TFM3LAB_DATA_ROOT pointed at a
+# Drive mount, results survive a runtime disconnect too, not just the raw
+# data cache. Without the override (plain local dev), stays under the repo
+# so `results/` keeps being the thing you commit.
+RESULTS_DIR = (
+    Path(_DATA_ROOT_OVERRIDE).resolve() / "results" if _DATA_ROOT_OVERRIDE else REPO_ROOT / "results"
+)
 FIGURES_DIR = RESULTS_DIR / "figures"
 
 for _d in (RAW_DIR, CACHE_DIR, RESULTS_DIR, FIGURES_DIR):
