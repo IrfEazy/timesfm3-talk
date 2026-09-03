@@ -205,7 +205,11 @@ def build_forecast_slice(
 
 
 def rank_windows(
-    preds: pd.DataFrame, *, exclude_glitches: bool = True, min_naive_mae: float = 1e-9
+    preds: pd.DataFrame,
+    *,
+    exclude_glitches: bool = True,
+    min_naive_mae: float = 1e-9,
+    require_all_observed: bool = True,
 ) -> pd.DataFrame:
     """One row per (series, origin): relative MAE, P10-P90 coverage, and the
     naive-relative price move over that window, guarded against the
@@ -213,6 +217,15 @@ def rank_windows(
     unusable (a single near-flat card can send it to 1e8+) — callers must
     use the win-rate or the median across this table, never the mean of
     `relative_mae` directly.
+
+    Policy for unobserved targets: a window with even one forward-filled
+    (non-observed) target is, by default, dropped from the ranking entirely
+    (`require_all_observed=True`) — a "hero" demo window picked by relative
+    MAE or coverage must not be able to win by scoring well against an
+    imputed value instead of a real observation. Set
+    `require_all_observed=False` to keep such windows (e.g. for a
+    data-quality diagnostic); `observed_fraction`/`all_targets_observed` are
+    always reported so callers can see what was dropped.
     """
     truth = reconstruct_truth(preds)
     glitches = find_glitches(truth)
@@ -240,11 +253,15 @@ def rank_windows(
                 "coverage": coverage(actual, g["q10"].to_numpy(), g["q90"].to_numpy()),
                 "contains_glitch": contains_glitch,
                 "beats_naive": bool(model_mae < naive_mae),
+                "observed_fraction": float(g["observed"].mean()),
+                "all_targets_observed": bool(g["observed"].all()),
             }
         )
     out = pd.DataFrame(rows)
     if exclude_glitches:
         out = out[~out["contains_glitch"]].reset_index(drop=True)
+    if require_all_observed:
+        out = out[out["all_targets_observed"]].reset_index(drop=True)
     return out
 
 

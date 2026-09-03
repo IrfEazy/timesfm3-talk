@@ -199,6 +199,26 @@ def test_rank_windows_guards_near_zero_naive_mae():
     assert np.isnan(row["relative_mae"])
 
 
+def test_rank_windows_excludes_windows_with_unobserved_targets_by_default():
+    rows = _make_origin_block("A", 20, base_price=100.0, horizon=3)
+    df = pd.DataFrame(rows)
+    df.loc[(df["origin_index"] == 20) & (df["horizon_step"] == 2), "observed"] = False
+
+    ranked = figdata.rank_windows(df, exclude_glitches=False)
+    assert 20 not in set(ranked["origin_index"])
+
+
+def test_rank_windows_keeps_unobserved_windows_when_flag_disabled():
+    rows = _make_origin_block("A", 20, base_price=100.0, horizon=3)
+    df = pd.DataFrame(rows)
+    df.loc[(df["origin_index"] == 20) & (df["horizon_step"] == 2), "observed"] = False
+
+    ranked = figdata.rank_windows(df, exclude_glitches=False, require_all_observed=False)
+    row = ranked[ranked["origin_index"] == 20].iloc[0]
+    assert not row["all_targets_observed"]
+    assert row["observed_fraction"] == pytest.approx(2 / 3)
+
+
 # --- horizon_profile -----------------------------------------------------------
 
 
