@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 
 from . import config
-from .metrics import coverage, mae, pit_values
+from .metrics import coverage, mae
 from .summarize import QUANTILE_COLUMNS
 
 IDENTITY = "identity"
@@ -270,44 +270,62 @@ def horizon_profile(
     return acc_by_h.join(cov_by_h).reset_index()
 
 
-def pit_histogram(preds: pd.DataFrame, horizon_steps: tuple[int, ...] = (1, 7, 28)) -> pd.DataFrame:
-    """PIT histogram counts at a few horizon steps, binned at the 9 known
-    quantile levels (the only points `metrics.pit_values` can place a value
-    at without extrapolating). The outer bins are counts of "at or beyond
-    q10" / "at or beyond q90" — correct as counts, but not the true shape of
-    the tail beyond those quantiles, since values there are clipped rather
-    than extrapolated. Label them accordingly, never as `[0.0, 0.1)`.
+def quantile_bin_calibration(
+    preds: pd.DataFrame, horizon_steps: tuple[int, ...] = (1, 7, 28)
+) -> pd.DataFrame:
+    """Discrete quantile-bin calibration: 10 bins built directly from the 9
+    known quantile forecasts (0.1..0.9), one horizon step at a time.
+
+    Bin i is "how many of the 9 quantile forecasts does `actual` exceed":
+    bin 0 is "actual <= q10", bin k (1..8) is "q{10k} < actual <= q{10(k+1)}",
+    bin 9 is "actual > q90". Each bin has nominal probability 1/10 if the
+    quantiles are calibrated.
+
+    This replaces the old `pit_histogram`, which ran metrics.pit_values'
+    *interpolated* PIT through `np.histogram(pit, bins=QUANTILE_LEVELS)` —
+    9 edges make 8 bins, not 9 — and then mislabeled the outer two as
+    "<= q10"/">= q90" when they actually covered [0.1, 0.2) and [0.8, 0.9].
+    Counting directly against the quantile columns (no interpolation step)
+    gets both the bin count and the labels right by construction.
     """
-    edges = np.asarray(config.QUANTILE_LEVELS, dtype=float)
+    levels = config.QUANTILE_LEVELS
+    n_bins = len(levels) + 1  # 10
     rows = []
     for h in horizon_steps:
         g = preds[preds["horizon_step"] == h]
         if g.empty:
             continue
-        quantiles = g[QUANTILE_COLUMNS].to_numpy(dtype=float)
-        pit = pit_values(g["actual"].to_numpy(), quantiles, config.QUANTILE_LEVELS)
-        counts, _ = np.histogram(pit, bins=edges)
-        n = len(pit)
-        n_bins = len(counts)
+        actual = g["actual"].to_numpy(dtype=float)
+        quantiles = g[QUANTILE_COLUMNS].to_numpy(dtype=float)  # shape (n, 9), sorted per row
+        n = len(actual)
+        # bin_index[k] = count of quantile forecasts actual[k] strictly exceeds (0..9)
+        bin_index = np.sum(quantiles < actual[:, None], axis=1)
+        counts = np.bincount(bin_index, minlength=n_bins)[:n_bins]
         for i in range(n_bins):
             if i == 0:
                 label = "≤ q10"
             elif i == n_bins - 1:
-                label = "≥ q90"
+                label = "> q90"
             else:
-                label = f"[{edges[i]:.1f}, {edges[i + 1]:.1f})"
+                label = f"({levels[i - 1]:.1f}, {levels[i]:.1f}]"
             rows.append(
                 {
                     "horizon_step": h,
-                    "bin_left": float(edges[i]),
-                    "bin_right": float(edges[i + 1]),
+                    "bin_index": i,
                     "label": label,
                     "count": int(counts[i]),
                     "fraction": float(counts[i]) / n if n else float("nan"),
+                    "nominal_fraction": 1.0 / n_bins,
                     "n": n,
                 }
             )
     return pd.DataFrame(rows)
+
+
+# Deprecated alias: the name "PIT histogram" claimed continuous-PIT semantics
+# this diagnostic never had. Kept only so a leftover caller doesn't hard
+# break — prefer quantile_bin_calibration in new code.
+pit_histogram = quantile_bin_calibration
 
 
 def naive_gap(

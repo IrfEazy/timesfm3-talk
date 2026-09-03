@@ -226,21 +226,44 @@ def test_horizon_profile_merges_accuracy_and_calibration():
     assert row1["coverage_mean"] == pytest.approx(0.7)
 
 
-# --- pit_histogram ---------------------------------------------------------------
+# --- quantile_bin_calibration ---------------------------------------------------
 
 
-def test_pit_histogram_fractions_sum_to_one_per_horizon():
+def test_quantile_bin_calibration_fractions_sum_to_one_per_horizon():
     preds = _synthetic_preds(n_origins=20, horizon=1, start_origin=64, drift=0.5)
-    hist = figdata.pit_histogram(preds, horizon_steps=(1,))
+    hist = figdata.quantile_bin_calibration(preds, horizon_steps=(1,))
     assert hist["fraction"].sum() == pytest.approx(1.0)
 
 
-def test_pit_histogram_outer_bins_labeled_as_clipped():
+def test_quantile_bin_calibration_has_ten_bins_with_correct_labels():
     preds = _synthetic_preds(n_origins=5, horizon=1, start_origin=64)
-    hist = figdata.pit_histogram(preds, horizon_steps=(1,))
-    labels = hist.sort_values("bin_left")["label"].tolist()
+    hist = figdata.quantile_bin_calibration(preds, horizon_steps=(1,))
+    labels = hist.sort_values("bin_index")["label"].tolist()
+    assert len(labels) == 10
     assert labels[0] == "≤ q10"
-    assert labels[-1] == "≥ q90"
+    assert labels[1] == "(0.1, 0.2]"
+    assert labels[-2] == "(0.8, 0.9]"
+    assert labels[-1] == "> q90"
+    assert hist["nominal_fraction"].eq(0.1).all()
+
+
+def test_quantile_bin_calibration_below_q10_lands_in_first_bin():
+    # actual well below every quantile forecast -> must count in bin 0 ("<= q10"),
+    # never silently merged into the (q10, q20] bin the old 8-bin histogram produced.
+    preds = _synthetic_preds(n_origins=1, horizon=1, start_origin=64)
+    preds.loc[preds["horizon_step"] == 1, "actual"] = -1000.0
+    hist = figdata.quantile_bin_calibration(preds, horizon_steps=(1,))
+    row0 = hist[hist["bin_index"] == 0].iloc[0]
+    assert row0["count"] == 1
+    assert hist[hist["bin_index"] != 0]["count"].sum() == 0
+
+
+def test_pit_histogram_alias_still_works():
+    preds = _synthetic_preds(n_origins=5, horizon=1, start_origin=64)
+    pd.testing.assert_frame_equal(
+        figdata.pit_histogram(preds, horizon_steps=(1,)),
+        figdata.quantile_bin_calibration(preds, horizon_steps=(1,)),
+    )
 
 
 # --- naive_gap -------------------------------------------------------------------
