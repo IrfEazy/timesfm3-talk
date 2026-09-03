@@ -4,9 +4,17 @@ network. Live-service verification lives in test_mtg_live.py, opt-in.
 
 from __future__ import annotations
 
+import datetime as dt
+
 import pytest
 
-from tfm3lab.data.mtg import CardSpec, _price_from_row, resolve_card_specs
+from tfm3lab.data.mtg import (
+    CardSpec,
+    PriceSelectionPolicy,
+    _price_from_row,
+    _resolve_subtype_row,
+    resolve_card_specs,
+)
 
 
 class _FakeResponse:
@@ -85,18 +93,69 @@ def test_resolve_card_specs_raises_with_suggestions_on_unknown_product():
 
 
 def test_price_from_row_prefers_market_price():
-    assert _price_from_row({"marketPrice": 12.5, "midPrice": 99.0}) == 12.5
+    assert _price_from_row({"marketPrice": 12.5, "midPrice": 99.0}) == (12.5, "market")
 
 
 def test_price_from_row_falls_back_to_mid_when_market_is_null():
-    assert _price_from_row({"marketPrice": None, "midPrice": 8.25}) == 8.25
+    assert _price_from_row({"marketPrice": None, "midPrice": 8.25}) == (8.25, "mid")
 
 
 def test_price_from_row_returns_none_when_both_missing():
-    assert _price_from_row({"marketPrice": None, "midPrice": None}) is None
+    assert _price_from_row({"marketPrice": None, "midPrice": None}) == (None, None)
 
 
 def test_price_from_row_ignores_low_and_high_price():
     # low/high are listing extremes, never a substitute for market/mid.
     row = {"marketPrice": None, "midPrice": None, "lowPrice": 1.0, "highPrice": 500.0}
-    assert _price_from_row(row) is None
+    assert _price_from_row(row) == (None, None)
+
+
+def test_price_from_row_market_only_policy_does_not_fall_back_to_mid():
+    row = {"marketPrice": None, "midPrice": 8.25}
+    assert _price_from_row(row, PriceSelectionPolicy.MARKET_ONLY) == (None, None)
+
+
+def test_price_from_row_mid_only_policy_ignores_market():
+    row = {"marketPrice": 12.5, "midPrice": 8.25}
+    assert _price_from_row(row, PriceSelectionPolicy.MID_ONLY) == (8.25, "mid")
+
+
+def test_resolve_subtype_row_single_row_returned_directly():
+    rows = [{"productId": 1, "subTypeName": "Normal", "marketPrice": 5.0}]
+    assert _resolve_subtype_row(1, rows, dt.date(2024, 2, 8)) is rows[0]
+
+
+def test_resolve_subtype_row_prefers_normal_among_foil_variant():
+    rows = [
+        {"productId": 1, "subTypeName": "Foil", "marketPrice": 90.0},
+        {"productId": 1, "subTypeName": "Normal", "marketPrice": 30.0},
+    ]
+    resolved = _resolve_subtype_row(1, rows, dt.date(2024, 2, 8))
+    assert resolved["subTypeName"] == "Normal"
+
+
+def test_resolve_subtype_row_treats_missing_subtype_as_normal():
+    rows = [
+        {"productId": 1, "subTypeName": "Foil", "marketPrice": 90.0},
+        {"productId": 1, "marketPrice": 30.0},  # no subTypeName key at all
+    ]
+    resolved = _resolve_subtype_row(1, rows, dt.date(2024, 2, 8))
+    assert resolved["marketPrice"] == 30.0
+
+
+def test_resolve_subtype_row_raises_on_two_normal_rows():
+    rows = [
+        {"productId": 1, "subTypeName": "Normal", "marketPrice": 5.0},
+        {"productId": 1, "subTypeName": "Normal", "marketPrice": 6.0},
+    ]
+    with pytest.raises(ValueError, match="ambiguous productId"):
+        _resolve_subtype_row(1, rows, dt.date(2024, 2, 8))
+
+
+def test_resolve_subtype_row_raises_when_no_normal_among_multiple_non_normal():
+    rows = [
+        {"productId": 1, "subTypeName": "Foil", "marketPrice": 90.0},
+        {"productId": 1, "subTypeName": "Foil Etched", "marketPrice": 120.0},
+    ]
+    with pytest.raises(ValueError, match="ambiguous productId"):
+        _resolve_subtype_row(1, rows, dt.date(2024, 2, 8))

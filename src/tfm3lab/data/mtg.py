@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import datetime as dt
 import difflib
+import enum
 import gzip
 import json
 import lzma
@@ -62,6 +63,31 @@ class CardSpec:
     label: str
     group_abbreviation: str
     product_name: str
+
+
+class PriceSelectionPolicy(enum.Enum):
+    """Which TCGplayer price field to trust for one row.
+
+    MARKET_THEN_MID matches this project's original behavior: prefer
+    marketPrice, fall back to midPrice when marketPrice is null (thin-volume
+    days). MARKET_ONLY/MID_ONLY never fall back — a null preferred field
+    means "no price today", not "use the other one".
+    """
+
+    MARKET_THEN_MID = "market_then_mid"
+    MARKET_ONLY = "market_only"
+    MID_ONLY = "mid_only"
+
+
+@dataclass(frozen=True)
+class PricePoint:
+    """One resolved price observation: the value, which TCGplayer field it
+    came from, and the subTypeName of the winning row (None if the archive
+    didn't carry one)."""
+
+    price: float
+    field_used: str
+    subtype: str | None
 
 
 # The five headline cards from the original draft, plus two adversarial
@@ -164,15 +190,45 @@ def probe_archive_available(date: dt.date, session: requests.Session | None = No
     return r.status_code == 200
 
 
-def _price_from_row(row: dict) -> float | None:
-    """TCGplayer marketPrice, falling back to midPrice when marketPrice is
-    null (happens on thin-volume days for less liquid printings). Never
+def _price_from_row(
+    row: dict, policy: PriceSelectionPolicy = PriceSelectionPolicy.MARKET_THEN_MID
+) -> tuple[float | None, str | None]:
+    """Resolves one row to (price, field_used) per `policy`. Never
     lowPrice/highPrice — those are listing extremes, not price estimates.
+    Returns (None, None) when the policy's field(s) are null.
     """
-    price = row.get("marketPrice")
-    if price is None:
-        price = row.get("midPrice")
-    return float(price) if price is not None else None
+    market = row.get("marketPrice")
+    mid = row.get("midPrice")
+    if policy is PriceSelectionPolicy.MARKET_ONLY:
+        return (float(market), "market") if market is not None else (None, None)
+    if policy is PriceSelectionPolicy.MID_ONLY:
+        return (float(mid), "mid") if mid is not None else (None, None)
+    if market is not None:
+        return float(market), "market"
+    if mid is not None:
+        return float(mid), "mid"
+    return None, None
+
+
+_PREFERRED_SUBTYPES = ("Normal", None)
+
+
+def _resolve_subtype_row(product_id: int, rows: list[dict], date: dt.date) -> dict:
+    """When one productId has multiple rows in a day's archive (distinct
+    subTypeName — e.g. Normal vs Foil bundled together), picks the row this
+    project tracks: subTypeName in ("Normal", None). Raises if that
+    resolution isn't unique — no silent last-row-wins.
+    """
+    if len(rows) == 1:
+        return rows[0]
+    preferred = [r for r in rows if r.get("subTypeName") in _PREFERRED_SUBTYPES]
+    if len(preferred) == 1:
+        return preferred[0]
+    subtypes_seen = [r.get("subTypeName") for r in rows]
+    raise ValueError(
+        f"ambiguous productId {product_id} on {date.isoformat()}: {len(rows)} rows, "
+        f"subTypeName values {subtypes_seen} — no unique 'Normal' row to prefer"
+    )
 
 
 def fetch_daily_prices(
@@ -213,7 +269,7 @@ def fetch_daily_prices(
                 group_id = int(target.split("/")[2])
                 payload = json.loads((Path(tmp) / target).read_text(encoding="utf-8"))
                 for row in payload.get("results", []):
-                    price = _price_from_row(row)
+                    price, _ = _price_from_row(row)
                     if price is not None:
                         out[group_id][int(row["productId"])] = price
     return out
