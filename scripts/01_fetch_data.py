@@ -143,7 +143,8 @@ def main() -> None:
         print("Skipping MTG ingest (--skip-mtg)")
 
     print("Fetching market series (S&P 500, VIX, gold, oil) via yfinance...")
-    market_series = build_market_series(end=as_of.isoformat())
+    # yfinance's end is exclusive — +1 day so as_of's date is actually included
+    market_series = build_market_series(end=(as_of + dt.timedelta(days=1)).isoformat())
     market_df = _series_list_to_frame(market_series)
     market_df.to_parquet(config.CACHE_DIR / "market_prices.parquet", index=False)
     print(
