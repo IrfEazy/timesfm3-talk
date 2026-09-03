@@ -484,3 +484,9 @@ def test_data_quality_table_one_row_per_series():
     s2 = _series("B", [5.0, 5.0], [True, True])
     table = figdata.data_quality_table([s1, s2])
     assert list(table["series"]) == ["A", "B"]
+
+
+def test_data_quality_table_volatility_is_nan_with_fewer_than_two_observed_points():
+    s = _series("A", [10.0, 20.0, 30.0], [False, True, False])
+    table = figdata.data_quality_table([s])
+    assert np.isnan(table.iloc[0]["log_return_volatility"])
