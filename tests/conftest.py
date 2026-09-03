@@ -37,3 +37,34 @@ class FakeForecaster:
             point = np.broadcast_to(np.asarray(last)[..., None], (*np.shape(last), horizon)).copy()
             quant = point[..., None] + levels
             yield FakeOutput(ts_id, point, quant)
+
+
+class ReversedFakeForecaster(FakeForecaster):
+    """Same outputs as FakeForecaster but yielded in reverse ts_id order —
+    exercises callers that must not assume predict_batch preserves input
+    order (the P0 "ts_id association" fix in model.py/backtest.py)."""
+
+    def predict_batch(self, contexts, horizon, **kwargs):
+        self.last_call_kwargs = kwargs
+        levels = np.linspace(0.1, 0.9, self.n_quantiles)
+        ts_ids = kwargs.get("ts_ids") or [None] * len(contexts)
+        items = []
+        for ts_id, ctx in zip(ts_ids, contexts, strict=True):
+            ctx = np.asarray(ctx, dtype=float)
+            last = ctx[-1] if ctx.ndim == 1 else ctx[:, -1]
+            point = np.broadcast_to(np.asarray(last)[..., None], (*np.shape(last), horizon)).copy()
+            quant = point[..., None] + levels
+            items.append(FakeOutput(ts_id, point, quant))
+        yield from reversed(items)
+
+
+class MismatchedTsIdForecaster(FakeForecaster):
+    """Relabels the first output's ts_id to one the caller never requested —
+    simulates a forecaster that drops/renames a ts_id, which forecast_batch
+    must reject rather than silently misassociate."""
+
+    def predict_batch(self, contexts, horizon, **kwargs):
+        outputs = list(super().predict_batch(contexts, horizon, **kwargs))
+        if outputs:
+            outputs[0].ts_id = "unrequested_id"
+        yield from outputs

@@ -124,8 +124,24 @@ def forecast_batch(
     experiment (scripts/03..05) is exactly where a caller should override
     `use_symmetric_averaging=False` to measure the ~2x compute it costs
     (each context is run once as-is and once negated, then averaged).
+
+    Validates ts_ids before and after the call: duplicates or a
+    count mismatch are rejected up front, and the forecaster's returned
+    ts_ids must be exactly the requested set (no missing, no extra) —
+    `BatchForecast.ts_ids` reflects the forecaster's actual output order,
+    and callers (backtest.py) must re-associate results by that ts_id, never
+    by raw position, since nothing in the Forecaster protocol guarantees
+    predict_batch preserves input order.
     """
     ts_ids = list(ts_ids) if ts_ids is not None else [str(i) for i in range(len(contexts))]
+    if len(ts_ids) != len(contexts):
+        raise ValueError(f"got {len(ts_ids)} ts_ids for {len(contexts)} contexts")
+    if len(set(ts_ids)) != len(ts_ids):
+        seen: set[str] = set()
+        dupes: set[str] = set()
+        for t in ts_ids:
+            (dupes if t in seen else seen).add(t)
+        raise ValueError(f"ts_ids must be unique, got duplicates: {sorted(dupes)}")
 
     start = time.perf_counter()
     outputs = list(
@@ -142,12 +158,22 @@ def forecast_batch(
     )
     latency = time.perf_counter() - start
 
+    output_ids = [o.ts_id for o in outputs]
+    requested, returned = set(ts_ids), set(output_ids)
+    if len(output_ids) != len(ts_ids) or requested != returned:
+        missing = requested - returned
+        extra = returned - requested
+        raise ValueError(
+            f"forecaster.predict_batch returned {len(output_ids)} outputs for "
+            f"{len(ts_ids)} requested ts_ids — missing={sorted(missing)}, extra={sorted(extra)}"
+        )
+
     forecasts = np.stack([o.forecast for o in outputs], axis=0)
     quantiles = np.stack([o.quantiles for o in outputs], axis=0)
     assert_quantile_shape(quantiles)
 
     return BatchForecast(
-        ts_ids=[o.ts_id for o in outputs],
+        ts_ids=output_ids,
         forecast=forecasts,
         quantiles=quantiles,
         latency_seconds=latency,

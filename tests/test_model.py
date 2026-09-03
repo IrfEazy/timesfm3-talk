@@ -76,3 +76,36 @@ def test_at_horizon_rejects_horizon_beyond_the_call():
     result = forecast_batch(fake, [np.array([1.0])], max_horizon=7, ts_ids=["only"])
     with pytest.raises(ValueError, match="exceeds"):
         result.at_horizon(28)
+
+
+from .conftest import MismatchedTsIdForecaster, ReversedFakeForecaster
+
+
+def test_forecast_batch_rejects_duplicate_ts_ids():
+    fake = _FakeForecaster()
+    with pytest.raises(ValueError, match="unique"):
+        forecast_batch(fake, [np.array([1.0]), np.array([2.0])], max_horizon=1, ts_ids=["a", "a"])
+
+
+def test_forecast_batch_rejects_ts_id_count_mismatch():
+    fake = _FakeForecaster()
+    with pytest.raises(ValueError, match="got 1 ts_ids"):
+        forecast_batch(fake, [np.array([1.0]), np.array([2.0])], max_horizon=1, ts_ids=["a"])
+
+
+def test_forecast_batch_rejects_output_ts_ids_not_matching_request():
+    fake = MismatchedTsIdForecaster()
+    with pytest.raises(ValueError, match="missing="):
+        forecast_batch(fake, [np.array([1.0]), np.array([2.0])], max_horizon=1, ts_ids=["a", "b"])
+
+
+def test_forecast_batch_preserves_reversed_output_order_in_ts_ids():
+    fake = ReversedFakeForecaster()
+    result = forecast_batch(
+        fake, [np.array([1.0, 2.0]), np.array([10.0, 20.0])], max_horizon=1, ts_ids=["a", "b"]
+    )
+    assert result.ts_ids == ["b", "a"]
+    # forecast[0] must belong to "b" (last context value 20.0), not "a" — BatchForecast.ts_ids
+    # and BatchForecast.forecast must stay in lockstep with whatever order the forecaster used.
+    np.testing.assert_allclose(result.forecast[0], 20.0)
+    np.testing.assert_allclose(result.forecast[1], 2.0)
