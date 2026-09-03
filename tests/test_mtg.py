@@ -5,14 +5,22 @@ network. Live-service verification lives in test_mtg_live.py, opt-in.
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
+import json
+from pathlib import Path
 
 import pytest
+import requests
 
 from tfm3lab.data.mtg import (
+    ArchiveNotAvailableError,
     CardSpec,
     PriceSelectionPolicy,
+    _download_archive_atomic,
     _price_from_row,
     _resolve_subtype_row,
+    _session_with_retries,
+    fetch_daily_prices,
     resolve_card_specs,
 )
 
@@ -159,3 +167,113 @@ def test_resolve_subtype_row_raises_when_no_normal_among_multiple_non_normal():
     ]
     with pytest.raises(ValueError, match="ambiguous productId"):
         _resolve_subtype_row(1, rows, dt.date(2024, 2, 8))
+
+
+def test_session_with_retries_configures_backoff_for_429_and_5xx():
+    session = _session_with_retries()
+    adapter = session.get_adapter("https://tcgcsv.com")
+    retry = adapter.max_retries
+    assert retry.total == 3
+    assert set(retry.status_forcelist) == {429, 500, 502, 503, 504}
+
+
+class _FakeStreamResponse:
+    def __init__(self, status_code, chunks=(b"",)):
+        self.status_code = status_code
+        self._chunks = chunks
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.HTTPError(f"{self.status_code} error")
+
+    def iter_content(self, chunk_size):
+        yield from self._chunks
+
+
+class _FakeDownloadSession:
+    def __init__(self, response):
+        self._response = response
+
+    def get(self, url, **kwargs):
+        return self._response
+
+
+def test_download_archive_atomic_returns_none_on_404(tmp_path):
+    session = _FakeDownloadSession(_FakeStreamResponse(404))
+    dest = tmp_path / "archive.7z"
+    result = _download_archive_atomic("http://example.test/x", dest, session)
+    assert result is None
+    assert not dest.exists()
+    assert not dest.with_suffix(dest.suffix + ".part").exists()
+
+
+def test_download_archive_atomic_writes_final_file_and_returns_hash(tmp_path):
+    session = _FakeDownloadSession(_FakeStreamResponse(200, chunks=[b"hello ", b"world"]))
+    dest = tmp_path / "archive.7z"
+    result = _download_archive_atomic("http://example.test/x", dest, session)
+    assert dest.exists()
+    assert not dest.with_suffix(dest.suffix + ".part").exists()
+    assert result == hashlib.sha256(b"hello world").hexdigest()
+    assert dest.read_bytes() == b"hello world"
+
+
+def test_download_archive_atomic_raises_on_5xx_and_leaves_no_final_file(tmp_path):
+    session = _FakeDownloadSession(_FakeStreamResponse(500))
+    dest = tmp_path / "archive.7z"
+    with pytest.raises(requests.HTTPError):
+        _download_archive_atomic("http://example.test/x", dest, session)
+    assert not dest.exists()
+
+
+def test_fetch_daily_prices_raises_archive_not_available_on_missing_archive(tmp_path, monkeypatch):
+    import tfm3lab.data.mtg as mtg_module
+
+    monkeypatch.setattr(mtg_module, "_download_archive_atomic", lambda url, dest, session: None)
+    with pytest.raises(ArchiveNotAvailableError):
+        fetch_daily_prices(dt.date(2024, 2, 8), {2809}, raw_dir=tmp_path, session=object())
+
+
+def _write_archive(tmp_path: Path, date: dt.date, category_id: int, group_id: int, results: list):
+    import py7zr
+
+    payload_path = tmp_path / "payload.json"
+    payload_path.write_text(json.dumps({"results": results}), encoding="utf-8")
+    archive_path = tmp_path / f"tcgcsv-prices-{date.isoformat()}.ppmd.7z"
+    with py7zr.SevenZipFile(archive_path, mode="w") as z:
+        z.write(payload_path, f"{date.isoformat()}/{category_id}/{group_id}/prices")
+    return archive_path
+
+
+def test_fetch_daily_prices_resolves_normal_subtype_among_multiple_rows(tmp_path):
+    date = dt.date(2024, 2, 8)
+    _write_archive(
+        tmp_path,
+        date,
+        1,
+        2809,
+        [
+            {"productId": 239857, "subTypeName": "Foil", "marketPrice": 90.0},
+            {"productId": 239857, "subTypeName": "Normal", "marketPrice": 30.0},
+        ],
+    )
+    out, archive_sha256 = fetch_daily_prices(date, {2809}, raw_dir=tmp_path, session=object())
+    assert out[2809][239857].price == 30.0
+    assert out[2809][239857].subtype == "Normal"
+    assert out[2809][239857].field_used == "market"
+    assert archive_sha256 is not None
+
+
+def test_fetch_daily_prices_raises_on_unresolvable_subtype_ambiguity(tmp_path):
+    date = dt.date(2024, 2, 8)
+    _write_archive(
+        tmp_path,
+        date,
+        1,
+        2809,
+        [
+            {"productId": 239857, "subTypeName": "Foil", "marketPrice": 90.0},
+            {"productId": 239857, "subTypeName": "Foil Etched", "marketPrice": 120.0},
+        ],
+    )
+    with pytest.raises(ValueError, match="ambiguous productId"):
+        fetch_daily_prices(date, {2809}, raw_dir=tmp_path, session=object())

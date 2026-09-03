@@ -31,7 +31,7 @@ def test_all_default_cards_resolve_against_live_catalog():
 
 
 def test_build_card_series_returns_observed_data_for_a_small_window():
-    series = build_card_series(
+    series, report = build_card_series(
         cards=DEFAULT_CARDS[:2],
         start=dt.date(2024, 2, 8),
         end=dt.date(2024, 2, 14),
@@ -40,3 +40,4 @@ def test_build_card_series_returns_observed_data_for_a_small_window():
     for s in series:
         assert len(s.values) == 7
         assert s.observed.all()  # this window is known-good, no archive gaps
+    assert report.resolved_cards["label"].tolist() == [c.label for c in DEFAULT_CARDS[:2]]

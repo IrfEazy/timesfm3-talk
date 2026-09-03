@@ -30,8 +30,10 @@ import datetime as dt
 import difflib
 import enum
 import gzip
+import hashlib
 import json
 import lzma
+import os
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -39,6 +41,8 @@ from pathlib import Path
 import ijson
 import pandas as pd
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from .. import config
 from ..backtest import SeriesData
@@ -90,6 +94,70 @@ class PricePoint:
     subtype: str | None
 
 
+class ArchiveNotAvailableError(Exception):
+    """TCGCSV has no archive published for this date (404) — a legitimate
+    gap, distinct from a transient failure."""
+
+    def __init__(self, date: dt.date):
+        self.date = date
+        super().__init__(f"no TCGCSV archive available for {date.isoformat()}")
+
+
+@dataclass(frozen=True)
+class IngestReport:
+    """What build_card_series learned while fetching, for the caller to pass
+    into manifest.build_fetch_manifest — not part of SeriesData itself."""
+
+    resolved_cards: pd.DataFrame
+    archive_hashes: dict[str, str]
+    price_field_counts: dict[str, int]
+
+
+def _session_with_retries() -> requests.Session:
+    """A session that retries 429/5xx with backoff before giving up — a
+    transient failure must raise, not silently become a missing day."""
+    session = requests.Session()
+    retry = Retry(
+        total=3,
+        backoff_factor=1.0,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset({"GET", "HEAD"}),
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _download_archive_atomic(url: str, dest: Path, session: requests.Session) -> str | None:
+    """Streams `url` to `dest` atomically (temp `.part` file, hashed while
+    streaming, then renamed) and returns the sha256 hex digest, or None on a
+    404 (caller turns that into ArchiveNotAvailableError). Any other
+    non-2xx status raises after the session's own retries are exhausted —
+    no transient failure is silently swallowed here.
+    """
+    r = session.get(url, headers=_HEADERS, timeout=180, stream=True)
+    if r.status_code == 404:
+        return None
+    r.raise_for_status()
+    part = dest.with_suffix(dest.suffix + ".part")
+    digest = hashlib.sha256()
+    with open(part, "wb") as f:
+        for chunk in r.iter_content(chunk_size=1 << 20):
+            f.write(chunk)
+            digest.update(chunk)
+    os.replace(part, dest)
+    return digest.hexdigest()
+
+
 # The five headline cards from the original draft, plus two adversarial
 # cases the plan calls for: a lower-liquidity legendary (thinner, noisier
 # price history than the chase mythics above) and a reprinted utility land
@@ -111,7 +179,7 @@ DEFAULT_CARDS = (
 def fetch_groups(
     category_id: int = MAGIC_CATEGORY_ID, session: requests.Session | None = None
 ) -> pd.DataFrame:
-    session = session or requests.Session()
+    session = session or _session_with_retries()
     url = f"{TCGCSV_BASE}/tcgplayer/{category_id}/groups"
     r = session.get(url, headers=_HEADERS, timeout=_TIMEOUT)
     r.raise_for_status()
@@ -121,7 +189,7 @@ def fetch_groups(
 def fetch_products(
     group_id: int, category_id: int = MAGIC_CATEGORY_ID, session: requests.Session | None = None
 ) -> pd.DataFrame:
-    session = session or requests.Session()
+    session = session or _session_with_retries()
     url = f"{TCGCSV_BASE}/tcgplayer/{category_id}/{group_id}/products"
     r = session.get(url, headers=_HEADERS, timeout=_TIMEOUT)
     r.raise_for_status()
@@ -140,7 +208,7 @@ def resolve_card_specs(
     reason is exactly the "no silent caps" failure mode this project's
     plan explicitly rules out.
     """
-    session = session or requests.Session()
+    session = session or _session_with_retries()
     groups = fetch_groups(category_id, session)
     products_cache: dict[int, pd.DataFrame] = {}
     rows = []
@@ -237,42 +305,56 @@ def fetch_daily_prices(
     category_id: int = MAGIC_CATEGORY_ID,
     session: requests.Session | None = None,
     raw_dir: Path = config.RAW_DIR,
-) -> dict[int, dict[int, float]]:
-    """Downloads one day's archive (cached under raw_dir), extracts only
-    the requested groups' price files, and returns
-    {group_id: {product_id: price}}.
+    price_policy: PriceSelectionPolicy = PriceSelectionPolicy.MARKET_THEN_MID,
+) -> tuple[dict[int, dict[int, PricePoint]], str | None]:
+    """Downloads one day's archive (cached under raw_dir, atomic write +
+    sha256), extracts only the requested groups' price files, and returns
+    ({group_id: {product_id: PricePoint}}, archive_sha256).
 
-    Price is TCGplayer's `marketPrice`, falling back to `midPrice` when
-    marketPrice is null (happens on thin-volume days for less liquid
-    printings) — never `lowPrice`/`highPrice`, which are listing extremes,
-    not transacted-price estimates.
+    Raises ArchiveNotAvailableError on a 404 (legitimate gap — TCGCSV never
+    published this date). Any other HTTP failure, after the session's own
+    retries are exhausted, propagates as requests.HTTPError — a transient
+    429/5xx must not silently become a missing day.
+
+    When multiple rows share a productId in one day's file (distinct
+    subTypeName — e.g. Normal vs Foil bundled together), the row is resolved
+    by preferring subTypeName in ("Normal", None); anything left ambiguous
+    raises ValueError naming the productId/date/subtypes seen.
     """
     import py7zr
 
-    session = session or requests.Session()
+    session = session or _session_with_retries()
     raw_dir.mkdir(parents=True, exist_ok=True)
     archive_path = raw_dir / f"tcgcsv-prices-{date.isoformat()}.ppmd.7z"
-    if not archive_path.exists():
-        r = session.get(_archive_url(date), headers=_HEADERS, timeout=180)
-        r.raise_for_status()
-        archive_path.write_bytes(r.content)
+    if archive_path.exists():
+        archive_sha256 = _sha256_file(archive_path)
+    else:
+        archive_sha256 = _download_archive_atomic(_archive_url(date), archive_path, session)
+        if archive_sha256 is None:
+            raise ArchiveNotAvailableError(date)
 
     targets = [f"{date.isoformat()}/{category_id}/{gid}/prices" for gid in group_ids]
-    out: dict[int, dict[int, float]] = {gid: {} for gid in group_ids}
+    out: dict[int, dict[int, PricePoint]] = {gid: {} for gid in group_ids}
     with py7zr.SevenZipFile(archive_path, mode="r") as z:
         present = [t for t in targets if t in set(z.getnames())]
         if not present:
-            return out
+            return out, archive_sha256
         with tempfile.TemporaryDirectory() as tmp:
             z.extract(path=tmp, targets=present)
             for target in present:
                 group_id = int(target.split("/")[2])
                 payload = json.loads((Path(tmp) / target).read_text(encoding="utf-8"))
+                rows_by_product: dict[int, list[dict]] = {}
                 for row in payload.get("results", []):
-                    price, _ = _price_from_row(row)
+                    rows_by_product.setdefault(int(row["productId"]), []).append(row)
+                for product_id, rows in rows_by_product.items():
+                    winning = _resolve_subtype_row(product_id, rows, date)
+                    price, field_used = _price_from_row(winning, price_policy)
                     if price is not None:
-                        out[group_id][int(row["productId"])] = price
-    return out
+                        out[group_id][product_id] = PricePoint(
+                            price=price, field_used=field_used, subtype=winning.get("subTypeName")
+                        )
+    return out, archive_sha256
 
 
 def build_card_series(
@@ -282,32 +364,49 @@ def build_card_series(
     raw_dir: Path = config.RAW_DIR,
     max_ffill_days: int = 3,
     session: requests.Session | None = None,
-) -> list[SeriesData]:
-    """Builds one SeriesData per card over [start, end], daily frequency.
+    price_policy: PriceSelectionPolicy = PriceSelectionPolicy.MARKET_THEN_MID,
+) -> tuple[list[SeriesData], IngestReport]:
+    """Builds one SeriesData per card over [start, end], daily frequency, and
+    an IngestReport (resolved card specs, archive sha256 per date, price
+    field usage counts) for the caller to pass into
+    manifest.build_fetch_manifest.
 
-    Missing days (archive gaps, or the product simply unlisted that day)
-    are forward-filled up to `max_ffill_days`; `SeriesData.observed` marks
-    which points are real vs. filled, per the project's rule that filled
-    points must never be scored as if they were observations.
+    Missing days (archive gaps, or the product simply unlisted that day) are
+    forward-filled up to `max_ffill_days`; `SeriesData.observed` marks which
+    points are real vs. filled, per the project's rule that filled points
+    must never be scored as if they were observations.
+
+    `end` defaults to `date.today()` for library callers (notebooks, tests)
+    — a full experiment run must pass an explicit `end` (see
+    scripts/01_fetch_data.py's --as-of/--allow-live-end policy); that
+    constraint is enforced at the script layer, not here.
     """
     end = end or dt.date.today()
-    session = session or requests.Session()
+    session = session or _session_with_retries()
     resolved = resolve_card_specs(cards, session=session)
     group_ids = set(resolved["group_id"])
 
     date_range = pd.date_range(start, end, freq="D")
     raw = pd.DataFrame(index=date_range, columns=resolved["label"], dtype=float)
 
+    archive_hashes: dict[str, str] = {}
+    price_field_counts: dict[str, int] = {"market": 0, "mid": 0}
+
     for date in date_range:
         day = date.date()
         try:
-            prices_by_group = fetch_daily_prices(day, group_ids, raw_dir=raw_dir, session=session)
-        except requests.HTTPError:
+            prices_by_group, archive_sha256 = fetch_daily_prices(
+                day, group_ids, raw_dir=raw_dir, session=session, price_policy=price_policy
+            )
+        except ArchiveNotAvailableError:
             continue  # archive missing for this day — left as NaN, filled below
+        if archive_sha256 is not None:
+            archive_hashes[day.isoformat()] = archive_sha256
         for _, row in resolved.iterrows():
-            price = prices_by_group.get(row["group_id"], {}).get(row["product_id"])
-            if price is not None:
-                raw.loc[date, row["label"]] = price
+            point = prices_by_group.get(row["group_id"], {}).get(row["product_id"])
+            if point is not None:
+                raw.loc[date, row["label"]] = point.price
+                price_field_counts[point.field_used] += 1
 
     observed = raw.notna()
     filled = raw.ffill(limit=max_ffill_days)
@@ -322,7 +421,12 @@ def build_card_series(
                 observed=observed[label].to_numpy(),
             )
         )
-    return series_list
+    report = IngestReport(
+        resolved_cards=resolved,
+        archive_hashes=archive_hashes,
+        price_field_counts=price_field_counts,
+    )
+    return series_list, report
 
 
 # --- MTGJSON fallback (90-day rolling window) --------------------------------
