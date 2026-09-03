@@ -12,6 +12,7 @@ from tfm3lab import config
 from tfm3lab.model import BatchForecast, assert_quantile_shape, forecast_batch
 
 from .conftest import FakeForecaster as _FakeForecaster
+from .conftest import MismatchedTsIdForecaster, ReversedFakeForecaster
 
 
 def test_assert_quantile_shape_accepts_valid_grid():
@@ -76,9 +77,6 @@ def test_at_horizon_rejects_horizon_beyond_the_call():
     result = forecast_batch(fake, [np.array([1.0])], max_horizon=7, ts_ids=["only"])
     with pytest.raises(ValueError, match="exceeds"):
         result.at_horizon(28)
-
-
-from .conftest import MismatchedTsIdForecaster, ReversedFakeForecaster
 
 
 def test_forecast_batch_rejects_duplicate_ts_ids():
