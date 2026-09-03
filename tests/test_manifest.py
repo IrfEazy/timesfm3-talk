@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import subprocess
 
 import pandas as pd
 
@@ -52,3 +53,16 @@ def test_build_fetch_manifest_empty_price_field_counts_gives_empty_pct():
         coverage_stats=[],
     )
     assert payload["price_field_used_pct"] == {}
+
+
+def test_write_manifest_handles_git_timeout_gracefully(tmp_path, monkeypatch):
+    """Verify that a git subprocess timeout degrades to 'unknown' SHA."""
+    monkeypatch.setattr(
+        "tfm3lab.manifest.subprocess.run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            subprocess.TimeoutExpired(cmd=["git"], timeout=5)
+        ),
+    )
+    path = write_manifest({}, tmp_path / "m.json", as_of=dt.date(2026, 9, 1))
+    data = json.loads(path.read_text())
+    assert data["_meta"]["git_sha"] == "unknown"

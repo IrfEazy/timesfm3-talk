@@ -30,7 +30,12 @@ def _git_sha() -> str:
             timeout=5,
         )
         return result.stdout.strip()
-    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+    except (
+        subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
+        FileNotFoundError,
+        OSError,
+    ):
         return "unknown"
 
 
