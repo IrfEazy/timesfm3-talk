@@ -169,10 +169,17 @@ sotto). Sotto: copertura P10-P90 media, riga nominale a 0.80 — degrada da 0.82
 (h=28). Il pannello sotto è il *meccanismo* dietro la curva di calibrazione: bande
 dimensionate bene a un passo, che non si allargano abbastanza in fretta.
 
-**C4 — `exp_mtg_pit_histogram` (slide Esperimento C).** Tre pannelli, h=1/7/28. Bin agli
-stessi 9 livelli dei quantili — i bin estremi (`≤ q10`, `≥ q90`) sono conteggi corretti di
-"oltre quel quantile", non la vera forma della coda (`pit_values` taglia, non estrapola).
-A h=28 il 63.7% della massa è nei due bin estremi contro il 25% atteso.
+**C4 — `exp_mtg_quantile_bin_calibration`, ex `exp_mtg_pit_histogram` (slide Esperimento
+C).** Tre pannelli, h=1/7/28. **Rinominato**: la versione precedente costruiva 8 bin da un
+istogramma dei valori PIT interpolati (`np.histogram` su 9 confini di quantile produce 8
+bin, non 9) ed etichettava i due bin estremi come `≤ q10`/`≥ q90` quando in realtà erano
+`[0.1, 0.2)`/`[0.8, 0.9]` — un bug di etichettatura, non solo di nome (`figdata.py`). La
+versione corretta conta direttamente contro i 9 quantili previsti per riga, 10 bin
+espliciti (`actual <= q10`, `(q10, q20]`, ..., `(q80, q90]`, `actual > q90`), ciascuno con
+probabilità nominale 10%. La coda vera resta comunque non estrapolata (non c'è modo di
+sapere quanto oltre q90 sia finito un valore, solo che lo è). Quota di massa nei due bin
+estremi a h=28: `[NUMERO]` (nominale atteso 20%) — va ricalcolata con la funzione corretta,
+il numero precedente (63.7% vs 25% atteso) si riferisce allo schema a 8 bin ormai rimosso.
 
 **C5 — `exp_calibration_curve` (slide Esperimento C).** Tre curve, **tutte a h=1**:
 mercato-calmo, mercato-shock, MTG come riferimento cross-dominio. Prima di questo fix,
