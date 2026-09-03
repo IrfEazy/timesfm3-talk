@@ -23,7 +23,15 @@ def _close_figures():
     plt.close("all")
 
 
-def _forecast_slice(all_observed: bool = True):
+def _forecast_slice(all_observed: bool = True, *, history_observed=None, target_observed=None):
+    # history_observed/target_observed let a test set the two imputed-point
+    # scatter calls in plot_forecast_slice independently (e.g. an imputed
+    # target with a fully-observed history, or vice versa) — each is the
+    # literal "is the last point observed" value (True = no imputed point,
+    # False = one imputed point), defaulting to `all_observed` when not
+    # given, so existing all-or-nothing callers are unaffected.
+    history_observed = all_observed if history_observed is None else history_observed
+    target_observed = all_observed if target_observed is None else target_observed
     return figdata.ForecastSlice(
         series="A",
         origin_index=10,
@@ -39,8 +47,8 @@ def _forecast_slice(all_observed: bool = True):
         coverage=0.6,
         relative_mae=1.1,
         contains_glitch=False,
-        observed_mask=np.array([True, True, all_observed, True, True]),
-        history_observed=np.array([True] * 9 + [all_observed]),
+        observed_mask=np.array([True, True, target_observed, True, True]),
+        history_observed=np.array([True] * 9 + [history_observed]),
     )
 
 
@@ -67,6 +75,37 @@ def test_plot_forecast_slice_marks_imputed_points():
     # the imputed case draws two extra scatter collections (one in history, one in the
     # revealed target) that the fully-observed case doesn't.
     assert len(ax_imputed.collections) > len(ax_clean.collections)
+
+
+def test_plot_forecast_slice_imputed_legend_entry_is_not_duplicated():
+    # Both history AND target carry an imputed point in this fixture, so
+    # both scatter calls fire, each with label "imputato (forward-fill)".
+    # ax.get_legend_handles_labels() re-scans every artist on the axes and
+    # would show the duplicate regardless of what's actually rendered — the
+    # thing under test is the rendered Legend itself (ax.get_legend()),
+    # which plot_forecast_slice builds from a deduplicated handle/label map.
+    sl = _forecast_slice(all_observed=False)
+    ax = plots.plot_forecast_slice(sl, reveal=True)
+    legend_labels = [t.get_text() for t in ax.get_legend().get_texts()]
+    assert legend_labels.count("imputato (forward-fill)") == 1
+
+
+def test_plot_forecast_slice_no_imputed_legend_entry_when_fully_observed():
+    sl = _forecast_slice(all_observed=True)
+    ax = plots.plot_forecast_slice(sl, reveal=True)
+    legend_labels = [t.get_text() for t in ax.get_legend().get_texts()]
+    assert legend_labels.count("imputato (forward-fill)") == 0
+
+
+def test_plot_forecast_slice_imputed_target_alone_still_gets_a_legend_entry():
+    # History fully observed, only the TARGET has an imputed point — only
+    # the target-imputed scatter call fires. Before the fix that call had no
+    # `label=`, so this case rendered hollow markers with nothing in the
+    # legend explaining them.
+    sl = _forecast_slice(history_observed=True, target_observed=False)
+    ax = plots.plot_forecast_slice(sl, reveal=True)
+    legend_labels = [t.get_text() for t in ax.get_legend().get_texts()]
+    assert legend_labels.count("imputato (forward-fill)") == 1
 
 
 def test_plot_shock_reaction_draws_two_panels():
@@ -106,6 +145,7 @@ def test_plot_quantile_bin_calibration_one_panel_per_horizon():
         {
             "horizon_step": [1] * 6 + [7] * 6,
             "actual": [1, 2, 3, 4, 5, 9] * 2,
+            "observed": [True] * 12,
         }
     )
     for i, level in enumerate([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]):
@@ -116,7 +156,9 @@ def test_plot_quantile_bin_calibration_one_panel_per_horizon():
 
 
 def test_plot_pit_histogram_alias_still_works():
-    preds = pd.DataFrame({"horizon_step": [1] * 3, "actual": [1, 2, 9]})
+    preds = pd.DataFrame(
+        {"horizon_step": [1] * 3, "actual": [1, 2, 9], "observed": [True] * 3}
+    )
     for i, level in enumerate([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]):
         preds[f"q{round(level * 100):02d}"] = i + 1
     hist = figdata.pit_histogram(preds, horizon_steps=(1,))

@@ -91,6 +91,7 @@ def plot_forecast_slice(
             ax.scatter(
                 target_dates[imputed], actual_values[imputed],
                 facecolors="none", edgecolors=PALETTE["baseline"], marker="o", s=30, zorder=3,
+                label="imputato (forward-fill)",
             )
         ax.plot(
             sl.target_dates, sl.forecast, color=PALETTE["model"], marker="o", markersize=4,
@@ -114,7 +115,13 @@ def plot_forecast_slice(
     pad = 0.08 * (max(all_values) - min(all_values) + 1e-9)
     ax.set_ylim(min(all_values) - pad, max(all_values) + pad)
     ax.set_title(f"{sl.series} — taglio {pd.Timestamp(sl.origin_date).date()}")
-    ax.legend(loc="upper left", fontsize=9)
+    # Both imputed-point scatters (history and target) share the label
+    # "imputato (forward-fill)" — matplotlib doesn't dedupe legend entries
+    # by label on its own, so collapse to one entry per unique label
+    # regardless of how many artists (zero, one, or both scatters) fire.
+    handles, labels = ax.get_legend_handles_labels()
+    by_label = dict(zip(labels, handles, strict=True))
+    ax.legend(by_label.values(), by_label.keys(), loc="upper left", fontsize=9)
     if reveal:
         ax.annotate(
             f"copertura P10-P90: {sl.coverage:.2f}   relative MAE: {sl.relative_mae:.3f}",

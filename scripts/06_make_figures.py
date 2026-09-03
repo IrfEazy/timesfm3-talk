@@ -162,7 +162,11 @@ def main() -> None:
         if args.only and name != args.only:
             continue
         print(f"{name}:")
-        builder()
+        try:
+            builder()
+        except Exception as e:  # one bad window must not abort the other figures
+            print(f"  ERROR: {e}")
+            continue
 
 
 if __name__ == "__main__":

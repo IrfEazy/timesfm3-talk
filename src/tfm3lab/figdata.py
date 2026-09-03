@@ -171,6 +171,12 @@ def build_forecast_slice(
     demo notebook scrubbing through origins) should leave it False and
     instead use `observed_mask`/`history_observed` to render imputed points
     distinctly (see plots.plot_forecast_slice).
+
+    Regardless of `require_observed_targets`, the returned `coverage` and
+    `relative_mae` scalars are always scored on observed targets only —
+    `nan` if none of this window's targets are observed. `actual`/
+    `forecast`/`q10`/`q90` on the slice remain the FULL (unfiltered) arrays,
+    for plotting.
     """
     fc = preds[(preds["series"] == series) & (preds["origin_index"] == origin_index)]
     if fc.empty:
@@ -195,10 +201,26 @@ def build_forecast_slice(
     q10 = fc["q10"].to_numpy(dtype=float)
     q90 = fc["q90"].to_numpy(dtype=float)
     naive = float(fc["baseline_naive"].iloc[0])
-    naive_arr = np.full_like(actual, naive)
-    naive_mae = mae(actual, naive_arr)
-    model_mae = mae(actual, forecast)
-    relative = model_mae / naive_mae if naive_mae > 1e-9 else float("nan")
+
+    # coverage/relative_mae are scored on observed targets only — a
+    # forward-filled target's `actual` is just yesterday's price repeated,
+    # and letting it into these scalars would silently launder an imputed
+    # point into the printed accuracy story even though the chart itself
+    # (plots.plot_forecast_slice) draws it as visually distinct. The full
+    # (unfiltered) arrays are still returned on the slice for plotting.
+    if observed_mask.any():
+        obs_actual = actual[observed_mask]
+        obs_forecast = forecast[observed_mask]
+        obs_q10 = q10[observed_mask]
+        obs_q90 = q90[observed_mask]
+        naive_arr = np.full_like(obs_actual, naive)
+        naive_mae = mae(obs_actual, naive_arr)
+        model_mae = mae(obs_actual, obs_forecast)
+        relative = model_mae / naive_mae if naive_mae > 1e-9 else float("nan")
+        observed_coverage = coverage(obs_actual, obs_q10, obs_q90)
+    else:
+        relative = float("nan")
+        observed_coverage = float("nan")
 
     if glitches is None:
         glitches = find_glitches(truth)
@@ -220,7 +242,7 @@ def build_forecast_slice(
         q10=q10,
         q90=q90,
         naive=naive,
-        coverage=coverage(actual, q10, q90),
+        coverage=observed_coverage,
         relative_mae=relative,
         contains_glitch=contains_glitch,
         observed_mask=observed_mask,
@@ -328,12 +350,18 @@ def quantile_bin_calibration(
     "<= q10"/">= q90" when they actually covered [0.1, 0.2) and [0.8, 0.9].
     Counting directly against the quantile columns (no interpolation step)
     gets both the bin count and the labels right by construction.
+
+    Rows with `observed=False` (forward-filled targets) are excluded before
+    binning, matching the project-wide rule (see summarize.py's module
+    docstring and `summarize_accuracy`/`summarize_calibration`) that a
+    fabricated "yesterday's price repeated" value must never be scored
+    against the model's forecast as if it were a real observation.
     """
     levels = config.QUANTILE_LEVELS
     n_bins = len(levels) + 1  # 10
     rows = []
     for h in horizon_steps:
-        g = preds[preds["horizon_step"] == h]
+        g = preds[(preds["horizon_step"] == h) & preds["observed"]]
         if g.empty:
             continue
         actual = g["actual"].to_numpy(dtype=float)

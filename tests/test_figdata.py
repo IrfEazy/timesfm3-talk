@@ -3,6 +3,8 @@ import pandas as pd
 import pytest
 
 from tfm3lab import config, figdata
+from tfm3lab.metrics import coverage as _coverage
+from tfm3lab.metrics import mae as _mae
 
 QC = list(config.QUANTILE_LEVELS)
 
@@ -179,6 +181,66 @@ def test_build_forecast_slice_exposes_observed_mask():
     assert sl.history_observed.dtype == bool
 
 
+def test_build_forecast_slice_coverage_and_relative_mae_ignore_imputed_targets():
+    # Two real observations (h=1, h=2) sit inside a tight q10/q90 band and
+    # track the naive baseline closely (relative_mae == 1.0, coverage ==
+    # 1.0). A third, forward-filled target (h=3, observed=False) is
+    # deliberately way outside the band, with a forecast far worse than the
+    # naive baseline on that row too — if it were wrongly folded into the
+    # score, coverage would drop (2/3) and relative_mae would rise well
+    # above 1.0.
+    rows = [
+        _pred_row(series="A", origin_index=65, horizon_step=1, actual=51.0, forecast=50.0,
+                   baseline_naive=50.0, q10=45.0, q90=55.0, observed=True),
+        _pred_row(series="A", origin_index=65, horizon_step=2, actual=49.0, forecast=50.0,
+                   baseline_naive=50.0, q10=45.0, q90=55.0, observed=True),
+        _pred_row(series="A", origin_index=65, horizon_step=3, actual=5000.0, forecast=-1000.0,
+                   baseline_naive=50.0, q10=45.0, q90=55.0, observed=False),
+    ]
+    preds = pd.DataFrame(rows)
+    truth = figdata.reconstruct_truth(preds)
+    sl = figdata.build_forecast_slice(preds, truth, "A", origin_index=65, history_days=5)
+
+    observed = preds[preds["observed"]].sort_values("horizon_step")
+    obs_actual = observed["actual"].to_numpy(dtype=float)
+    obs_forecast = observed["forecast"].to_numpy(dtype=float)
+    obs_q10 = observed["q10"].to_numpy(dtype=float)
+    obs_q90 = observed["q90"].to_numpy(dtype=float)
+    naive_val = float(observed["baseline_naive"].iloc[0])
+    naive_arr = np.full_like(obs_actual, naive_val)
+    expected_relative = _mae(obs_actual, obs_forecast) / _mae(obs_actual, naive_arr)
+    expected_coverage = _coverage(obs_actual, obs_q10, obs_q90)
+
+    assert sl.coverage == pytest.approx(expected_coverage)
+    assert sl.coverage == pytest.approx(1.0)
+    assert sl.relative_mae == pytest.approx(expected_relative)
+    assert sl.relative_mae == pytest.approx(1.0)
+
+    # Sanity check the "wrongly included" claim itself: if all 3 rows (the
+    # imputed one too) had been scored, coverage would drop and relative_mae
+    # would rise well past the observed-only values above.
+    all_actual = preds.sort_values("horizon_step")["actual"].to_numpy(dtype=float)
+    all_forecast = preds.sort_values("horizon_step")["forecast"].to_numpy(dtype=float)
+    all_q10 = preds.sort_values("horizon_step")["q10"].to_numpy(dtype=float)
+    all_q90 = preds.sort_values("horizon_step")["q90"].to_numpy(dtype=float)
+    naive_arr_all = np.full_like(all_actual, naive_val)
+    coverage_if_included = _coverage(all_actual, all_q10, all_q90)
+    relative_if_included = _mae(all_actual, all_forecast) / _mae(all_actual, naive_arr_all)
+    assert coverage_if_included < sl.coverage
+    assert relative_if_included > sl.relative_mae
+
+
+def test_build_forecast_slice_coverage_and_relative_mae_nan_when_nothing_observed():
+    rows = _make_origin_block("A", 65, base_price=50.0, horizon=2, drift=0.0)
+    preds = pd.DataFrame(rows)
+    preds.loc[preds["origin_index"] == 65, "observed"] = False
+
+    truth = figdata.reconstruct_truth(preds)
+    sl = figdata.build_forecast_slice(preds, truth, "A", origin_index=65, history_days=5)
+    assert np.isnan(sl.coverage)
+    assert np.isnan(sl.relative_mae)
+
+
 def test_build_forecast_slice_require_observed_targets_raises():
     rows = _make_origin_block("A", 65, base_price=50.0, horizon=3)
     preds = pd.DataFrame(rows)
@@ -288,6 +350,25 @@ def test_quantile_bin_calibration_has_ten_bins_with_correct_labels():
     assert labels[-2] == "(0.8, 0.9]"
     assert labels[-1] == "> q90"
     assert hist["nominal_fraction"].eq(0.1).all()
+
+
+def test_quantile_bin_calibration_excludes_unobserved_rows():
+    # 20 origins x horizon=1 -> 20 rows, all observed by default. Flip one
+    # row to observed=False AND move its actual far outside its own
+    # quantile band, so if it were wrongly counted it would land in a
+    # different (outer) bin than where the rest of the mass sits — the
+    # count-sum check below is the load-bearing assertion either way.
+    preds = _synthetic_preds(n_origins=20, horizon=1, start_origin=64, drift=0.5)
+    target_row = preds[preds["horizon_step"] == 1].index[0]
+    preds.loc[target_row, "observed"] = False
+    preds.loc[target_row, "actual"] = -1_000_000.0  # would land in the "<= q10" bin if included
+
+    hist = figdata.quantile_bin_calibration(preds, horizon_steps=(1,))
+    n_observed = int(preds["observed"].sum())
+    assert n_observed == 19
+    assert hist["count"].sum() == n_observed
+    assert hist["count"].sum() != len(preds)  # i.e. the unobserved row was actually dropped
+    assert hist["n"].iloc[0] == n_observed
 
 
 def test_quantile_bin_calibration_below_q10_lands_in_first_bin():

@@ -45,17 +45,8 @@ class ReversedFakeForecaster(FakeForecaster):
     order (the P0 "ts_id association" fix in model.py/backtest.py)."""
 
     def predict_batch(self, contexts, horizon, **kwargs):
-        self.last_call_kwargs = kwargs
-        levels = np.linspace(0.1, 0.9, self.n_quantiles)
-        ts_ids = kwargs.get("ts_ids") or [None] * len(contexts)
-        items = []
-        for ts_id, ctx in zip(ts_ids, contexts, strict=True):
-            ctx = np.asarray(ctx, dtype=float)
-            last = ctx[-1] if ctx.ndim == 1 else ctx[:, -1]
-            point = np.broadcast_to(np.asarray(last)[..., None], (*np.shape(last), horizon)).copy()
-            quant = point[..., None] + levels
-            items.append(FakeOutput(ts_id, point, quant))
-        yield from reversed(items)
+        outputs = list(super().predict_batch(contexts, horizon, **kwargs))
+        yield from reversed(outputs)
 
 
 class MismatchedTsIdForecaster(FakeForecaster):
