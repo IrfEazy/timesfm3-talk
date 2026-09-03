@@ -9,6 +9,7 @@ import hashlib
 import json
 from pathlib import Path
 
+import pandas as pd
 import pytest
 import requests
 
@@ -20,6 +21,7 @@ from tfm3lab.data.mtg import (
     _price_from_row,
     _resolve_subtype_row,
     _session_with_retries,
+    build_card_series,
     fetch_daily_prices,
     resolve_card_specs,
 )
@@ -277,3 +279,31 @@ def test_fetch_daily_prices_raises_on_unresolvable_subtype_ambiguity(tmp_path):
     )
     with pytest.raises(ValueError, match="ambiguous productId"):
         fetch_daily_prices(date, {2809}, raw_dir=tmp_path, session=object())
+
+
+def test_build_card_series_populates_subtype_counts(tmp_path, monkeypatch):
+    import tfm3lab.data.mtg as mtg_module
+
+    date = dt.date(2024, 2, 8)
+    _write_archive(
+        tmp_path,
+        date,
+        1,
+        2809,
+        [{"productId": 239857, "subTypeName": "Normal", "marketPrice": 30.0}],
+    )
+    resolved = pd.DataFrame(
+        [
+            {
+                "label": "Ragavan [MH2]",
+                "group_id": 2809,
+                "product_id": 239857,
+                "group_abbreviation": "MH2",
+                "product_name": "Ragavan, Nimble Pilferer",
+            }
+        ]
+    )
+    monkeypatch.setattr(mtg_module, "resolve_card_specs", lambda cards, session=None: resolved)
+    _, report = build_card_series(start=date, end=date, raw_dir=tmp_path, session=object())
+    assert report.subtype_counts == {"Normal": 1}
+    assert report.price_field_counts["market"] == 1

@@ -111,6 +111,7 @@ class IngestReport:
     resolved_cards: pd.DataFrame
     archive_hashes: dict[str, str]
     price_field_counts: dict[str, int]
+    subtype_counts: dict[str, int]
 
 
 def _session_with_retries() -> requests.Session:
@@ -368,7 +369,7 @@ def build_card_series(
 ) -> tuple[list[SeriesData], IngestReport]:
     """Builds one SeriesData per card over [start, end], daily frequency, and
     an IngestReport (resolved card specs, archive sha256 per date, price
-    field usage counts) for the caller to pass into
+    field usage counts, subtype usage counts) for the caller to pass into
     manifest.build_fetch_manifest.
 
     Missing days (archive gaps, or the product simply unlisted that day) are
@@ -391,6 +392,7 @@ def build_card_series(
 
     archive_hashes: dict[str, str] = {}
     price_field_counts: dict[str, int] = {"market": 0, "mid": 0}
+    subtype_counts: dict[str, int] = {}
 
     for date in date_range:
         day = date.date()
@@ -407,6 +409,8 @@ def build_card_series(
             if point is not None:
                 raw.loc[date, row["label"]] = point.price
                 price_field_counts[point.field_used] += 1
+                key = point.subtype if point.subtype is not None else "None"
+                subtype_counts[key] = subtype_counts.get(key, 0) + 1
 
     observed = raw.notna()
     filled = raw.ffill(limit=max_ffill_days)
@@ -425,6 +429,7 @@ def build_card_series(
         resolved_cards=resolved,
         archive_hashes=archive_hashes,
         price_field_counts=price_field_counts,
+        subtype_counts=subtype_counts,
     )
     return series_list, report
 

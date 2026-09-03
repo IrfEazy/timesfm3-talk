@@ -35,6 +35,7 @@ def test_build_fetch_manifest_computes_price_field_pct():
         resolved_cards=pd.DataFrame([{"label": "A", "group_id": 1, "product_id": 2}]),
         archive_hashes={"2024-02-08": "abc123"},
         price_field_counts={"market": 3, "mid": 1},
+        subtype_counts={"Normal": 4},
         coverage_stats=[{"series": "A", "observed_rate": 0.9, "fallback_rate": 0.1}],
     )
     assert payload["price_field_used_pct"] == {"market": 0.75, "mid": 0.25}
@@ -50,9 +51,22 @@ def test_build_fetch_manifest_empty_price_field_counts_gives_empty_pct():
         resolved_cards=pd.DataFrame(columns=["label"]),
         archive_hashes={},
         price_field_counts={},
+        subtype_counts={},
         coverage_stats=[],
     )
     assert payload["price_field_used_pct"] == {}
+
+
+def test_build_fetch_manifest_passes_through_subtype_counts():
+    payload = build_fetch_manifest(
+        date_range=(dt.date(2024, 2, 8), dt.date(2024, 2, 8)),
+        resolved_cards=pd.DataFrame(columns=["label"]),
+        archive_hashes={},
+        price_field_counts={},
+        subtype_counts={"Normal": 5},
+        coverage_stats=[],
+    )
+    assert payload["subtype_counts"] == {"Normal": 5}
 
 
 def test_write_manifest_handles_git_timeout_gracefully(tmp_path, monkeypatch):

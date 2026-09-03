@@ -75,10 +75,13 @@ def build_fetch_manifest(
     resolved_cards: pd.DataFrame,
     archive_hashes: dict[str, str],
     price_field_counts: dict[str, int],
+    subtype_counts: dict[str, int],
     coverage_stats: list[dict],
 ) -> dict:
     """MTG-specific fetch payload: date range, resolved card specs, archive
-    hashes, price-field usage %, and per-card observed/forward-filled %
+    hashes, price-field usage %, subtype usage counts (e.g. how often the
+    resolver picked "Normal" vs. a foil variant — see
+    mtg.py's _resolve_subtype_row), and per-card observed/forward-filled %
     (`coverage_stats` — see figdata.data_quality_table, which computes the
     same numbers for the data-quality figure; this function doesn't
     recompute them, just carries what the caller already has).
@@ -92,5 +95,6 @@ def build_fetch_manifest(
         "resolved_cards": resolved_cards.to_dict(orient="records"),
         "archive_hashes": archive_hashes,
         "price_field_used_pct": price_field_pct,
+        "subtype_counts": subtype_counts,
         "coverage": coverage_stats,
     }

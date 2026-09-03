@@ -127,6 +127,7 @@ def main() -> None:
             resolved_cards=ingest_report.resolved_cards,
             archive_hashes=ingest_report.archive_hashes,
             price_field_counts=ingest_report.price_field_counts,
+            subtype_counts=ingest_report.subtype_counts,
             coverage_stats=quality_table[["series", "observed_rate", "fallback_rate"]].to_dict(
                 orient="records"
             ),
