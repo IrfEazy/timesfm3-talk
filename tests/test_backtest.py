@@ -183,3 +183,42 @@ def test_multivariate_mode_label_default():
     origins = valid_origins(n=20, context_len=4, horizon=2)
     df = run_multivariate_backtest(FakeForecaster(), [a, b], origins, context_len=4, max_horizon=2)
     assert set(df["mode"].unique()) == {"timesfm3_multivariate"}
+
+
+def test_univariate_backtest_correct_with_reversed_output_order():
+    from .conftest import ReversedFakeForecaster
+
+    a = _make_series("a", np.arange(30.0))
+    b = _make_series("b", np.arange(30.0) * 10)
+    context_len, horizon = 5, 3
+    origins = valid_origins(n=30, context_len=context_len, horizon=horizon)
+
+    df_forward = run_univariate_backtest(FakeForecaster(), [a, b], origins, context_len, horizon)
+    df_reversed = run_univariate_backtest(
+        ReversedFakeForecaster(), [a, b], origins, context_len, horizon
+    )
+
+    sort_cols = ["series", "origin_index", "horizon_step"]
+    left = df_forward.sort_values(sort_cols).reset_index(drop=True)
+    right = df_reversed.sort_values(sort_cols).reset_index(drop=True)
+    pd.testing.assert_frame_equal(left, right)
+
+
+def test_multivariate_backtest_correct_with_reversed_output_order():
+    from .conftest import ReversedFakeForecaster
+
+    a = _make_series("a", np.arange(1.0, 21.0))
+    b = _make_series("b", np.arange(1.0, 21.0) * 100)
+    origins = valid_origins(n=20, context_len=5, horizon=3)
+
+    df_forward = run_multivariate_backtest(
+        FakeForecaster(), [a, b], origins, context_len=5, max_horizon=3
+    )
+    df_reversed = run_multivariate_backtest(
+        ReversedFakeForecaster(), [a, b], origins, context_len=5, max_horizon=3
+    )
+
+    sort_cols = ["series", "origin_index", "horizon_step"]
+    left = df_forward.sort_values(sort_cols).reset_index(drop=True)
+    right = df_reversed.sort_values(sort_cols).reset_index(drop=True)
+    pd.testing.assert_frame_equal(left, right)

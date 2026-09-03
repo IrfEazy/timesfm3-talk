@@ -170,16 +170,23 @@ def run_univariate_backtest(
     """Forecasts every series at every origin independently, in one batched
     call (no cross-series attention). `transform` (e.g. LOG1P_TRANSFORM)
     is applied to context before forecasting and inverted on every output —
-    see ValueTransform's docstring."""
-    contexts, ts_ids, origin_by_idx, series_by_idx = [], [], [], []
+    see ValueTransform's docstring.
+
+    Associates each forecast_batch output back to its (series, origin) by
+    ts_id (`forecast_batch` guarantees the returned ts_ids are exactly the
+    requested set — see model.py), never by position: nothing in the
+    Forecaster protocol promises predict_batch preserves input order.
+    """
+    contexts, ts_ids = [], []
+    meta_by_ts_id: dict[str, tuple[int, SeriesData]] = {}
     for s in series_list:
         for origin in origins:
             origin = int(origin)
             ctx = s.values[context_slice(origin, context_len)]
             contexts.append(transform.forward(ctx))
-            ts_ids.append(f"{s.name}::{origin}")
-            origin_by_idx.append(origin)
-            series_by_idx.append(s)
+            ts_id = f"{s.name}::{origin}"
+            ts_ids.append(ts_id)
+            meta_by_ts_id[ts_id] = (origin, s)
 
     batch = forecast_batch(
         forecaster,
@@ -191,11 +198,12 @@ def run_univariate_backtest(
     )
 
     rows = []
-    for i in range(batch.n_series):
+    for i, ts_id in enumerate(batch.ts_ids):
+        origin, s = meta_by_ts_id[ts_id]
         rows.extend(
             _rows_for_one_series_forecast(
-                series_by_idx[i],
-                origin_by_idx[i],
+                s,
+                origin,
                 batch.forecast[i],
                 batch.quantiles[i],
                 context_len,
@@ -224,10 +232,18 @@ def run_multivariate_backtest(
     cross-variate attention across them, TimesFM-3's headline v3 feature.
     Requires every series in `series_list` to share the same date index.
     `transform` behaves as in `run_univariate_backtest`.
+
+    One ts_id per origin (the whole variate stack for that origin); results
+    are re-associated to their origin by that ts_id, not by position — see
+    run_univariate_backtest's docstring. Variate order *within* one origin's
+    stacked context is a separate assumption (the model must not reorder
+    variates inside a single call) that this function still relies on, since
+    predict_batch has no per-variate id to check against.
     """
     _assert_aligned(series_list)
 
-    contexts, ts_ids, origin_by_idx = [], [], []
+    contexts, ts_ids = [], []
+    meta_by_ts_id: dict[str, int] = {}
     for origin in origins:
         origin = int(origin)
         stacked = np.stack(
@@ -235,8 +251,9 @@ def run_multivariate_backtest(
             axis=0,
         )
         contexts.append(stacked)
-        ts_ids.append(f"multivariate::{origin}")
-        origin_by_idx.append(origin)
+        ts_id = f"multivariate::{origin}"
+        ts_ids.append(ts_id)
+        meta_by_ts_id[ts_id] = origin
 
     batch = forecast_batch(
         forecaster,
@@ -250,7 +267,8 @@ def run_multivariate_backtest(
     # batch.quantiles shape: (n_origins, n_series, max_horizon, N_QUANTILES)
 
     rows = []
-    for i, origin in enumerate(origin_by_idx):
+    for i, ts_id in enumerate(batch.ts_ids):
+        origin = meta_by_ts_id[ts_id]
         for j, s in enumerate(series_list):
             rows.extend(
                 _rows_for_one_series_forecast(
