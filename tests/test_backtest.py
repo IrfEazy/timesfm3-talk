@@ -222,3 +222,31 @@ def test_multivariate_backtest_correct_with_reversed_output_order():
     left = df_forward.sort_values(sort_cols).reset_index(drop=True)
     right = df_reversed.sort_values(sort_cols).reset_index(drop=True)
     pd.testing.assert_frame_equal(left, right)
+
+
+def test_series_data_rejects_unsorted_dates():
+    values = np.array([1.0, 2.0, 3.0])
+    dates = np.array(["2024-01-03", "2024-01-01", "2024-01-02"], dtype="datetime64[ns]")
+    with pytest.raises(ValueError, match="strictly increasing"):
+        SeriesData(name="bad", values=values, dates=dates, observed=np.ones(3, dtype=bool))
+
+
+def test_series_data_rejects_duplicate_dates():
+    values = np.array([1.0, 2.0, 3.0])
+    dates = np.array(["2024-01-01", "2024-01-01", "2024-01-02"], dtype="datetime64[ns]")
+    with pytest.raises(ValueError, match="strictly increasing"):
+        SeriesData(name="bad", values=values, dates=dates, observed=np.ones(3, dtype=bool))
+
+
+def test_series_data_rejects_non_finite_values():
+    values = np.array([1.0, np.nan, 3.0])
+    dates = pd.date_range("2024-01-01", periods=3).to_numpy()
+    with pytest.raises(ValueError, match="non-finite"):
+        SeriesData(name="bad", values=values, dates=dates, observed=np.ones(3, dtype=bool))
+
+
+def test_series_data_accepts_valid_series():
+    values = np.array([1.0, 2.0, 3.0])
+    dates = pd.date_range("2024-01-01", periods=3).to_numpy()
+    s = SeriesData(name="ok", values=values, dates=dates, observed=np.ones(3, dtype=bool))
+    assert s.name == "ok"  # must not raise

@@ -70,6 +70,18 @@ class SeriesData:
                 f"{self.name}: values/dates/observed length mismatch "
                 f"({n}, {len(self.dates)}, {len(self.observed)})"
             )
+        dates64 = np.asarray(self.dates, dtype="datetime64[ns]")
+        if n > 1 and np.any(np.diff(dates64) <= np.timedelta64(0, "ns")):
+            raise ValueError(f"{self.name}: dates must be strictly increasing and unique")
+        if not np.all(np.isfinite(self.values)):
+            bad = np.flatnonzero(~np.isfinite(self.values))
+            preview = bad[:10].tolist()
+            suffix = f" (+{len(bad) - 10} more)" if len(bad) > 10 else ""
+            raise ValueError(
+                f"{self.name}: {len(bad)} non-finite value(s) at indices {preview}{suffix} — "
+                "the data pipeline should forward-fill or drop these before constructing "
+                "SeriesData; TimesFM-3 cannot accept NaN/inf in its context"
+            )
 
 
 def _assert_aligned(series_list: list[SeriesData]) -> None:
