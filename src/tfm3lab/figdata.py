@@ -144,6 +144,9 @@ class ForecastSlice:
     coverage: float
     relative_mae: float
     contains_glitch: bool
+    observed_mask: np.ndarray  # bool, aligned with target_dates/actual — True where the
+    #   target is a real observation, False where it was forward-filled
+    history_observed: np.ndarray  # bool, aligned with history_dates/history_values
 
 
 def build_forecast_slice(
@@ -153,16 +156,35 @@ def build_forecast_slice(
     origin_index: int,
     history_days: int = 120,
     glitches: pd.DataFrame | None = None,
+    require_observed_targets: bool = False,
 ) -> ForecastSlice:
     """Builds one hero-chart window: `history_days` of real history strictly
     before `origin_index`, then the model's forecast for that origin against
     what actually happened. Raises if `origin_index` has no forecast rows —
     a silently empty chart is worse than a loud error here.
+
+    `require_observed_targets=True` raises if any target point in this
+    window is forward-filled rather than a real observation — set this for
+    any window whose chart will be presented as "reale" (e.g. the hero
+    slide), so a forward-filled value can never get drawn as if it were an
+    actual market/TCGCSV print. Callers that only explore data (e.g. the
+    demo notebook scrubbing through origins) should leave it False and
+    instead use `observed_mask`/`history_observed` to render imputed points
+    distinctly (see plots.plot_forecast_slice).
     """
     fc = preds[(preds["series"] == series) & (preds["origin_index"] == origin_index)]
     if fc.empty:
         raise ValueError(f"no forecast rows for series={series!r}, origin_index={origin_index}")
     fc = fc.sort_values("horizon_step")
+
+    observed_mask = fc["observed"].to_numpy(dtype=bool)
+    if require_observed_targets and not observed_mask.all():
+        unobserved = fc.loc[~observed_mask, "target_index"].astype(int).tolist()
+        raise ValueError(
+            f"series={series!r}, origin_index={origin_index}: target index(es) "
+            f"{unobserved} are forward-filled, not observed — refusing to build a "
+            "slice that would plot imputed values as real (require_observed_targets=True)"
+        )
 
     origin_date = pd.Timestamp(fc["origin_date"].iloc[0])
     hist = truth[(truth["series"] == series) & (truth["index"] < origin_index)].sort_values("index")
@@ -201,6 +223,8 @@ def build_forecast_slice(
         coverage=coverage(actual, q10, q90),
         relative_mae=relative,
         contains_glitch=contains_glitch,
+        observed_mask=observed_mask,
+        history_observed=hist["observed"].to_numpy(dtype=bool),
     )
 
 

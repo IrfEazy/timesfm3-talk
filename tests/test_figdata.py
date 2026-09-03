@@ -168,6 +168,29 @@ def test_build_forecast_slice_coverage_and_relative_mae():
     assert sl.relative_mae == pytest.approx(1.0)  # forecast == naive by construction here
 
 
+def test_build_forecast_slice_exposes_observed_mask():
+    rows = _make_origin_block("A", 65, base_price=50.0, horizon=3)
+    preds = pd.DataFrame(rows)
+    preds.loc[(preds["origin_index"] == 65) & (preds["horizon_step"] == 2), "observed"] = False
+
+    truth = figdata.reconstruct_truth(preds)
+    sl = figdata.build_forecast_slice(preds, truth, "A", origin_index=65, history_days=5)
+    np.testing.assert_array_equal(sl.observed_mask, [True, False, True])
+    assert sl.history_observed.dtype == bool
+
+
+def test_build_forecast_slice_require_observed_targets_raises():
+    rows = _make_origin_block("A", 65, base_price=50.0, horizon=3)
+    preds = pd.DataFrame(rows)
+    preds.loc[(preds["origin_index"] == 65) & (preds["horizon_step"] == 2), "observed"] = False
+    truth = figdata.reconstruct_truth(preds)
+
+    with pytest.raises(ValueError, match="forward-filled"):
+        figdata.build_forecast_slice(
+            preds, truth, "A", origin_index=65, history_days=5, require_observed_targets=True
+        )
+
+
 # --- rank_windows --------------------------------------------------------------
 
 
