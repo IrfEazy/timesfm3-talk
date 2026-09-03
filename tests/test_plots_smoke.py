@@ -222,6 +222,24 @@ def test_plot_glitch_vignette_one_panel_per_glitch():
     assert len(axes) == 1
 
 
+def test_plot_data_quality_three_panels_one_bar_per_series():
+    table = pd.DataFrame(
+        {
+            "series": ["A", "B"],
+            "observed_rate": [0.9, 0.7],
+            "fallback_rate": [0.1, 0.3],
+            "max_gap_days": [1, 3],
+            "glitch_count": [0, 2],
+            "price_min": [1.0, 2.0],
+            "price_max": [10.0, 20.0],
+            "log_return_volatility": [0.01, 0.05],
+        }
+    )
+    axes = plots.plot_data_quality(table)
+    assert len(axes) == 3
+    assert len(axes[0].patches) == 2
+
+
 def test_save_writes_a_png(tmp_path):
     fig, ax = plt.subplots()
     ax.plot([1, 2, 3])

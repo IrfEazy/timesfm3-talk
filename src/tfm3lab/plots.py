@@ -357,6 +357,31 @@ def plot_glitch_vignette(truth: pd.DataFrame, glitches: pd.DataFrame, ax=None, *
     return axes
 
 
+def plot_data_quality(table: pd.DataFrame, axes=None):
+    """Three-panel bar chart, one bar per card/series: observed rate,
+    forward-fill rate, and glitch count. Pairs with
+    figdata.data_quality_table."""
+    if axes is None:
+        _, axes = plt.subplots(1, 3, figsize=(12, 4))
+    ax0, ax1, ax2 = axes
+    labels = table["series"]
+
+    ax0.bar(labels, table["observed_rate"], color=PALETTE["model"])
+    ax0.set_title("Observed rate")
+    ax0.set_ylim(0, 1)
+
+    ax1.bar(labels, table["fallback_rate"], color=PALETTE["baseline"])
+    ax1.set_title("Forward-fill rate")
+    ax1.set_ylim(0, 1)
+
+    ax2.bar(labels, table["glitch_count"], color=PALETTE["alert"])
+    ax2.set_title("Glitch count")
+
+    for ax in axes:
+        ax.tick_params(axis="x", rotation=45)
+    return axes
+
+
 def save(fig, name: str, *, directory: Path = None, dpi: int = 200) -> Path:
     directory = directory if directory is not None else config.FIGURES_DIR
     path = Path(directory) / f"{name}.png"
