@@ -38,7 +38,9 @@ def build_hero_slice() -> None:
     preds, source = figdata.load_mtg_predictions()
     print(f"  (loaded MTG predictions from {source.name})")
     truth = figdata.reconstruct_truth(preds)
-    sl = figdata.build_forecast_slice(preds, truth, "The One Ring [LTR]", origin_index=238)
+    sl = figdata.build_forecast_slice(
+        preds, truth, "The One Ring [LTR]", origin_index=238, require_observed_targets=True
+    )
     fig, ax = plt.subplots(figsize=(10, 5.5))
     plots.plot_forecast_slice(sl, ax=ax, reveal=True)
     plots.save(fig, "exp_mtg_forecast_slice")

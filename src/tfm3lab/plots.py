@@ -53,6 +53,11 @@ def plot_forecast_slice(
     continuation against the model's forecast. `reveal=False` still fixes
     the y-limits to the revealed state, so a live demo's two cells (cut,
     then reveal) don't jump the axes between them.
+
+    Forward-filled points (`sl.history_observed`/`sl.observed_mask` False)
+    are overlaid as hollow markers on top of the solid line — never drawn as
+    if they were a real print, but also never dropped from the line, so the
+    chart doesn't develop a fake gap.
     """
     if ax is None:
         _, ax = plt.subplots(figsize=(10, 5.5))
@@ -61,6 +66,16 @@ def plot_forecast_slice(
         sl.history_dates, sl.history_values, color=PALETTE["actual"], linewidth=1.8,
         label="storico reale",
     )
+    history_observed = np.asarray(sl.history_observed, dtype=bool)
+    history_dates = np.asarray(sl.history_dates)
+    history_values = np.asarray(sl.history_values, dtype=float)
+    if not history_observed.all():
+        imputed = ~history_observed
+        ax.scatter(
+            history_dates[imputed], history_values[imputed],
+            facecolors="none", edgecolors=PALETTE["baseline"], marker="o", s=30, zorder=3,
+            label="imputato (forward-fill)",
+        )
     ax.axvline(
         sl.origin_date, color=PALETTE["alert"], linestyle="--", linewidth=1.2, label="taglio"
     )
@@ -68,6 +83,15 @@ def plot_forecast_slice(
     all_values = list(sl.history_values)
     if reveal:
         ax.plot(sl.target_dates, sl.actual, color=PALETTE["actual"], linewidth=1.8)
+        observed_mask = np.asarray(sl.observed_mask, dtype=bool)
+        target_dates = np.asarray(sl.target_dates)
+        actual_values = np.asarray(sl.actual, dtype=float)
+        if not observed_mask.all():
+            imputed = ~observed_mask
+            ax.scatter(
+                target_dates[imputed], actual_values[imputed],
+                facecolors="none", edgecolors=PALETTE["baseline"], marker="o", s=30, zorder=3,
+            )
         ax.plot(
             sl.target_dates, sl.forecast, color=PALETTE["model"], marker="o", markersize=4,
             label="mediana TimesFM-3",

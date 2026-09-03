@@ -10,6 +10,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 import pytest  # noqa: E402
 
@@ -22,7 +23,7 @@ def _close_figures():
     plt.close("all")
 
 
-def _forecast_slice():
+def _forecast_slice(all_observed: bool = True):
     return figdata.ForecastSlice(
         series="A",
         origin_index=10,
@@ -38,6 +39,8 @@ def _forecast_slice():
         coverage=0.6,
         relative_mae=1.1,
         contains_glitch=False,
+        observed_mask=np.array([True, True, all_observed, True, True]),
+        history_observed=np.array([True] * 9 + [all_observed]),
     )
 
 
@@ -56,6 +59,14 @@ def test_plot_forecast_slice_reveal_false_omits_target_lines():
     sl = _forecast_slice()
     ax = plots.plot_forecast_slice(sl, reveal=False)
     assert len(ax.lines) == 2  # history line + the cut axvline (also a Line2D), nothing past it
+
+
+def test_plot_forecast_slice_marks_imputed_points():
+    ax_clean = plots.plot_forecast_slice(_forecast_slice(all_observed=True), reveal=True)
+    ax_imputed = plots.plot_forecast_slice(_forecast_slice(all_observed=False), reveal=True)
+    # the imputed case draws two extra scatter collections (one in history, one in the
+    # revealed target) that the fully-observed case doesn't.
+    assert len(ax_imputed.collections) > len(ax_clean.collections)
 
 
 def test_plot_shock_reaction_draws_two_panels():
