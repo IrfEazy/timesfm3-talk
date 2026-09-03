@@ -185,25 +185,32 @@ def plot_horizon_profile(profile: pd.DataFrame, axes=None):
     return axes
 
 
-def plot_pit_histogram(hist: pd.DataFrame, axes=None):
-    """One bar panel per horizon_step in `hist`. Flat = calibrated, a
-    U-shape (mass piling into the outer, clipped bins) = intervals too
-    narrow."""
+def plot_quantile_bin_calibration(hist: pd.DataFrame, axes=None):
+    """One bar panel per horizon_step in `hist`. Flat at the nominal 1/10
+    line = calibrated; a U-shape (mass piling into the outer two bins) =
+    intervals too narrow. Bars sit at the 10 discrete quantile bins from
+    figdata.quantile_bin_calibration — this is not a continuous-PIT axis."""
     steps = sorted(hist["horizon_step"].unique())
     if axes is None:
         _, axes = plt.subplots(1, len(steps), figsize=(4.2 * len(steps), 4), sharey=True)
     axes = np.atleast_1d(axes)
     for ax, h in zip(axes, steps, strict=True):
-        g = hist[hist["horizon_step"] == h].sort_values("bin_left")
-        centers = (g["bin_left"] + g["bin_right"]) / 2
-        widths = (g["bin_right"] - g["bin_left"]) * 0.9
-        ax.bar(centers, g["fraction"], width=widths, color=PALETTE["model"], alpha=0.85)
-        ax.axhline(1.0 / len(g), color=PALETTE["baseline"], linestyle="--", label="uniforme attesa")
+        g = hist[hist["horizon_step"] == h].sort_values("bin_index")
+        x = np.arange(len(g))
+        ax.bar(x, g["fraction"], width=0.85, color=PALETTE["model"], alpha=0.85)
+        nominal = float(g["nominal_fraction"].iloc[0]) if len(g) else 0.1
+        ax.axhline(nominal, color=PALETTE["baseline"], linestyle="--", label="uniforme attesa")
+        ax.set_xticks(x)
+        ax.set_xticklabels(g["label"], rotation=45, ha="right", fontsize=7)
         ax.set_title(f"h={h}")
-        ax.set_xlabel("PIT")
+        ax.set_xlabel("quantile bin")
     axes[0].set_ylabel("frazione")
     axes[0].legend(fontsize=8)
     return axes
+
+
+# Deprecated alias — see figdata.pit_histogram.
+plot_pit_histogram = plot_quantile_bin_calibration
 
 
 def plot_calibration_curve(curve: pd.DataFrame, ax=None, *, group_col: str = "regime"):

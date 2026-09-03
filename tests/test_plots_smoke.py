@@ -90,7 +90,7 @@ def test_plot_horizon_profile_two_panels():
     assert len(axes) == 2
 
 
-def test_plot_pit_histogram_one_panel_per_horizon():
+def test_plot_quantile_bin_calibration_one_panel_per_horizon():
     preds = pd.DataFrame(
         {
             "horizon_step": [1] * 6 + [7] * 6,
@@ -98,10 +98,19 @@ def test_plot_pit_histogram_one_panel_per_horizon():
         }
     )
     for i, level in enumerate([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]):
-        preds[f"q{round(level * 100):02d}"] = [1, 2, 3, 4, 5, 6, 7, 8, 9][i] if False else i + 1
-    hist = figdata.pit_histogram(preds, horizon_steps=(1, 7))
-    axes = plots.plot_pit_histogram(hist)
+        preds[f"q{round(level * 100):02d}"] = i + 1
+    hist = figdata.quantile_bin_calibration(preds, horizon_steps=(1, 7))
+    axes = plots.plot_quantile_bin_calibration(hist)
     assert len(axes) == 2
+
+
+def test_plot_pit_histogram_alias_still_works():
+    preds = pd.DataFrame({"horizon_step": [1] * 3, "actual": [1, 2, 9]})
+    for i, level in enumerate([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]):
+        preds[f"q{round(level * 100):02d}"] = i + 1
+    hist = figdata.pit_histogram(preds, horizon_steps=(1,))
+    axes = plots.plot_pit_histogram(hist)
+    assert len(axes) == 1
 
 
 def test_plot_calibration_curve_one_line_per_regime():

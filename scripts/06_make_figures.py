@@ -80,15 +80,15 @@ def build_horizon_profile() -> None:
     plots.save(fig, "exp_mtg_horizon_profile")
 
 
-def build_pit_histogram() -> None:
+def build_quantile_bin_calibration() -> None:
     preds, _ = figdata.load_mtg_predictions()
-    hist = figdata.pit_histogram(preds, horizon_steps=(1, 7, 28))
+    hist = figdata.quantile_bin_calibration(preds, horizon_steps=(1, 7, 28))
     if hist.empty:
         print("  skip (no rows at horizon steps 1/7/28)")
         return
     fig, axes = plt.subplots(1, 3, figsize=(12.6, 4), sharey=True)
-    plots.plot_pit_histogram(hist, axes=axes)
-    plots.save(fig, "exp_mtg_pit_histogram")
+    plots.plot_quantile_bin_calibration(hist, axes=axes)
+    plots.save(fig, "exp_mtg_quantile_bin_calibration")
 
 
 def build_calibration_curve() -> None:
@@ -136,7 +136,7 @@ FIGURES = [
     ("exp_mtg_forecast_slice", build_hero_slice),
     ("exp_shock_reaction", build_shock_reactions),
     ("exp_mtg_horizon_profile", build_horizon_profile),
-    ("exp_mtg_pit_histogram", build_pit_histogram),
+    ("exp_mtg_quantile_bin_calibration", build_quantile_bin_calibration),
     ("exp_calibration_curve", build_calibration_curve),
     ("exp_shock_adaptation_dots", build_adaptation_dots),
     ("exp_mtg_relative_mae", build_card_relative_mae),

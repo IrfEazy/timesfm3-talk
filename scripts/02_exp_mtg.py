@@ -144,7 +144,7 @@ def main() -> None:
     # transform=="identity" & mode=="timesfm3_univariate" is the one
     # combination every demo/slide chart actually reads; measured at 8.42 MB
     # with all 9 quantile columns kept (dropping to q10/q90 only saves
-    # little and breaks the PIT histogram, which needs the full grid).
+    # little and breaks the quantile-bin calibration diagnostic, which needs the full grid).
     demo_slice = raw_df[
         (raw_df["transform"] == "identity") & (raw_df["mode"] == "timesfm3_univariate")
     ].drop(columns=["mode", "transform", "baseline_drift", "baseline_ets"])
