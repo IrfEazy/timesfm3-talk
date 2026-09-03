@@ -1,6 +1,9 @@
+import datetime as dt
+
 import pandas as pd
 import pytest
 
+from tfm3lab.data import macro
 from tfm3lab.data.macro import compute_yoy
 
 
@@ -31,3 +34,24 @@ def test_compute_yoy_drops_unparseable_rows():
     raw = pd.DataFrame({"observation_date": dates, "CPIAUCSL": levels})
     yoy = compute_yoy(raw)
     assert len(yoy) == 1  # the unparseable last row must not produce a bogus YoY point
+
+
+def test_build_cpi_series_trims_to_end_date(monkeypatch):
+    dates = pd.date_range("2020-01-01", periods=15, freq="MS")
+    yoy = pd.Series([float(i) for i in range(15)], index=dates)
+    monkeypatch.setattr(macro, "fetch_cpi_yoy", lambda url=macro.FRED_CPI_URL: yoy)
+
+    series = macro.build_cpi_series(end=dt.date(2020, 10, 1))
+
+    assert pd.Timestamp(series.dates[-1]) <= pd.Timestamp("2020-10-01")
+    assert len(series.values) == 10
+
+
+def test_build_cpi_series_without_end_keeps_full_series(monkeypatch):
+    dates = pd.date_range("2020-01-01", periods=5, freq="MS")
+    yoy = pd.Series([1.0] * 5, index=dates)
+    monkeypatch.setattr(macro, "fetch_cpi_yoy", lambda url=macro.FRED_CPI_URL: yoy)
+
+    series = macro.build_cpi_series()
+
+    assert len(series.values) == 5

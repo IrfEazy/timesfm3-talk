@@ -11,6 +11,8 @@ must disclose that, not silently treat CPI the same as SP500/VIX.
 
 from __future__ import annotations
 
+import datetime as dt
+
 import numpy as np
 import pandas as pd
 
@@ -37,8 +39,10 @@ def fetch_cpi_yoy(url: str = FRED_CPI_URL) -> pd.Series:
     return compute_yoy(pd.read_csv(url))
 
 
-def build_cpi_series(url: str = FRED_CPI_URL) -> SeriesData:
+def build_cpi_series(url: str = FRED_CPI_URL, end: dt.date | None = None) -> SeriesData:
     yoy = fetch_cpi_yoy(url)
+    if end is not None:
+        yoy = yoy[yoy.index.date <= end]
     return SeriesData(
         name="CPI_YoY",
         values=yoy.to_numpy(dtype=float),
