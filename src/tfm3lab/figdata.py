@@ -125,6 +125,63 @@ def find_glitches(
     return pd.DataFrame(rows, columns=["series", "index", "date"])
 
 
+def _max_consecutive_false(mask: np.ndarray) -> int:
+    """Longest run of False (unobserved) entries in a boolean array."""
+    best = current = 0
+    for observed in mask:
+        if observed:
+            current = 0
+        else:
+            current += 1
+            best = max(best, current)
+    return best
+
+
+def data_quality_table(series_list: list) -> pd.DataFrame:
+    """Per-card data-quality summary: observed rate, forward-fill rate, the
+    longest run of consecutive unobserved points (assumes daily frequency —
+    true for build_card_series's output, the only caller), glitch count
+    (reusing find_glitches against the raw, not truth-reconstructed, price
+    frame), price range, and log-return volatility restricted to observed
+    points.
+    """
+    frames = [
+        pd.DataFrame({
+            "series": s.name,
+            "index": np.arange(len(s.values)),
+            "date": s.dates,
+            "value": s.values,
+        })
+        for s in series_list
+    ]
+    raw = pd.concat(frames, ignore_index=True)
+    glitch_counts = find_glitches(raw).groupby("series").size()
+
+    rows = []
+    for s in series_list:
+        n = len(s.values)
+        observed_rate = float(np.mean(s.observed)) if n else float("nan")
+        fallback_rate = 1.0 - observed_rate if n else float("nan")
+        obs_values = s.values[s.observed]
+        if s.observed.sum() >= 2:
+            volatility = float(np.std(np.diff(np.log(obs_values))))
+        else:
+            volatility = float("nan")
+        rows.append(
+            {
+                "series": s.name,
+                "observed_rate": observed_rate,
+                "fallback_rate": fallback_rate,
+                "max_gap_days": _max_consecutive_false(s.observed),
+                "glitch_count": int(glitch_counts.get(s.name, 0)),
+                "price_min": float(np.min(s.values)) if n else float("nan"),
+                "price_max": float(np.max(s.values)) if n else float("nan"),
+                "log_return_volatility": volatility,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 @dataclass(frozen=True)
 class ForecastSlice:
     """One origin's forecast, paired with the history that preceded it and

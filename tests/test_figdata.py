@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 
 from tfm3lab import config, figdata
+from tfm3lab.backtest import SeriesData
 from tfm3lab.metrics import coverage as _coverage
 from tfm3lab.metrics import mae as _mae
 
@@ -434,3 +435,52 @@ def test_adaptation_lag_detail_threshold_is_pre_event_median_times_multiplier():
     assert row["threshold"] == pytest.approx(4.5)
     assert row["adaptation_lag_days"] == pytest.approx(3.0)
     assert row["n_events_in_arm"] == 1
+
+
+# --- data_quality_table ---
+
+
+def _series(name, values, observed, start="2024-01-01"):
+    dates = pd.date_range(start, periods=len(values)).to_numpy()
+    return SeriesData(
+        name=name, values=np.array(values, dtype=float), dates=dates, observed=np.array(observed)
+    )
+
+
+def test_data_quality_table_observed_and_fallback_rates():
+    s = _series("A", [10.0] * 8, [True, True, False, False, True, True, True, True])
+    table = figdata.data_quality_table([s])
+    row = table.iloc[0]
+    assert row["series"] == "A"
+    assert row["observed_rate"] == pytest.approx(6 / 8)
+    assert row["fallback_rate"] == pytest.approx(2 / 8)
+
+
+def test_data_quality_table_max_gap_days_is_longest_unobserved_run():
+    observed = [True, False, False, False, True, False, True]
+    s = _series("A", [10.0] * 7, observed)
+    table = figdata.data_quality_table([s])
+    assert table.iloc[0]["max_gap_days"] == 3
+
+
+def test_data_quality_table_glitch_count_reuses_find_glitches():
+    values = [10.0, 10.0, 20.0, 10.0, 10.0]  # spike-and-revert at index 2
+    s = _series("A", values, [True] * 5)
+    table = figdata.data_quality_table([s])
+    assert table.iloc[0]["glitch_count"] == 1
+
+
+def test_data_quality_table_price_range_and_volatility():
+    s = _series("A", [10.0, 20.0, 10.0], [True, True, True])
+    table = figdata.data_quality_table([s])
+    row = table.iloc[0]
+    assert row["price_min"] == 10.0
+    assert row["price_max"] == 20.0
+    assert row["log_return_volatility"] > 0
+
+
+def test_data_quality_table_one_row_per_series():
+    s1 = _series("A", [10.0, 10.0], [True, True])
+    s2 = _series("B", [5.0, 5.0], [True, True])
+    table = figdata.data_quality_table([s1, s2])
+    assert list(table["series"]) == ["A", "B"]
