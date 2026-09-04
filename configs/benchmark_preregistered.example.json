@@ -1,0 +1,17 @@
+{
+  "config_id": "preregistered_v1_example",
+  "description": "Worked example of the full preregistered grid from docs/analysis-plan.md. No results/exp_mtg_benchmark_*.parquet exist for this config_id until someone runs scripts/02b_exp_mtg_benchmark.py against real cached data on a GPU (see README's hybrid-execution section) -- not done as part of this branch.",
+  "context_lengths": [64, 128, 256, 512],
+  "horizons": [1, 7, 28, 56, 64],
+  "primary_horizons": [28, 56],
+  "origin_stride": 1,
+  "max_origins": null,
+  "cards": "showcase",
+  "transforms": ["raw", "log1p"],
+  "make_positive": [true, false],
+  "modes": ["univariate", "multivariate"],
+  "placebo_panel_size": 7,
+  "placebo_seed": 42,
+  "season_length": 7,
+  "baselines": ["naive", "seasonal_naive", "drift", "ets"]
+}
