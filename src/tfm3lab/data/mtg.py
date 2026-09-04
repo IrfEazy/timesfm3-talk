@@ -177,6 +177,41 @@ DEFAULT_CARDS = (
 )
 
 
+def load_card_manifest(path: str | Path) -> tuple[CardSpec, ...]:
+    """Loads a wider card pool from CSV or JSON (extension-dispatched), same
+    shape as DEFAULT_CARDS: label, group_abbreviation, product_name.
+
+    Used for the optional benchmark card pool (as opposed to the fixed
+    7-card showcase) -- see configs/benchmark_cards.example.csv for the
+    format and the selection criteria a real wider manifest should satisfy.
+    A `#`-prefixed line in a CSV is treated as a comment (documenting those
+    criteria inline), not a data row.
+    """
+    path = Path(path)
+    if path.suffix == ".json":
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        rows = payload["cards"] if isinstance(payload, dict) else payload
+    elif path.suffix == ".csv":
+        df = pd.read_csv(path, comment="#")
+        rows = df.to_dict(orient="records")
+    else:
+        raise ValueError(
+            f"unsupported card manifest format: {path.suffix} (expected .csv or .json)"
+        )
+
+    cards = tuple(
+        CardSpec(
+            label=str(row["label"]),
+            group_abbreviation=str(row["group_abbreviation"]),
+            product_name=str(row["product_name"]),
+        )
+        for row in rows
+    )
+    if not cards:
+        raise ValueError(f"{path}: no cards found in manifest")
+    return cards
+
+
 def fetch_groups(
     category_id: int = MAGIC_CATEGORY_ID, session: requests.Session | None = None
 ) -> pd.DataFrame:
