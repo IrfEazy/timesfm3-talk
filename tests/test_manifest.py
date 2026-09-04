@@ -21,7 +21,13 @@ def test_write_manifest_includes_common_meta_fields(tmp_path):
     assert data["_meta"]["live_end"] is False
     assert "git_sha" in data["_meta"]
     assert "written_at_utc" in data["_meta"]
-    assert set(data["_meta"]["package_versions"]) == {"requests", "py7zr", "pandas"}
+    assert set(data["_meta"]["package_versions"]) == {
+        "requests",
+        "py7zr",
+        "pandas",
+        "timesfm",
+        "torch",
+    }
 
 
 def test_write_manifest_creates_parent_directories(tmp_path):

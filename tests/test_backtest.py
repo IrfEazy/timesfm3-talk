@@ -250,3 +250,31 @@ def test_series_data_accepts_valid_series():
     dates = pd.date_range("2024-01-01", periods=3).to_numpy()
     s = SeriesData(name="ok", values=values, dates=dates, observed=np.ones(3, dtype=bool))
     assert s.name == "ok"  # must not raise
+
+
+def test_make_positive_recorded_true_in_univariate_backtest():
+    a = _make_series("a", np.arange(20.0))
+    origins = valid_origins(n=20, context_len=4, horizon=2)
+    df = run_univariate_backtest(
+        FakeForecaster(), [a], origins, context_len=4, max_horizon=2, make_positive=True
+    )
+    assert df["make_positive"].eq(True).all()
+
+
+def test_make_positive_recorded_false_in_univariate_backtest():
+    a = _make_series("a", np.arange(20.0))
+    origins = valid_origins(n=20, context_len=4, horizon=2)
+    df = run_univariate_backtest(
+        FakeForecaster(), [a], origins, context_len=4, max_horizon=2, make_positive=False
+    )
+    assert df["make_positive"].eq(False).all()
+
+
+def test_make_positive_recorded_in_multivariate_backtest():
+    a = _make_series("a", np.arange(20.0))
+    b = _make_series("b", np.arange(20.0))
+    origins = valid_origins(n=20, context_len=4, horizon=2)
+    df = run_multivariate_backtest(
+        FakeForecaster(), [a, b], origins, context_len=4, max_horizon=2, make_positive=False
+    )
+    assert df["make_positive"].eq(False).all()

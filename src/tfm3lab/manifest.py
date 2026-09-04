@@ -17,7 +17,12 @@ from pathlib import Path
 
 import pandas as pd
 
-_TRACKED_PACKAGES = ("requests", "py7zr", "pandas")
+# requests/py7zr/pandas cover the data-fetch runs; timesfm/torch cover the
+# model runs (scripts/02*, 03, 05) -- a model result is only reproducible if
+# the checkpoint-loading stack's versions are recorded alongside it. Any
+# package not installed in the current environment records "unknown" rather
+# than failing the run.
+_TRACKED_PACKAGES = ("requests", "py7zr", "pandas", "timesfm", "torch")
 
 
 def _git_sha() -> str:

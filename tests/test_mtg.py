@@ -23,6 +23,7 @@ from tfm3lab.data.mtg import (
     _session_with_retries,
     build_card_series,
     fetch_daily_prices,
+    load_card_manifest,
     resolve_card_specs,
 )
 
@@ -307,3 +308,82 @@ def test_build_card_series_populates_subtype_counts(tmp_path, monkeypatch):
     _, report = build_card_series(start=date, end=date, raw_dir=tmp_path, session=object())
     assert report.subtype_counts == {"Normal": 1}
     assert report.price_field_counts["market"] == 1
+
+
+def test_load_card_manifest_csv(tmp_path):
+    path = tmp_path / "cards.csv"
+    path.write_text(
+        "# comment line describing selection criteria\n"
+        "label,group_abbreviation,product_name\n"
+        "Foo [ABC],ABC,Foo Card\n",
+        encoding="utf-8",
+    )
+    cards = load_card_manifest(path)
+    assert cards == (CardSpec("Foo [ABC]", "ABC", "Foo Card"),)
+
+
+def test_load_card_manifest_csv_multiple_rows_preserve_order(tmp_path):
+    path = tmp_path / "cards.csv"
+    path.write_text(
+        "label,group_abbreviation,product_name\n"
+        "First [A],A,First Card\n"
+        "Second [B],B,Second Card\n",
+        encoding="utf-8",
+    )
+    cards = load_card_manifest(path)
+    assert cards == (
+        CardSpec("First [A]", "A", "First Card"),
+        CardSpec("Second [B]", "B", "Second Card"),
+    )
+
+
+def test_load_card_manifest_json(tmp_path):
+    path = tmp_path / "cards.json"
+    path.write_text(
+        json.dumps(
+            {
+                "cards": [
+                    {
+                        "label": "Foo [ABC]",
+                        "group_abbreviation": "ABC",
+                        "product_name": "Foo Card",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    cards = load_card_manifest(path)
+    assert cards == (CardSpec("Foo [ABC]", "ABC", "Foo Card"),)
+
+
+def test_load_card_manifest_json_bare_list(tmp_path):
+    path = tmp_path / "cards.json"
+    path.write_text(
+        json.dumps(
+            [
+                {
+                    "label": "Foo [ABC]",
+                    "group_abbreviation": "ABC",
+                    "product_name": "Foo Card",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    cards = load_card_manifest(path)
+    assert cards == (CardSpec("Foo [ABC]", "ABC", "Foo Card"),)
+
+
+def test_load_card_manifest_rejects_unsupported_extension(tmp_path):
+    path = tmp_path / "cards.txt"
+    path.write_text("nope", encoding="utf-8")
+    with pytest.raises(ValueError, match="unsupported"):
+        load_card_manifest(path)
+
+
+def test_load_card_manifest_rejects_empty_manifest(tmp_path):
+    path = tmp_path / "cards.csv"
+    path.write_text("label,group_abbreviation,product_name\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="no cards found"):
+        load_card_manifest(path)

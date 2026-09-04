@@ -1,0 +1,30 @@
+# Wider MTG benchmark card manifest -- FORMAT + a 7-row WORKED EXAMPLE.
+#
+# This is NOT a real 30+-card benchmark selection. Picking one requires a
+# live TCGCSV catalog crawl (network, out of scope for this branch) to check
+# each candidate against the criteria below -- populating a real list is
+# future, separately-reviewed work, not invented here.
+#
+# A real wider manifest's cards should each satisfy:
+#   - continuous TCGCSV daily coverage since TCGCSV_ARCHIVE_START
+#     (2024-02-08) -- no card that only appears mid-history
+#   - an observed_rate (post-ingestion -- see figdata.data_quality_table)
+#     above some floor (e.g. >= 0.90) -- thin/delisted cards make weak
+#     evaluation targets
+#   - no two rows resolving to the same underlying printing (distinct
+#     product_name/group_abbreviation pairs)
+#   - a mix of price regimes (chase mythic, mid-tier playable, reprint
+#     staple, budget common), not all high-volatility chase cards -- see
+#     DEFAULT_CARDS in src/tfm3lab/data/mtg.py for how the 7-card showcase
+#     already documents this mix
+#
+# Columns: label,group_abbreviation,product_name (same shape as
+# tfm3lab.data.mtg.CardSpec -- resolved the same way via resolve_card_specs).
+label,group_abbreviation,product_name
+Ragavan [MH2],MH2,"Ragavan, Nimble Pilferer"
+Urza's Saga [MH2],MH2,Urza's Saga
+Sheoldred [DMU],DMU,"Sheoldred, the Apocalypse"
+The One Ring [LTR],LTR,The One Ring
+Orcish Bowmasters [LTR],LTR,Orcish Bowmasters
+Chatterfang [MH2],MH2,"Chatterfang, Squirrel General"
+Mishra's Factory [MH2],MH2,Mishra's Factory
