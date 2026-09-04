@@ -8,9 +8,11 @@ from tfm3lab.metrics import in_sample_scale
 from tfm3lab.summarize import (
     MIN_OBSERVATIONS_FOR_DM_TEST,
     QUANTILE_COLUMNS,
+    aggregate_leaderboard,
     compute_mase_scales,
     summarize_accuracy,
     summarize_calibration,
+    summarize_leaderboard,
 )
 
 
@@ -148,3 +150,95 @@ def test_summarize_calibration_excludes_unobserved_rows():
     df = pd.DataFrame(rows)
     summary = summarize_calibration(df)
     assert summary.iloc[0]["n"] == 1
+
+
+def _row_with_extra_baseline(baseline_drift=None, **kwargs) -> dict:
+    row = _row(**kwargs)
+    if baseline_drift is not None:
+        row["baseline_drift"] = baseline_drift
+    return row
+
+
+def test_summarize_accuracy_includes_skill_column():
+    rows = [_row(actual=10.0, forecast=9.0, baseline_naive=8.0)]
+    df = pd.DataFrame(rows)
+    summary = summarize_accuracy(df, mase_scales={"a": 1.0})
+    row = summary.iloc[0]
+    assert row["skill_vs_baseline"] == pytest.approx(1.0 - row["relative_mae_vs_baseline"])
+
+
+def test_summarize_leaderboard_multiple_baseline_methods():
+    rows = [
+        _row_with_extra_baseline(
+            actual=10.0, forecast=9.0, baseline_naive=8.0, baseline_drift=11.0
+        ),
+        _row_with_extra_baseline(
+            actual=12.0, forecast=11.0, baseline_naive=10.0, baseline_drift=13.0
+        ),
+    ]
+    df = pd.DataFrame(rows)
+    leaderboard = summarize_leaderboard(
+        df, mase_scales={"a": 1.0}, baseline_cols=("baseline_naive", "baseline_drift")
+    )
+    assert set(leaderboard["baseline_method"]) == {"naive", "drift"}
+    assert "mae_baseline" in leaderboard.columns
+    assert "mase_baseline" in leaderboard.columns
+    assert len(leaderboard) == 2  # one group x 2 methods
+
+
+def test_summarize_leaderboard_filters_nan_rows_per_baseline_independently():
+    rows = [
+        _row_with_extra_baseline(
+            actual=10.0, forecast=9.0, baseline_naive=8.0, baseline_drift=None
+        ),
+        _row_with_extra_baseline(
+            actual=12.0, forecast=11.0, baseline_naive=10.0, baseline_drift=13.0
+        ),
+    ]
+    df = pd.DataFrame(rows)
+    leaderboard = summarize_leaderboard(
+        df, mase_scales={"a": 1.0}, baseline_cols=("baseline_naive", "baseline_drift")
+    )
+    naive_row = leaderboard[leaderboard["baseline_method"] == "naive"].iloc[0]
+    drift_row = leaderboard[leaderboard["baseline_method"] == "drift"].iloc[0]
+    assert naive_row["n"] == 2
+    assert drift_row["n"] == 1  # the None-baseline_drift row excluded for drift only
+
+
+def test_summarize_leaderboard_rejects_when_no_baseline_columns_present():
+    df = pd.DataFrame([_row()])
+    with pytest.raises(ValueError, match="none of"):
+        summarize_leaderboard(df, mase_scales={"a": 1.0}, baseline_cols=("baseline_ets",))
+
+
+def test_aggregate_leaderboard_weighted_mean_documents_the_weighting():
+    df = pd.DataFrame(
+        [
+            {
+                "mode": "m",
+                "baseline_method": "naive",
+                "horizon_step": 1,
+                "series": "a",
+                "n": 10,
+                "relative_mae_vs_baseline": 0.5,
+            },
+            {
+                "mode": "m",
+                "baseline_method": "naive",
+                "horizon_step": 1,
+                "series": "b",
+                "n": 1000,
+                "relative_mae_vs_baseline": 1.5,
+            },
+        ]
+    )
+    agg = aggregate_leaderboard(df)
+    row = agg.iloc[0]
+    naive_mean = (0.5 + 1.5) / 2  # what a naive unweighted mean-of-ratios would give
+    expected_weighted = (0.5 * 10 + 1.5 * 1000) / 1010
+    assert row["relative_mae_mean_weighted"] == pytest.approx(expected_weighted)
+    assert row["relative_mae_mean_weighted"] != pytest.approx(naive_mean)
+    assert row["relative_mae_median"] == pytest.approx(1.0)
+    assert row["skill_mean_weighted"] == pytest.approx(1.0 - expected_weighted)
+    assert row["skill_median"] == pytest.approx(0.0)
+    assert row["n_cards"] == 2

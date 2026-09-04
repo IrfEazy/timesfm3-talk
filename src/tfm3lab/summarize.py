@@ -31,6 +31,13 @@ from .metrics import (
 
 QUANTILE_COLUMNS = [f"q{round(level * 100):02d}" for level in config.QUANTILE_LEVELS]
 
+DEFAULT_BASELINE_COLUMNS = (
+    "baseline_naive",
+    "baseline_seasonal_naive",
+    "baseline_drift",
+    "baseline_ets",
+)
+
 # Diebold-Mariano's long-run-variance estimate is not meaningful below this
 # many observations per group (metrics.diebold_mariano enforces >= 2*horizon
 # itself; this is a looser, practical floor for horizon=1 groups).
@@ -103,6 +110,7 @@ def summarize_accuracy(
                 "relative_mae_vs_baseline": relative_mae_val,
             }
         )
+        row["skill_vs_baseline"] = 1.0 - relative_mae_val
         # diebold_mariano's `horizon` must be the fixed horizon step h these
         # errors were forecast at: h-step rolling forecasts have MA(h-1)
         # autocorrelation in the loss differential that its long-run
@@ -151,5 +159,90 @@ def summarize_calibration(
                 "pit_mean": float(np.mean(pit_values(actual, quantiles, config.QUANTILE_LEVELS))),
             }
         )
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def summarize_leaderboard(
+    df: pd.DataFrame,
+    mase_scales: dict[str, float],
+    group_cols: tuple[str, ...] = ("mode", "series", "horizon_step"),
+    baseline_cols: tuple[str, ...] = DEFAULT_BASELINE_COLUMNS,
+) -> pd.DataFrame:
+    """Runs summarize_accuracy once per baseline column present in `df`,
+    stacking the results with a `baseline_method` column -- the
+    "leaderboard per method" this project's plan requires instead of a
+    naive-only headline.
+
+    A baseline column entirely absent from `df` (e.g. no `baseline_ets`
+    because season_length was never set) is skipped. A column that's
+    present but NaN on some rows has those specific rows filtered out
+    before computing THAT baseline's metrics -- its `n` may differ from
+    another baseline's `n` in the same group; that's expected (see
+    docstring on backtest._baseline_forecasts), not a bug.
+    """
+    present = [c for c in baseline_cols if c in df.columns]
+    if not present:
+        raise ValueError(f"none of {baseline_cols} present in df.columns")
+
+    tables = []
+    for col in present:
+        method = col.removeprefix("baseline_")
+        rows_for_col = df[df[col].notna()] if df[col].isna().any() else df
+        summary = summarize_accuracy(
+            rows_for_col, mase_scales, baseline_col=col, group_cols=group_cols
+        )
+        summary = summary.rename(
+            columns={f"mae_{col}": "mae_baseline", f"mase_{col}": "mase_baseline"}
+        )
+        summary.insert(0, "baseline_method", method)
+        tables.append(summary)
+    return pd.concat(tables, ignore_index=True)
+
+
+def aggregate_leaderboard(leaderboard_df: pd.DataFrame, weight_col: str = "n") -> pd.DataFrame:
+    """Collapses the `series` dimension out of a summarize_leaderboard table
+    into two documented cross-card statistics per remaining group:
+
+    - `relative_mae_median` / `skill_median`: the median across cards --
+      robust to one outlier card dominating the picture.
+    - `relative_mae_mean_weighted` / `skill_mean_weighted`: the mean across
+      cards, weighted by each card's `n` (observed row count) -- a
+      pooled/micro-average: a card with more observed (origin, horizon)
+      rows contributes proportionally more than a thinly-observed one.
+      This is deliberately NOT a naive unweighted mean of per-card ratios
+      (which would let a 5-observation card move the aggregate as much as
+      a 5000-observation one).
+    """
+    per_series_metric_cols = {
+        "mae_model",
+        "rmse_model",
+        "smape_model",
+        "mase_model",
+        "mae_baseline",
+        "mase_baseline",
+        "dm_stat",
+        "dm_pvalue",
+    }
+    excluded_cols = {
+        "series",
+        weight_col,
+        "relative_mae_vs_baseline",
+        "skill_vs_baseline",
+        *per_series_metric_cols,
+    }
+    group_cols = [c for c in leaderboard_df.columns if c not in excluded_cols]
+
+    rows = []
+    for keys, group in leaderboard_df.groupby(group_cols, dropna=False):
+        keys = keys if isinstance(keys, tuple) else (keys,)
+        weights = group[weight_col].to_numpy(dtype=float)
+        ratios = group["relative_mae_vs_baseline"].to_numpy(dtype=float)
+        row = dict(zip(group_cols, keys, strict=True))
+        row["n_cards"] = len(group)
+        row["relative_mae_median"] = float(np.median(ratios))
+        row["relative_mae_mean_weighted"] = float(np.average(ratios, weights=weights))
+        row["skill_median"] = 1.0 - row["relative_mae_median"]
+        row["skill_mean_weighted"] = 1.0 - row["relative_mae_mean_weighted"]
         rows.append(row)
     return pd.DataFrame(rows)
