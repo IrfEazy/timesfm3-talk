@@ -19,6 +19,14 @@ scomode" section for the hard questions this is built to survive.
 | C — calibrazione | `scripts/04_exp_calibration.py` | Are the 9 quantiles honestly calibrated, in calm vs. shock regimes? (reuses A/B's cached predictions, no new model calls) |
 | D — covariate | `scripts/05_exp_covariates.py` | Legitimate future-known covariates, plus a deliberate leakage demo. |
 
+`scripts/02b_exp_mtg_benchmark.py` runs Experiment A as a declarative,
+preregistered grid (context lengths x horizons x transform x make_positive x
+univariate/multivariate/placebo-panel) instead of the single fixed config
+above — see `docs/analysis-plan.md` and
+`configs/benchmark_preregistered.example.json`. Its outputs
+(`exp_mtg_benchmark_*.parquet`) are separate from `02_exp_mtg.py`'s and never
+feed the numbers already committed in `docs/talk-outline.md` or the slides.
+
 ## Setup
 
 Requires [uv](https://docs.astral.sh/uv/). Never `uv pip install` — everything below goes
@@ -64,6 +72,10 @@ uv run scripts/02_exp_mtg.py
 uv run scripts/03_exp_shock.py
 uv run scripts/04_exp_calibration.py   # reuses 02+03's output, no GPU needed
 uv run scripts/05_exp_covariates.py
+
+# 2b. Preregistered benchmark grid (optional, separate from 2-5 above)
+uv run scripts/02b_exp_mtg_benchmark.py --config configs/benchmark_preregistered.example.json --dry-run
+uv run scripts/02b_exp_mtg_benchmark.py --config configs/benchmark_preregistered.example.json --as-of <YYYY-MM-DD>
 
 # tests (fast, offline, no GPU/network required by default)
 uv run pytest
@@ -141,11 +153,15 @@ src/tfm3lab/
   backtest.py      the rolling-origin engine: univariate + multivariate, log1p ablation
   summarize.py     shared post-backtest aggregation used by all 4 experiment scripts
   manifest.py      JSON reproducibility manifest for fetch/model runs
+  benchmark_config.py  declarative benchmark grid (context/horizon/ablation) schema + loader
+  benchmark.py          shared origin set, ablation combo enumeration, placebo panel sampling
+  model_2p5.py           TimesFM-2.5 zero-shot adapter (bundled dependency, no new package)
   data/
     mtg.py          TCGCSV ingestion (+ MTGJSON fallback)
     market.py       yfinance (SP500/VIX/Gold/Oil) + shock detection
     macro.py        FRED CPI YoY
-scripts/          00-07, numbered in dependency order (see "Running it")
+scripts/          00-07 + 02b, numbered/lettered in dependency order (see "Running it")
+configs/          declarative benchmark configs + card manifests (examples, no invented 30+ card selection)
 tests/            fast + offline by default; opt-in live/model tests clearly marked
 docs/talk-outline.md   the actual talk, with numbered placeholders for results not yet run
 notebooks/        run_on_colab.ipynb (bootstrap), demo.ipynb (offline, for the live demo)
