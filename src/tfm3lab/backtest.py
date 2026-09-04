@@ -125,6 +125,7 @@ def _rows_for_one_series_forecast(
     season_length: int | None,
     mode_label: str,
     transform: ValueTransform = IDENTITY_TRANSFORM,
+    make_positive: bool = True,
 ) -> list[dict]:
     """`point`/`quantiles` are the model's raw output IN THE TRANSFORMED
     DOMAIN (i.e. what the model actually saw as context) — this function
@@ -149,6 +150,7 @@ def _rows_for_one_series_forecast(
         row = {
             "mode": mode_label,
             "transform": transform.name,
+            "make_positive": make_positive,
             "series": s.name,
             "origin_index": origin,
             "origin_date": s.dates[origin] if origin < len(s.dates) else pd.NaT,
@@ -223,6 +225,7 @@ def run_univariate_backtest(
                 season_length,
                 mode_label,
                 transform,
+                make_positive,
             )
         )
     return pd.DataFrame(rows)
@@ -293,6 +296,7 @@ def run_multivariate_backtest(
                     season_length,
                     mode_label,
                     transform,
+                    make_positive,
                 )
             )
     return pd.DataFrame(rows)
