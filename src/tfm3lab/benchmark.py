@@ -58,10 +58,14 @@ def iter_ablation_combos(cfg: BenchmarkConfig, card_pool_size: int) -> list[Abla
     deterministic order (context_lengths x horizons x transforms x
     make_positive x modes, each in the order given in the config).
 
-    `multivariate_placebo` combos are dropped when `card_pool_size` is
-    smaller than `cfg.placebo_panel_size` -- the caller (dry_run_report /
-    the CLI) is responsible for reporting that skip; this function just
-    doesn't emit an unrunnable combo.
+    `multivariate_placebo` combos are dropped unless `card_pool_size` is
+    STRICTLY greater than `cfg.placebo_panel_size`. Equality is a skip, not
+    a run: sampling a `placebo_panel_size` panel out of a pool of exactly
+    that size returns the whole pool, i.e. a "placebo" panel identical to
+    the real multivariate panel, which silently defeats the comparison the
+    placebo mode exists to make. The caller (dry_run_report / the CLI) is
+    responsible for reporting that skip; this function just doesn't emit an
+    uninformative combo.
     """
     combos = []
     for context_len in cfg.context_lengths:
@@ -71,7 +75,7 @@ def iter_ablation_combos(cfg: BenchmarkConfig, card_pool_size: int) -> list[Abla
                     for mode in cfg.modes:
                         skip_placebo = (
                             mode == "multivariate_placebo"
-                            and card_pool_size < cfg.placebo_panel_size
+                            and card_pool_size <= cfg.placebo_panel_size
                         )
                         if skip_placebo:
                             continue

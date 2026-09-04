@@ -53,6 +53,13 @@ class TimesFM2p5Adapter:
     covariates would. `past_only_covariates`/`past_future_covariates` DO
     change a forecast's meaning if silently dropped, so a non-None value
     for either raises instead.
+
+    UNIVARIATE ONLY: TimesFM_2p5_200M_torch.forecast() has no variate
+    concept, so a 2-D context (as run_multivariate_backtest stacks, one
+    (n_series, context_len) array per origin) has no meaning here and
+    raises NotImplementedError rather than being silently flattened or
+    misread. scripts/02b_exp_mtg_benchmark.py rejects `multivariate*`
+    modes for this adapter up front, before any checkpoint load.
     """
 
     def __init__(self, model: Any):
@@ -77,10 +84,20 @@ class TimesFM2p5Adapter:
                 "TimesFM2p5Adapter does not support covariates -- the underlying "
                 "TimesFM_2p5_200M_torch.forecast() call has no covariate parameters"
             )
+        arrays = []
+        for c in contexts:
+            arr = np.asarray(c)
+            if arr.ndim > 1:
+                raise NotImplementedError(
+                    "TimesFM2p5Adapter does not support multivariate contexts -- "
+                    "TimesFM_2p5_200M_torch.forecast() has no variate concept, so a "
+                    f"stacked context (got shape {arr.shape}) would be misread rather "
+                    "than jointly modelled; use the TimesFM-3 forecaster for "
+                    "multivariate/multivariate_placebo modes"
+                )
+            arrays.append(np.asarray(arr, dtype=float))
         ts_ids = list(ts_ids) if ts_ids is not None else [str(i) for i in range(len(contexts))]
-        point, quantiles = self._model.forecast(
-            horizon=horizon, inputs=[np.asarray(c, dtype=float) for c in contexts]
-        )
+        point, quantiles = self._model.forecast(horizon=horizon, inputs=arrays)
         return [
             _Output(ts_id=ts_id, forecast=np.asarray(point[i]), quantiles=np.asarray(quantiles[i]))
             for i, ts_id in enumerate(ts_ids)

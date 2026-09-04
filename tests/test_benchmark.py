@@ -77,6 +77,23 @@ def test_iter_ablation_combos_skips_placebo_when_pool_too_small():
     assert any(c.mode == "univariate" for c in combos)
 
 
+def test_iter_ablation_combos_skips_placebo_when_pool_equals_panel_size():
+    # Boundary case: sampling a 7-card panel from a 7-card pool returns the
+    # WHOLE pool, i.e. a placebo panel identical to the real multivariate
+    # panel -- an uninformative comparison, so it must be skipped too.
+    cfg = _cfg(modes=("univariate", "multivariate_placebo"), placebo_panel_size=7)
+    combos = iter_ablation_combos(cfg, card_pool_size=7)
+    assert all(c.mode != "multivariate_placebo" for c in combos)
+    assert any(c.mode == "univariate" for c in combos)
+
+
+def test_dry_run_report_counts_equal_size_placebo_pool_as_skipped():
+    cfg = _cfg(modes=("univariate", "multivariate_placebo"), placebo_panel_size=7)
+    report = dry_run_report(cfg, n_days=30, card_pool_size=7)
+    assert report["n_combos_skipped_placebo_pool_too_small"] > 0
+    assert all(c["mode"] != "multivariate_placebo" for c in report["combos"])
+
+
 def test_iter_ablation_combos_keeps_placebo_when_pool_large_enough():
     cfg = _cfg(modes=("multivariate_placebo",), placebo_panel_size=3)
     combos = iter_ablation_combos(cfg, card_pool_size=5)

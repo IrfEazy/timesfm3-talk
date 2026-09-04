@@ -62,6 +62,24 @@ def test_predict_batch_rejects_covariates():
         )
 
 
+def test_predict_batch_rejects_multivariate_context():
+    # run_multivariate_backtest stacks one (n_series, context_len) array per
+    # origin; TimesFM_2p5_200M_torch.forecast() has no variate concept, so
+    # this must raise rather than silently forecast garbage.
+    adapter = TimesFM2p5Adapter(_FakeTimesFM25())
+    stacked = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+    with pytest.raises(NotImplementedError, match="multivariate"):
+        adapter.predict_batch([stacked], horizon=2)
+
+
+def test_predict_batch_rejects_multivariate_context_among_valid_ones():
+    adapter = TimesFM2p5Adapter(_FakeTimesFM25())
+    with pytest.raises(NotImplementedError, match="multivariate"):
+        adapter.predict_batch(
+            [np.array([1.0, 2.0]), np.array([[1.0, 2.0], [3.0, 4.0]])], horizon=1
+        )
+
+
 def test_adapter_with_matching_quantile_grid_works_through_model_forecast_batch():
     adapter = TimesFM2p5Adapter(_FakeTimesFM25(n_levels=config.N_QUANTILES))
     result = forecast_batch(adapter, [np.array([1.0, 2.0, 5.0])], max_horizon=3, ts_ids=["only"])

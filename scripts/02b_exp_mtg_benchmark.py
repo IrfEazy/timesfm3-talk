@@ -16,10 +16,29 @@ Usage:
     uv run scripts/02b_exp_mtg_benchmark.py \
         --config configs/benchmark_preregistered.example.json --as-of 2026-09-01
 
+`--as-of YYYY-MM-DD` is REQUIRED for a real (non-dry-run) run: it is the
+cached data's own cutoff date, recorded verbatim in the run manifest. It is
+not inferred from the clock, because a run against months-old cached data
+would otherwise record today's date as if it were the data's cutoff.
+
 Requires (non-dry-run only):
   - scripts/01_fetch_data.py already run for the cards this config needs
   - a loaded forecaster: TimesFM-3 (default, gated HF checkpoint) or
-    TimesFM-2.5 (--adapter timesfm2.5, Apache-2.0, ungated)
+    TimesFM-2.5 (--adapter timesfm2.5, Apache-2.0, ungated). The 2.5
+    adapter is univariate-only -- a config with any `multivariate*` mode is
+    rejected up front, since TimesFM_2p5_200M_torch.forecast() has no
+    variate concept.
+
+MEMORY WARNING: this script accumulates every combo's predictions in memory
+and writes them in one shot at the end. The shipped example config's full
+grid (4 context lengths x 5 horizons x 2 transforms x 2 make_positive x
+2 modes x 7 cards) can produce ~10+ million prediction rows and several GB
+of resident memory -- doubling transiently during the final pd.concat --
+which will likely OOM a free-tier Colab instance (12.7 GB). For a first
+real run, start from a smaller custom config (fewer context_lengths and
+horizons, or a larger `origin_stride` / a `max_origins` cap), especially on
+a memory-constrained GPU instance. --dry-run reports the combo count and an
+estimated predict_batch call count before you commit to one.
 
 Writes to results/ (non-dry-run only):
     exp_mtg_benchmark_raw_predictions.parquet
@@ -126,6 +145,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="override the config's 'cards' field: showcase | a manifest path",
     )
     parser.add_argument("--adapter", choices=("timesfm3", "timesfm2.5"), default="timesfm3")
+    parser.add_argument(
+        "--as-of",
+        default=None,
+        type=str,
+        help=(
+            "the cached data's cutoff date (YYYY-MM-DD), recorded in the run "
+            "manifest -- required for a real run, ignored by --dry-run"
+        ),
+    )
     return parser
 
 
@@ -133,8 +161,33 @@ def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    if not args.dry_run and args.as_of is None:
+        parser.error(
+            "--as-of YYYY-MM-DD is required for a real run -- it records the cached "
+            "data's own cutoff in the manifest and is never inferred from today's "
+            "clock (only --dry-run, which writes no manifest, may omit it)"
+        )
+    as_of = dt.date.fromisoformat(args.as_of) if args.as_of else None
+
     cfg = load_benchmark_config(args.config)
     cards = _resolve_card_pool(cfg, args.cards)
+
+    if args.adapter == "timesfm2.5":
+        incompatible = sorted(
+            {
+                c.mode
+                for c in iter_ablation_combos(cfg, card_pool_size=len(cards))
+                if c.mode.startswith("multivariate")
+            }
+        )
+        if incompatible:
+            raise SystemExit(
+                f"--adapter timesfm2.5 cannot run mode(s) {incompatible}: "
+                "TimesFM_2p5_200M_torch.forecast() has no variate concept, so a "
+                "stacked (n_series, context_len) context would be misread rather "
+                "than jointly modelled -- rerun with --adapter timesfm3, or with a "
+                "config whose modes are univariate only"
+            )
 
     if args.dry_run:
         cache_path = config.CACHE_DIR / "mtg_prices.parquet"
@@ -241,7 +294,10 @@ def main(argv: list[str] | None = None) -> None:
         "series",
         "horizon_step",
     )
-    leaderboard = summarize_leaderboard(raw_df, mase_scales, group_cols=group_cols)
+    baseline_cols = tuple(f"baseline_{b}" for b in cfg.baselines)
+    leaderboard = summarize_leaderboard(
+        raw_df, mase_scales, group_cols=group_cols, baseline_cols=baseline_cols
+    )
     leaderboard.to_parquet(
         config.RESULTS_DIR / "exp_mtg_benchmark_leaderboard.parquet", index=False
     )
@@ -259,15 +315,23 @@ def main(argv: list[str] | None = None) -> None:
         "grid": {
             "context_lengths": list(cfg.context_lengths),
             "horizons": list(cfg.horizons),
+            "primary_horizons": list(cfg.primary_horizons),
+            "transforms": list(cfg.transforms),
+            "make_positive": list(cfg.make_positive),
+            "modes": list(cfg.modes),
+            "origin_stride": cfg.origin_stride,
+            "placebo_seed": cfg.placebo_seed,
+            "season_length": cfg.season_length,
             "n_combos": len(combos),
             "n_origins": len(origins),
         },
+        "baselines": list(cfg.baselines),
         "use_symmetric_averaging": use_symmetric_averaging,
     }
     manifest.write_manifest(
         manifest_payload,
         config.RESULTS_DIR / "manifests" / f"benchmark-{cfg.config_id}-{run_id}.json",
-        as_of=dt.date.today(),
+        as_of=as_of,
     )
 
     print(

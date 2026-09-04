@@ -86,3 +86,45 @@ def test_cards_showcase_dry_run_uses_seven_card_pool(bench02b, tmp_path, monkeyp
     bench02b.main(["--config", str(cfg_path), "--dry-run"])
     report = json.loads(capsys.readouterr().out)
     assert report["card_pool_size"] == 7
+
+
+def test_as_of_parses_to_a_date(bench02b, tmp_path):
+    cfg_path = _write_config(tmp_path)
+    parser = bench02b.build_parser()
+    args = parser.parse_args(["--config", str(cfg_path), "--as-of", "2026-09-01"])
+    assert args.as_of == "2026-09-01"
+    assert bench02b.dt.date.fromisoformat(args.as_of) == bench02b.dt.date(2026, 9, 1)
+
+
+def test_as_of_is_optional_for_dry_run(bench02b, tmp_path, monkeypatch, capsys):
+    # --dry-run writes no manifest, so it needs no data cutoff -- omitting
+    # --as-of must stay a working invocation.
+    cfg_path = _write_config(tmp_path)
+    monkeypatch.setattr(bench02b.config, "CACHE_DIR", tmp_path)
+    bench02b.main(["--config", str(cfg_path), "--dry-run"])
+    assert json.loads(capsys.readouterr().out)["config_id"] == "test_grid"
+
+
+def test_as_of_required_without_dry_run(bench02b, tmp_path, capsys):
+    # Raises during argument validation, before any cached-data read or
+    # forecaster load -- so this needs neither data/cache nor a checkpoint.
+    cfg_path = _write_config(tmp_path)
+    with pytest.raises(SystemExit):
+        bench02b.main(["--config", str(cfg_path)])
+    assert "--as-of" in capsys.readouterr().err
+
+
+def test_timesfm2p5_adapter_rejects_multivariate_modes(bench02b, tmp_path):
+    # modes includes "multivariate"; TimesFM_2p5_200M_torch.forecast() has no
+    # variate concept, so this must fail before any checkpoint load.
+    cfg_path = _write_config(tmp_path, modes=["univariate", "multivariate"])
+    with pytest.raises(SystemExit, match="multivariate"):
+        bench02b.main(["--config", str(cfg_path), "--dry-run", "--adapter", "timesfm2.5"])
+
+
+def test_timesfm2p5_adapter_allows_univariate_only_config(bench02b, tmp_path, monkeypatch, capsys):
+    cfg_path = _write_config(tmp_path, modes=["univariate"])
+    monkeypatch.setattr(bench02b.config, "CACHE_DIR", tmp_path)
+    bench02b.main(["--config", str(cfg_path), "--dry-run", "--adapter", "timesfm2.5"])
+    report = json.loads(capsys.readouterr().out)
+    assert all(c["mode"] == "univariate" for c in report["combos"])

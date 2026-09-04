@@ -26,6 +26,20 @@ above — see `docs/analysis-plan.md` and
 `configs/benchmark_preregistered.example.json`. Its outputs
 (`exp_mtg_benchmark_*.parquet`) are separate from `02_exp_mtg.py`'s and never
 feed the numbers already committed in `docs/talk-outline.md` or the slides.
+A real (non-`--dry-run`) run requires `--as-of <YYYY-MM-DD>` — the cached
+data's own cutoff, recorded verbatim in the run manifest rather than inferred
+from today's clock.
+
+**Memory warning.** 02b accumulates every combo's predictions in memory and
+writes them in one shot at the end. The shipped example config's full grid
+(4 context lengths x 5 horizons x 2 transforms x 2 `make_positive` x 2 modes x
+7 cards) can produce ~10+ million prediction rows and several GB of resident
+memory — transiently doubling during the final `pd.concat` — which will likely
+OOM a free-tier Colab instance (12.7 GB). Start a first real run from a smaller
+custom config (fewer `context_lengths`/`horizons`, a larger `origin_stride`, or
+a `max_origins` cap),
+especially on a memory-constrained GPU instance. `--dry-run` reports the grid
+size and an estimated `predict_batch` call count before you commit to one.
 
 ## Setup
 
@@ -73,7 +87,10 @@ uv run scripts/03_exp_shock.py
 uv run scripts/04_exp_calibration.py   # reuses 02+03's output, no GPU needed
 uv run scripts/05_exp_covariates.py
 
-# 2b. Preregistered benchmark grid (optional, separate from 2-5 above)
+# 2b. Preregistered benchmark grid (optional, separate from 2-5 above).
+#     --as-of is required for the real run (it's the cached data's cutoff,
+#     recorded in the manifest); --dry-run doesn't need it. Read the memory
+#     warning above before running the full example grid on Colab.
 uv run scripts/02b_exp_mtg_benchmark.py --config configs/benchmark_preregistered.example.json --dry-run
 uv run scripts/02b_exp_mtg_benchmark.py --config configs/benchmark_preregistered.example.json --as-of <YYYY-MM-DD>
 
