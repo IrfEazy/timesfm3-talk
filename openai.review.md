@@ -866,3 +866,4 @@ uv run scripts/05_exp_covariates.py
 # 6-7. figures + slide numbers, local, no GPU
 uv run scripts/06_make_figures.py
 uv run scripts/07_build_slides.py
+
