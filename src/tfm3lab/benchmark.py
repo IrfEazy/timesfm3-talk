@@ -8,6 +8,7 @@ reuses windows.valid_origins for the actual computation.
 from __future__ import annotations
 
 import random
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 import numpy as np
@@ -315,11 +316,19 @@ PRIMARY_EXPORT_FORBIDDEN = frozenset(
 )
 
 
-def primary_export_frame(cell_df: pd.DataFrame, baselines: tuple[str, ...]) -> pd.DataFrame:
+def primary_export_frame(
+    cell_df: pd.DataFrame,
+    baselines: tuple[str, ...],
+    error_scales: Mapping[str, float],
+) -> pd.DataFrame:
     """Normalized, price-free view of one primary cell for the committed
-    export (Preregistration v2 s7, data option b): absolute errors and
-    y/q10/q50/q90 divided by the last observed context value. No column
-    holds an actual price.
+    export (Preregistration v2 s7, data option b). Absolute errors
+    (`ae_*_scaled`) are divided by a per-series CONSTANT from
+    `error_scales` (normalize.series_error_scale), so per-card ratios of
+    loss sums equal the raw-error ratios of Preregistration v2 s1;
+    y/q10/q50/q90 are divided by the last observed context value (per
+    origin) for calibration. The constants are never written out. No
+    column holds an actual price.
 
     Only the row at horizon_step == requested_horizon is kept (the horizon
     each cell was run for); intermediate steps stay in the heavy run
@@ -329,6 +338,9 @@ def primary_export_frame(cell_df: pd.DataFrame, baselines: tuple[str, ...]) -> p
     scale_raw = cell_df["context_last_observed"].to_numpy(dtype=float)
     valid = np.isfinite(scale_raw) & (scale_raw > 0)
     scale = np.where(valid, scale_raw, np.nan)
+    err_raw = cell_df["series"].astype(str).map(error_scales).to_numpy(dtype=float)
+    err_valid = np.isfinite(err_raw) & (err_raw > 0)
+    err_scale = np.where(err_valid, err_raw, np.nan)
     y = cell_df["actual"].to_numpy(dtype=float)
     out = pd.DataFrame(
         {
@@ -343,12 +355,13 @@ def primary_export_frame(cell_df: pd.DataFrame, baselines: tuple[str, ...]) -> p
             "horizon": cell_df["horizon_step"].to_numpy(),
             "observed": cell_df["observed"].to_numpy(dtype=bool),
             "scale_valid": valid,
-            "ae_model_scaled": np.abs(y - cell_df["forecast"].to_numpy(dtype=float)) / scale,
+            "error_scale_valid": err_valid,
+            "ae_model_scaled": np.abs(y - cell_df["forecast"].to_numpy(dtype=float)) / err_scale,
         }
     )
     for b in baselines:
         pred = cell_df[f"baseline_{b}"].to_numpy(dtype=float)
-        out[f"ae_baseline_{b}_scaled"] = np.abs(y - pred) / scale
+        out[f"ae_baseline_{b}_scaled"] = np.abs(y - pred) / err_scale
     out["y_norm"] = y / scale
     for q in ("q10", "q50", "q90"):
         out[f"{q}_norm"] = cell_df[q].to_numpy(dtype=float) / scale

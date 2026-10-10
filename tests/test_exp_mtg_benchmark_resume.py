@@ -394,10 +394,23 @@ def test_primary_export_is_normalized_and_price_free(env):
     assert primary["scale_valid"].all()
     assert np.isfinite(primary.select_dtypes("number").to_numpy(dtype=float)).all()
     np.testing.assert_allclose(primary["y_norm"], prim["actual"] / prim["context_last_observed"])
+    # absolute errors use a per-series constant: median of the series' observed values
+    cache_all = pd.read_parquet(env.cache / "mtg_prices.parquet")
+    obs = cache_all[cache_all["observed"]]
+    const = prim["series"].map(obs.groupby("series")["value"].median())
+    assert primary["error_scale_valid"].all()
     np.testing.assert_allclose(
-        primary["ae_model_scaled"],
-        (prim["actual"] - prim["forecast"]).abs() / prim["context_last_observed"],
+        primary["ae_model_scaled"], (prim["actual"] - prim["forecast"]).abs() / const
     )
+    # per-card ratio of loss sums equals the raw-error ratio (skill preserved)
+    raw_e = (prim["actual"] - prim["forecast"]).abs()
+    raw_b = (prim["actual"] - prim["baseline_naive"]).abs()
+    for card, idx in prim.groupby("series").groups.items():
+        g = primary[primary["card"] == card]
+        np.testing.assert_allclose(
+            g["ae_model_scaled"].sum() / g["ae_baseline_naive_scaled"].sum(),
+            raw_e[idx].sum() / raw_b[idx].sum(),
+        )
     # the normalizer is the last OBSERVED context value, not just the last value
     cache = pd.read_parquet(env.cache / "mtg_prices.parquet")
     r = prim.iloc[0]

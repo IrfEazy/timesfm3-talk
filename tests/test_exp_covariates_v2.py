@@ -57,18 +57,26 @@ def test_end_to_end(exp05, tmp_path):
     release = np.array(["2025-02-15", "2025-03-20"], dtype="datetime64[D]")
     f = CovForecaster()
     paths = exp05.run_experiment(
-        f, market_series=market, mtg_series=mtg, release_dates=release,
+        f,
+        market_series=market,
+        mtg_series=mtg,
+        release_dates=release,
         excluded=[{"domain": "mtg", "series": "gone", "reason": "no cached price series"}],
-        results_dir=tmp_path, context_len=16, horizon=7, stride=7, n_boot=100,
+        results_dir=tmp_path,
+        context_len=16,
+        horizon=7,
+        stride=7,
+        n_boot=100,
     )
     preds = pd.read_parquet(paths["predictions"])
     summary = pd.read_parquet(paths["summary"])
     leak = pd.read_parquet(paths["leakage_demo"])
 
     assert set(preds["arm"]) == {"no_covariate", "legit", "placebo"}
-    assert "leaked" not in set(summary.get("arm", [])) and not summary.astype(str).apply(
-        lambda c: c.str.contains("LEAKED")
-    ).any().any()
+    assert (
+        "leaked" not in set(summary.get("arm", []))
+        and not summary.astype(str).apply(lambda c: c.str.contains("LEAKED")).any().any()
+    )
     assert set(leak["arm"]) == {"leaked"}
     assert (leak["watermark"] == cv.LEAKED_WATERMARK).all()
     # normalized, no raw prices
@@ -101,14 +109,30 @@ def test_leaked_arm_requires_teaching_path(exp05):
     s = _series("c")
     origins = np.array([20, 27])
     with pytest.raises(cv.CovariateAvailabilityError):
-        exp05.run_arm(CovForecaster(), s, origins, "leaked", cv.LEAKED_FUTURE,
-                      lambda ser, o: cv.teaching_only_leaked_covariate(ser.values, o, 16, 7),
-                      context_len=16, horizon=7, domain="mtg")
+        exp05.run_arm(
+            CovForecaster(),
+            s,
+            origins,
+            "leaked",
+            cv.LEAKED_FUTURE,
+            lambda ser, o: cv.teaching_only_leaked_covariate(ser.values, o, 16, 7),
+            context_len=16,
+            horizon=7,
+            domain="mtg",
+        )
     # a legit-arm run with a not-future-known spec is refused too
     with pytest.raises(cv.CovariateAvailabilityError):
-        exp05.run_arm(CovForecaster(), s, origins, "legit", cv.LEAKED_FUTURE,
-                      lambda ser, o: np.zeros((1, 23)),
-                      context_len=16, horizon=7, domain="mtg")
+        exp05.run_arm(
+            CovForecaster(),
+            s,
+            origins,
+            "legit",
+            cv.LEAKED_FUTURE,
+            lambda ser, o: np.zeros((1, 23)),
+            context_len=16,
+            horizon=7,
+            domain="mtg",
+        )
 
 
 def test_build_mtg_inputs_excludes_with_reasons(exp05, tmp_path, monkeypatch):
@@ -121,8 +145,9 @@ def test_build_mtg_inputs_excludes_with_reasons(exp05, tmp_path, monkeypatch):
         exp05, "_load_series", lambda name: [_series("A [AAA]"), _series("B [BBB]")]
     )
     monkeypatch.setattr(
-        exp05, "fetch_release_map", lambda abbrevs: {"AAA": np.datetime64("2025-02-01"),
-                                                     "CCC": np.datetime64("2025-03-01")}
+        exp05,
+        "fetch_release_map",
+        lambda abbrevs: {"AAA": np.datetime64("2025-02-01"), "CCC": np.datetime64("2025-03-01")},
     )
     series, release, excluded = exp05.build_mtg_inputs(pool)
     assert [s.name for s in series] == ["A [AAA]"]
@@ -130,3 +155,29 @@ def test_build_mtg_inputs_excludes_with_reasons(exp05, tmp_path, monkeypatch):
     assert reasons["B [BBB]"] == "set release date unresolved"
     assert reasons["C [CCC]"] == "no cached price series"
     assert list(release) == [np.datetime64("2025-02-01")]
+
+
+def test_per_series_skill_equals_raw_error_ratio(exp05):
+    s = _series("c", seed=3)
+    origins = np.array([20, 27, 34])
+    kw = {"context_len": 16, "horizon": 7, "domain": "mtg"}
+    base = exp05.run_arm(CovForecaster(), s, origins, "no_covariate", None, None, **kw)
+    legit = exp05.run_arm(
+        CovForecaster(),
+        s,
+        origins,
+        "legit",
+        cv.DAYS_TO_RELEASE,
+        lambda ser, o: np.full((1, 23), 5.0),
+        **kw,
+    )
+    assert "abs_err_norm" not in base.columns
+    assert base["abs_err_scaled"].notna().all() and legit["abs_err_scaled"].notna().all()
+    fc_base = np.array([s.values[o - 1] for o in base["origin_index"]])
+    idx = (base["origin_index"] + base["horizon_step"] - 1).to_numpy()
+    actual = s.values[idx]
+    raw_base = np.abs(fc_base - actual).sum()
+    nudge = 0.001 * 5.0
+    raw_legit = np.abs(fc_base * (1 + nudge) - actual).sum()
+    got = 1 - legit["abs_err_scaled"].sum() / base["abs_err_scaled"].sum()
+    assert got == pytest.approx(1 - raw_legit / raw_base)

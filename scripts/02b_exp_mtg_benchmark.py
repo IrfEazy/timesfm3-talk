@@ -114,6 +114,7 @@ from tfm3lab.benchmark import (
 )
 from tfm3lab.benchmark_config import BenchmarkConfig, load_benchmark_config
 from tfm3lab.data.mtg import DEFAULT_CARDS, CardSpec, load_card_manifest
+from tfm3lab.normalize import series_error_scale
 from tfm3lab.preflight import preflight_model
 from tfm3lab.summarize import aggregate_leaderboard, compute_mase_scales, summarize_leaderboard
 
@@ -346,13 +347,15 @@ def summarize_store(store: cellstore.RunStore, cfg: BenchmarkConfig, mase_scales
     return leaderboard, aggregate, bool(kwargs)
 
 
-def export_primary(store: cellstore.RunStore, combos, cfg: BenchmarkConfig) -> pd.DataFrame | None:
+def export_primary(
+    store: cellstore.RunStore, combos, cfg: BenchmarkConfig, error_scales: dict[str, float]
+) -> pd.DataFrame | None:
     primary_ids = sorted(c.cell_id for c in combos if c.is_primary)
     committed = [cid for cid in primary_ids if cid in store.committed]
     if not committed:
         return None
     frames = [
-        primary_export_frame(table.to_pandas(), cfg.baselines)
+        primary_export_frame(table.to_pandas(), cfg.baselines, error_scales)
         for _cid, table in store.iter_committed(cell_ids=committed)
     ]
     return pd.concat(frames, ignore_index=True)
@@ -580,7 +583,8 @@ def main(argv: list[str] | None = None) -> None:
             _label(aggregate, cfg, run_id, n_committed, n_expected), AGGREGATE_NAME, partial
         ),
     ]
-    primary = export_primary(store, combos, cfg)
+    error_scales = {s.name: series_error_scale(s)[0] for s in series_list}
+    primary = export_primary(store, combos, cfg, error_scales)
     if primary is not None:
         outputs.append(_write_light(primary, PRIMARY_NAME, partial))
     else:

@@ -235,7 +235,7 @@ def test_primary_export_frame_has_no_price_columns():
             "context_last_observed": [10.0],
         }
     )
-    out = primary_export_frame(cell, ("naive",))
+    out = primary_export_frame(cell, ("naive",), {"X": 10.0, "Y": 10.0})
     assert not (PRIMARY_EXPORT_FORBIDDEN & set(out.columns))
     assert out.loc[0, "y_norm"] == pytest.approx(1.2)
     assert out.loc[0, "ae_model_scaled"] == pytest.approx(0.3)
@@ -271,9 +271,59 @@ def test_primary_export_keeps_only_requested_horizon_and_flags_bad_scale():
             "context_last_observed": [10.0, 10.0, 10.0, 0.0, 0.0, np.nan],
         }
     )
-    out = primary_export_frame(cell, ("naive",)).reset_index(drop=True)
+    out = primary_export_frame(cell, ("naive",), {"X": 10.0, "Y": 10.0}).reset_index(drop=True)
     assert out["horizon"].tolist() == [3, 3]  # one row per series/origin, at the requested step
     assert out["scale_valid"].tolist() == [True, False]
     norm = [c for c in out.columns if c.endswith("_norm") or c.endswith("_scaled")]
     assert not np.isinf(out[norm].to_numpy(dtype=float)).any()
-    assert out.loc[1, norm].isna().all()
+    assert out.loc[1, ["y_norm", "q10_norm", "q50_norm", "q90_norm"]].isna().all()
+    assert out["error_scale_valid"].tolist() == [True, True]
+    bad = primary_export_frame(cell, ("naive",), {"X": 10.0, "Y": float("nan")})
+    assert bad["error_scale_valid"].tolist() == [True, False]
+    assert bad.loc[1, ["ae_model_scaled", "ae_baseline_naive_scaled"]].isna().all()
+
+
+def test_primary_export_skill_equals_raw_ratio_per_card():
+    import numpy as np
+    import pandas as pd
+
+    from tfm3lab.benchmark import PRIMARY_EXPORT_FORBIDDEN, primary_export_frame
+
+    rng = np.random.default_rng(1)
+    rows = []
+    for card, level in (("A", 3.0), ("B", 40.0)):
+        for _o in range(6):
+            last = level * rng.uniform(0.5, 1.5)  # varies per origin
+            actual = level * rng.uniform(0.5, 1.5)
+            rows.append(
+                {
+                    "config_id": "c",
+                    "run_id": "r",
+                    "mode": "m",
+                    "context_len": 8,
+                    "series": card,
+                    "origin_date": pd.Timestamp("2025-01-01"),
+                    "target_date": pd.Timestamp("2025-01-02"),
+                    "requested_horizon": 1,
+                    "horizon_step": 1,
+                    "observed": True,
+                    "actual": actual,
+                    "forecast": actual + rng.normal(),
+                    "q10": 0.0,
+                    "q50": 0.0,
+                    "q90": 0.0,
+                    "baseline_naive": last,
+                    "context_last_observed": last,
+                }
+            )
+    cell = pd.DataFrame(rows)
+    out = primary_export_frame(cell, ("naive",), {"A": 2.5, "B": 37.0})
+    assert not (PRIMARY_EXPORT_FORBIDDEN & set(out.columns))
+    assert not any("price" in c or c == "error_scale" for c in out.columns)
+    for card, g in out.groupby("card"):
+        raw = cell[cell["series"] == card]
+        want = (raw["actual"] - raw["forecast"]).abs().sum() / (
+            raw["actual"] - raw["baseline_naive"]
+        ).abs().sum()
+        got = g["ae_model_scaled"].sum() / g["ae_baseline_naive_scaled"].sum()
+        assert got == pytest.approx(want)

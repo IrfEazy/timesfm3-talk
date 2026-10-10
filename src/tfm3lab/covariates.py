@@ -215,7 +215,7 @@ def paired_skill_summary(
     ("<primary_horizon>" and the all-step pool "all"). Raises on leaked rows.
 
     `preds` needs: domain, series, origin_index, horizon_step, arm, observed,
-    abs_err_norm. The verdict sits on every row of its domain, computed from
+    abs_err_scaled. The verdict sits on every row of its domain, computed from
     the PRIMARY_STATISTIC at the primary horizon."""
     from . import bootstrap
 
@@ -226,7 +226,7 @@ def paired_skill_summary(
     key = ["domain", "series", "origin_index", "horizon_step"]
     wide = (
         preds[preds["observed"]]
-        .pivot_table(index=key, columns="arm", values="abs_err_norm", aggfunc="first")
+        .pivot_table(index=key, columns="arm", values="abs_err_scaled", aggfunc="first")
         .dropna()
         .reset_index()
     )

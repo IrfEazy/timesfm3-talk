@@ -94,8 +94,15 @@ def _preds(include_leaked=False):
             base = rng.uniform(0.5, 1.5)
             for arm, mult in (("no_covariate", 1.0), ("legit", 0.5), ("placebo", 1.0)):
                 rows.append(
-                    {"domain": "mtg", "series": f"c{ser}", "origin_index": o, "horizon_step": 7,
-                     "arm": arm, "observed": True, "abs_err_norm": base * mult}
+                    {
+                        "domain": "mtg",
+                        "series": f"c{ser}",
+                        "origin_index": o,
+                        "horizon_step": 7,
+                        "arm": arm,
+                        "observed": True,
+                        "abs_err_scaled": base * mult,
+                    }
                 )
     df = pd.DataFrame(rows)
     if include_leaked:

@@ -18,8 +18,10 @@ Arms (per series, same origins):
 Pool: MTG over the frozen pool configs/benchmark_pool_v2.csv (cards whose set
 release date resolves; the others are listed as excluded with a reason);
 market over SP500 and the other v2 indices present in the cache. Context 128,
-horizon 7, origin_stride 7. Outputs are normalized by the last observed context
-value (no raw prices). "Helps" iff the paired skill-delta primary CI (cluster
+horizon 7, origin_stride 7. Outputs are price-free: y/forecast are normalized by the last observed
+context value; absolute errors (abs_err_scaled) by a per-series constant (median
+of observed values), so per-series skill equals the raw-error ratio.
+"Helps" iff the paired skill-delta primary CI (cluster
 bootstrap, cards/series as clusters) is > 0 versus BOTH no_covariate AND placebo.
 
 Requires scripts/01_fetch_data.py already run and a loaded TimesFM-3 forecaster.
@@ -49,6 +51,7 @@ from tfm3lab.backtest import SeriesData
 from tfm3lab.data.mtg import MAGIC_CATEGORY_ID, fetch_groups, load_card_manifest
 from tfm3lab.manifest import capture_git_state, write_run_manifest
 from tfm3lab.model import forecast_batch, load_forecaster
+from tfm3lab.normalize import series_error_scale
 from tfm3lab.preflight import preflight_model
 from tfm3lab.windows import context_slice, valid_origins
 
@@ -132,6 +135,7 @@ def run_arm(
         ts_ids=ts_ids,
         past_future_covariates=covs if cov_fn is not None else None,
     )
+    err_scale, err_valid = series_error_scale(s)  # per-series constant, not written out
     rows = []
     for i, origin in enumerate(origins):
         origin = int(origin)
@@ -151,7 +155,7 @@ def run_arm(
                     "observed": bool(s.observed[t]) and scale != 0,
                     "actual_norm": actual / scale if scale else np.nan,
                     "forecast_norm": fc / scale if scale else np.nan,
-                    "abs_err_norm": abs(fc - actual) / abs(scale) if scale else np.nan,
+                    "abs_err_scaled": abs(fc - actual) / err_scale if err_valid else np.nan,
                 }
             )
     return pd.DataFrame(rows)
