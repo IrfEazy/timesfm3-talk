@@ -12,6 +12,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import os
 import subprocess
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -40,7 +41,25 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _UNSET = object()
 
 
+GIT_SHA_ENV = "TFM3LAB_GIT_SHA"
+GIT_DIRTY_ENV = "TFM3LAB_GIT_DIRTY"
+
+
+def _has_git() -> bool:
+    """False for a code snapshot (git archive extract) that carries no .git."""
+    return (_REPO_ROOT / ".git").exists()
+
+
 def _git_sha() -> str:
+    if not _has_git():
+        sha = os.environ.get(GIT_SHA_ENV, "").strip()
+        if not sha:
+            raise RuntimeError(
+                f"no .git under {_REPO_ROOT}: this is a code snapshot, so the commit sha must "
+                f"be given in the {GIT_SHA_ENV} environment variable (the Kaggle notebook sets "
+                "it from the snapshot's COMMIT_SHA file)"
+            )
+        return sha
     try:
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],
@@ -61,7 +80,13 @@ def _git_sha() -> str:
 
 
 def _git_dirty() -> bool | None:
-    """True if the work tree has uncommitted changes; None if git is unavailable."""
+    """True if the work tree has uncommitted changes; None if git is unavailable.
+
+    Without a .git (code snapshot) it is False only when the snapshot declared itself
+    clean through TFM3LAB_GIT_DIRTY=0, else None (unknown)."""
+    if not _has_git():
+        declared = os.environ.get(GIT_DIRTY_ENV, "").strip().lower()
+        return False if declared in {"0", "false"} else None
     try:
         result = subprocess.run(
             # results/ and data/ hold the run's own outputs; they must not
@@ -85,6 +110,8 @@ def capture_git_state() -> bool | None:
 
 def _prereg_commit() -> str:
     """Last commit touching docs/analysis-plan.md (the preregistration)."""
+    if not _has_git():
+        return "unknown"
     try:
         result = subprocess.run(
             ["git", "log", "-n", "1", "--format=%H", "--", "docs/analysis-plan.md"],

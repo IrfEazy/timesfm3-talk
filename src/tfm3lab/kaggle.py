@@ -885,6 +885,199 @@ def measure_points(
     return rows
 
 
+# ------------------------------------------------- code snapshot (no GitHub push)
+
+INPUT_ROOT = Path("/kaggle/input")
+SNAPSHOT_PREFIX = "tfm3lab-code-"
+COMMIT_FILE = "COMMIT_SHA"
+
+
+def _walk_dirs(root: Path, max_depth: int):
+    """Yield (directory, depth) below root, breadth-first, never following symlinks loops."""
+    queue = [(root, 0)]
+    while queue:
+        cur, depth = queue.pop(0)
+        yield cur, depth
+        if depth >= max_depth:
+            continue
+        try:
+            children = sorted(p for p in cur.iterdir() if p.is_dir())
+        except OSError:
+            continue
+        queue.extend((c, depth + 1) for c in children)
+
+
+def find_input_dir(slug: str, root: Path = INPUT_ROOT, max_depth: int = 6) -> Path:
+    """Directory of an attached Kaggle dataset, found by its slug below `root`.
+
+    Handles /kaggle/input/<slug> and nested mounts such as
+    /kaggle/input/datasets/<owner>/<slug>. The match is on the directory name
+    (case-insensitive)."""
+    slug = slug.strip().strip("/").lower()
+    if not slug:
+        raise ValueError("dataset slug is empty")
+    for cur, _ in _walk_dirs(Path(root), max_depth):
+        if cur != Path(root) and cur.name.lower() == slug:
+            return cur
+    seen = [p.name for p, d in _walk_dirs(Path(root), 2) if d >= 1]
+    raise FileNotFoundError(
+        f"no attached dataset {slug!r} under {root}; attach it to the notebook "
+        f"(found: {', '.join(seen) or 'nothing'})"
+    )
+
+
+def _is_code_dir(path: Path) -> bool:
+    return (path / "pyproject.toml").is_file() and (path / "src" / "tfm3lab").is_dir()
+
+
+def _snapshot_candidates(base: Path, max_depth: int) -> list[Path]:
+    """Extracted snapshot directories and snapshot archives below `base`."""
+    found: list[Path] = []
+    for cur, _depth in _walk_dirs(base, max_depth):
+        if any(cur.is_relative_to(f) for f in found if f.is_dir()):
+            continue
+        if _is_code_dir(cur):
+            found.append(cur)
+            continue
+        try:
+            found.extend(sorted(cur.glob(f"{SNAPSHOT_PREFIX}*.tar.gz")))
+        except OSError:
+            continue
+    return found
+
+
+def _candidate_matches(path: Path, sha12: str) -> bool:
+    if sha12 in path.name.lower():
+        return True
+    commit = path / COMMIT_FILE if path.is_dir() else None
+    if commit is not None and commit.is_file():
+        first = commit.read_text(encoding="utf-8").strip().splitlines()[:1]
+        return bool(first) and first[0].strip().lower().startswith(sha12)
+    return False
+
+
+def find_code_snapshot(
+    slug: str | None = None, root: Path = INPUT_ROOT, max_depth: int = 6
+) -> Path:
+    """The code snapshot below `root`: an extracted directory (pyproject.toml and
+    src/tfm3lab) or a tfm3lab-code-<sha>.tar.gz archive.
+
+    With a `slug` the dataset of that name must be attached (FileNotFoundError
+    otherwise, never a fallback to the whole tree) and is searched alone. When
+    several snapshots are found, the one whose sha12 (from a `tfm3lab-code-<sha12>`
+    slug) matches is chosen; if none or several do, fail listing them."""
+    root = Path(root)
+    base = find_input_dir(slug, root, max_depth) if slug else root
+    found = _snapshot_candidates(base, max_depth)
+    if not found:
+        raise FileNotFoundError(
+            f"no code snapshot under {base}: attach the dataset {slug!r} holding "
+            f"{SNAPSHOT_PREFIX}<sha12>.tar.gz (or its extracted files)"
+        )
+    if len(found) == 1:
+        return found[0]
+    sha12 = ""
+    if slug and slug.strip().lower().startswith(SNAPSHOT_PREFIX):
+        sha12 = slug.strip().lower()[len(SNAPSHOT_PREFIX) :]
+    matches = [p for p in found if sha12 and _candidate_matches(p, sha12)]
+    if len(matches) == 1:
+        return matches[0]
+    raise RuntimeError(
+        f"{len(found)} code snapshots under {base}, "
+        f"{'none or several match' if sha12 else 'no sha12 in the slug to choose'} "
+        f"{sha12!r}: {', '.join(str(p) for p in found)}"
+    )
+
+
+def _make_writable(path: Path) -> None:
+    for cur, dirs, files in os.walk(path):
+        for name in [*dirs, *files]:
+            p = Path(cur) / name
+            if not p.is_symlink():
+                p.chmod(p.stat().st_mode | 0o200)
+    path.chmod(path.stat().st_mode | 0o200)
+
+
+def materialize_code_snapshot(source: Path, dest: Path) -> Path:
+    """Copy (directory) or extract (tar.gz) the snapshot into `dest`, replacing it.
+    The result is writable even when `source` is read-only (/kaggle/input)."""
+    source, dest = Path(source), Path(dest)
+    if dest.exists():
+        _make_writable(dest)
+        shutil.rmtree(dest)
+    if source.is_dir():
+        shutil.copytree(source, dest, copy_function=shutil.copyfile)
+        _make_writable(dest)
+    else:
+        dest.mkdir(parents=True)
+        with tarfile.open(source, "r:*") as tar:
+            tar.extractall(dest, filter="data")
+        _make_writable(dest)
+    if not _is_code_dir(dest):
+        raise RuntimeError(f"snapshot {source} has no pyproject.toml and src/tfm3lab")
+    return dest
+
+
+def read_snapshot_commit(snapshot_dir: Path) -> tuple[str, bool]:
+    """(commit sha, declared clean) from the snapshot's COMMIT_SHA file: the first
+    line is the sha, a later line `clean` declares a clean worktree."""
+    path = Path(snapshot_dir) / COMMIT_FILE
+    if not path.is_file():
+        raise RuntimeError(f"{path} is missing: the snapshot was not made by code-snapshot")
+    lines = [ln.strip() for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    sha = lines[0] if lines else ""
+    if len(sha) < 12 or any(c not in "0123456789abcdef" for c in sha.lower()):
+        raise RuntimeError(f"{path} does not start with a commit sha")
+    return sha, "clean" in lines[1:]
+
+
+def snapshot_environ(sha: str, clean: bool) -> dict[str, str]:
+    """Environment that tfm3lab.manifest reads when the tree has no .git."""
+    env = {"TFM3LAB_GIT_SHA": sha}
+    if clean:
+        env["TFM3LAB_GIT_DIRTY"] = "0"
+    return env
+
+
+def create_code_snapshot(out_dir: Path, repo: Path | None = None) -> tuple[Path, list[str]]:
+    """git archive of HEAD plus a COMMIT_SHA file -> out_dir/tfm3lab-code-<sha12>.tar.gz.
+
+    Refuses if tracked files are modified or staged. Untracked files are never
+    included. Returns (archive path, sorted member names)."""
+    import gzip
+    import io
+
+    repo = Path(repo) if repo else Path(__file__).resolve().parents[2]
+
+    def git(*args: str) -> bytes:
+        return subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True).stdout
+
+    if git("status", "--porcelain", "--untracked-files=no").strip():
+        raise RuntimeError("worktree is dirty: commit or stash tracked changes first")
+    sha = git("rev-parse", "HEAD").decode().strip()
+    raw = git("archive", "--format=tar", "HEAD")
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    archive = out_dir / f"{SNAPSHOT_PREFIX}{sha[:12]}.tar.gz"
+    names: list[str] = []
+    with tarfile.open(fileobj=io.BytesIO(raw), mode="r:") as src:
+        members = [m for m in src.getmembers() if m.name != COMMIT_FILE]
+        mtime = int(members[0].mtime) if members else 0
+        with (
+            gzip.GzipFile(archive, "wb", mtime=0) as gz,
+            tarfile.open(fileobj=gz, mode="w") as dst,
+        ):
+            for m in members:
+                dst.addfile(m, src.extractfile(m) if m.isfile() else None)
+                names.append(m.name)
+            body = f"{sha}\nclean\n".encode()
+            info = tarfile.TarInfo(COMMIT_FILE)
+            info.size, info.mtime, info.mode = len(body), mtime, 0o644
+            dst.addfile(info, io.BytesIO(body))
+            names.append(COMMIT_FILE)
+    return archive, sorted(names)
+
+
 # ---------------------------------------------------------------- CLI
 
 
@@ -893,14 +1086,29 @@ def main(argv: Sequence[str] | None = None) -> int:
     prints the report and writes results/preflight.json.
     `python -m tfm3lab.kaggle cache-manifest --as-of YYYY-MM-DD` (local, right after the
     fetch): writes results/manifests/cache-<as_of>.json with the sha256 and size of every
-    data/cache/*.parquet; commit it."""
+    data/cache/*.parquet; commit it.
+    `python -m tfm3lab.kaggle code-snapshot --out DIR` (local, clean worktree): writes
+    DIR/tfm3lab-code-<sha12>.tar.gz (git archive of HEAD plus COMMIT_SHA) and prints its files."""
     import argparse
 
     parser = argparse.ArgumentParser(description=main.__doc__)
-    parser.add_argument("command", choices=("preflight", "cache-manifest"))
+    parser.add_argument("command", choices=("preflight", "cache-manifest", "code-snapshot"))
+    parser.add_argument("--out", type=Path, help="code-snapshot: output directory")
     parser.add_argument("--allow-cpu", action="store_true")
     parser.add_argument("--as-of", type=dt.date.fromisoformat, metavar="YYYY-MM-DD")
     args = parser.parse_args(argv)
+
+    if args.command == "code-snapshot":
+        if args.out is None:
+            parser.error("code-snapshot requires --out")
+        try:
+            archive, names = create_code_snapshot(args.out)
+        except (RuntimeError, subprocess.CalledProcessError) as exc:
+            print(f"code-snapshot: {exc}", file=sys.stderr)
+            return 1
+        print("\n".join(names))
+        print(f"wrote {archive} ({len(names)} files)")
+        return 0
 
     from tfm3lab import config
 

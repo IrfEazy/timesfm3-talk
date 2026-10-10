@@ -60,6 +60,69 @@ throughput on the GPU you were given and projects the minutes from it.
 5. In the notebook settings: Accelerator = a GPU, **Internet = On** (Hugging
    Face, and TCGCSV for step 05).
 
+## Running without GitHub: code snapshot dataset and CLI path
+
+With `REPO_SOURCE = "dataset"` the notebook needs no push. The code travels as
+a private Kaggle dataset holding a `git archive` snapshot of `HEAD`.
+
+1. Commit everything (tracked changes only count; untracked files are never
+   archived), then, from a **clean** worktree:
+
+   ```
+   uv run python -m tfm3lab.kaggle code-snapshot --out /tmp/code-snap
+   ```
+
+   This writes `/tmp/code-snap/tfm3lab-code-<sha12>.tar.gz` (git archive of
+   `HEAD` plus a `COMMIT_SHA` file, no `.git`), prints the archive's file list
+   and refuses on a dirty worktree.
+2. Upload both datasets (private) with the Kaggle CLI. For each directory run
+   `kaggle datasets init -p DIR`, edit `dataset-metadata.json` (`id`:
+   `irfancela/tfm3lab-code-<sha12>`, or `irfancela/tfm3lab-cache-2026-09-04`
+   for the cache; there is no private key to set), then
+   `kaggle datasets create -p DIR` (datasets are created private by default;
+   do not pass `--public`) (new versions: `kaggle datasets version -p
+   DIR -m "msg"`). The cache dataset is `data/cache/*.parquet`; the code
+   dataset is the directory holding the `.tar.gz`.
+3. Push the notebook as a kernel: copy `notebooks/run_on_kaggle.ipynb` next
+   to a `kernel-metadata.json`, set `REPO_SOURCE = "dataset"` and
+   `CODE_DATASET_SLUG = "tfm3lab-code-<sha12>"` in the parameter cell, then
+   `kaggle kernels push -p DIR`:
+
+   ```json
+   {
+     "id": "irfancela/tfm3lab-run",
+     "title": "tfm3lab-run",
+     "code_file": "run_on_kaggle.ipynb",
+     "language": "python",
+     "kernel_type": "notebook",
+     "is_private": true,
+     "enable_gpu": true,
+     "enable_internet": true,
+     "dataset_sources": [
+       "irfancela/tfm3lab-cache-2026-09-04",
+       "irfancela/tfm3lab-code-<sha12>"
+     ]
+   }
+   ```
+
+4. **Two human-only UI steps** (the CLI cannot do them): attach the `HF_TOKEN`
+   secret to the notebook (Add-ons, Secrets), and accept both gated licences
+   on Hugging Face (links in Prerequisites) with the token's account.
+
+How the notebook uses the snapshot: it searches `/kaggle/input` recursively
+for a directory with `pyproject.toml` and `src/tfm3lab`, or for
+`tfm3lab-code-<sha>.tar.gz` (both `/kaggle/input/<slug>` and nested mounts
+such as `/kaggle/input/datasets/<owner>/<slug>`), copies or extracts it to
+`/kaggle/tmp/timesfm3-talk`, reads the commit sha from `COMMIT_SHA` and sets
+`TFM3LAB_GIT_SHA` (and `TFM3LAB_GIT_DIRTY=0`, because the snapshot declares
+itself clean) for every step; `tfm3lab.manifest` and the cell-store
+fingerprint use them when no `.git` exists and fail with a clear error if
+`TFM3LAB_GIT_SHA` is missing. The code digest is then computed over the
+snapshot's files. Do not resume a run in the other mode: the digest differs
+between a git checkout and a snapshot, so 02b would not reuse its cells. To
+resume, attach the same code dataset. The cache dataset is located the same way
+by `DATASET_SLUG` (set `DATASET_DIR` only to force an explicit path).
+
 ## Choosing a GPU
 
 Pick any CUDA GPU with enough memory for the 200M-class models; the notebook
@@ -74,9 +137,12 @@ because a different GPU means a different projection.
 | Name | Meaning |
 | --- | --- |
 | `REPO_URL` | Repository to clone. |
-| `GIT_REF` | Pushed branch, tag or commit sha (required). |
+| `REPO_SOURCE` | `"github"` (default: clone `REPO_URL` at `GIT_REF`) or `"dataset"` (attached code snapshot). |
+| `CODE_DATASET_SLUG` | `REPO_SOURCE="dataset"`: slug of the snapshot dataset, `tfm3lab-code-<sha12>`. |
+| `GIT_REF` | `REPO_SOURCE="github"`: pushed branch, tag or commit sha (required there). |
 | `AS_OF` | Data freeze date, `2026-09-04`; must match the committed manifests. |
-| `DATASET_DIR` | Mount path of the attached private cache dataset. |
+| `DATASET_SLUG` | Slug of the attached private cache dataset, found recursively under `/kaggle/input`. |
+| `DATASET_DIR` | Optional explicit mount path overriding the slug lookup. |
 | `PREVIOUS_OUTPUT_DIR` | Optional: a prior version's output, attached as input, to resume. |
 | `EXPERIMENTS` | Ordered step ids; remove ids to skip steps. |
 | `RESUME` | Skip steps already completed in a restored session (02b always resumes its run directories). |
@@ -159,7 +225,7 @@ safe per-cell store under `results/benchmark/`; they resume with `--resume`.
 To continue in a second session (after a timeout, quota exhaustion or a
 failed step): open the notebook again, attach the previous version's output
 as an input, set `PREVIOUS_OUTPUT_DIR` to its mount path (shown in the right
-sidebar), **set `GIT_REF` to the commit sha printed in session 1**, keep
+sidebar), **with `REPO_SOURCE = "github"` set `GIT_REF` to the commit sha printed in session 1** (with `REPO_SOURCE = "dataset"` attach the same code dataset, same sha, instead; `GIT_REF` is unused), keep
 `RESUME = True`, and run again. Completed steps are skipped, interrupted 02b
 runs continue from the last committed cell, and failed steps are retried. The
 restore cell checks that the previous session ran the same commit and stops

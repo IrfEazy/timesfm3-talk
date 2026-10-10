@@ -205,13 +205,38 @@ def fingerprint_of(payload: dict) -> str:
     return sha256_text(canonical_json(payload))
 
 
+def _snapshot_digest(root: Path, paths: tuple[str, ...]) -> str:
+    files: set[Path] = set()
+    for rel in paths:
+        target = root / rel
+        if target.is_file():
+            files.add(target)
+        elif target.is_dir():
+            files.update(p for p in target.rglob("*") if p.is_file())
+    digest = hashlib.sha256(b"snapshot")
+    for path in sorted(files):
+        if "__pycache__" in path.parts or path.suffix == ".pyc":
+            continue
+        digest.update(b"\0file\0" + path.relative_to(root).as_posix().encode() + b"\0")
+        try:
+            digest.update(bytes.fromhex(file_sha256(path)))
+        except OSError:
+            digest.update(b"<unreadable>")
+    return digest.hexdigest()
+
+
 def git_worktree_digest(
     repo_root: str | Path, paths: tuple[str, ...] = RESULT_DETERMINING_PATHS
 ) -> str | None:
     """sha256 over `git diff HEAD` plus the contents of untracked files,
     restricted to `paths` (the result-determining sources). Everything else
     (uv.lock, docs, tests, notebooks, logs, results) is ignored. None when
-    git is unavailable. A clean scope yields the digest of empty input."""
+    git is unavailable. A clean scope yields the digest of empty input.
+
+    A code snapshot has no .git: the digest is then taken over the snapshot's own
+    files under `paths` (names and contents, __pycache__ skipped)."""
+    if not (Path(repo_root) / ".git").exists():
+        return _snapshot_digest(Path(repo_root), paths)
     pathspec = ["--", *paths]
     try:
         diff = subprocess.run(
