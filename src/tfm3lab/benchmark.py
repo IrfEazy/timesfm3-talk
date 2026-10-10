@@ -11,9 +11,31 @@ import random
 from dataclasses import dataclass
 
 import numpy as np
+import pandas as pd
+import pyarrow as pa
 
+from . import config
 from .benchmark_config import BenchmarkConfig
-from .windows import valid_origins
+from .windows import context_slice, valid_origins
+
+# Bump when the per-cell row layout (CELL_SCHEMA) or the metric definitions
+# applied to it change: both enter the execution fingerprint, so a bump
+# forces a fresh run directory instead of mixing incompatible cells.
+CELL_SCHEMA_VERSION = 1
+METRIC_VERSION = 1
+
+BASELINE_NAMES = ("naive", "seasonal_naive", "drift", "ets")
+QUANTILE_COLUMNS = tuple(f"q{round(level * 100):02d}" for level in config.QUANTILE_LEVELS)
+CELL_KEY_COLUMNS = ("series", "origin", "horizon_step")
+
+# Rough uncompressed bytes per stored row (16 float64 + 6 int64/timestamp +
+# 2 bool + short strings); used only for --dry-run projections.
+BYTES_PER_ROW_ESTIMATE = 220
+
+# Experiment A's primary cell (Preregistration v2 s2), minus the horizon:
+# every grid horizon of this (mode, transform, make_positive, context) slice
+# goes into the small committed export.
+PRIMARY_CELL = {"mode": "univariate", "transform": "raw", "make_positive": True, "context_len": 512}
 
 
 def common_origin_set(
@@ -51,6 +73,24 @@ class AblationCombo:
     transform: str
     make_positive: bool
     mode: str
+
+    @property
+    def cell_id(self) -> str:
+        """Stable id derived from the combo fields only (never from
+        enumeration order); zero-padded so lexical order is numeric order."""
+        return (
+            f"ctx{self.context_len:05d}-h{self.horizon:04d}-{self.transform}"
+            f"-mp{int(self.make_positive)}-{self.mode}"
+        )
+
+    @property
+    def is_primary(self) -> bool:
+        return (
+            self.mode == PRIMARY_CELL["mode"]
+            and self.transform == PRIMARY_CELL["transform"]
+            and self.make_positive == PRIMARY_CELL["make_positive"]
+            and self.context_len == PRIMARY_CELL["context_len"]
+        )
 
 
 def iter_ablation_combos(cfg: BenchmarkConfig, card_pool_size: int) -> list[AblationCombo]:
@@ -130,6 +170,16 @@ def dry_run_report(cfg: BenchmarkConfig, n_days: int, card_pool_size: int) -> di
     estimated_calls = sum(
         n_origins * card_pool_size if c.mode == "univariate" else n_origins for c in combos
     )
+    cells = []
+    for c in combos:
+        rows = projected_cell_rows(c, n_origins, card_pool_size, cfg.placebo_panel_size)
+        cells.append(
+            {
+                "cell_id": c.cell_id,
+                "projected_rows": rows,
+                "projected_bytes_estimate": rows * BYTES_PER_ROW_ESTIMATE,
+            }
+        )
 
     return {
         "config_id": cfg.config_id,
@@ -139,8 +189,13 @@ def dry_run_report(cfg: BenchmarkConfig, n_days: int, card_pool_size: int) -> di
         "n_combos_skipped_placebo_pool_too_small": full_count - len(combos),
         "card_pool_size": card_pool_size,
         "estimated_predict_batch_calls": estimated_calls,
+        "bytes_per_row_estimate": BYTES_PER_ROW_ESTIMATE,
+        "projected_rows_total": sum(c["projected_rows"] for c in cells),
+        "projected_bytes_total_estimate": sum(c["projected_bytes_estimate"] for c in cells),
+        "cells": cells,
         "combos": [
             {
+                "cell_id": c.cell_id,
                 "context_len": c.context_len,
                 "horizon": c.horizon,
                 "transform": c.transform,
@@ -150,3 +205,154 @@ def dry_run_report(cfg: BenchmarkConfig, n_days: int, card_pool_size: int) -> di
             for c in combos
         ],
     }
+
+
+def projected_cell_rows(
+    combo: AblationCombo, n_origins: int, card_pool_size: int, placebo_panel_size: int
+) -> int:
+    """Rows one cell stores: one per (series, origin, horizon step)."""
+    n_series = placebo_panel_size if combo.mode == "multivariate_placebo" else card_pool_size
+    return n_series * n_origins * combo.horizon
+
+
+def cell_arrow_schema() -> pa.Schema:
+    """The fixed per-cell row layout (CELL_SCHEMA_VERSION). All four baseline
+    columns are always present (NaN where a baseline was not computed), so
+    every cell of every run shares one schema."""
+    fields = [
+        ("cell_id", pa.string()),
+        ("run_id", pa.string()),
+        ("config_id", pa.string()),
+        ("mode", pa.string()),
+        ("transform", pa.string()),
+        ("make_positive", pa.bool_()),
+        ("context_len", pa.int64()),
+        ("requested_horizon", pa.int64()),
+        ("series", pa.string()),
+        ("origin", pa.int64()),
+        ("origin_date", pa.timestamp("ns")),
+        ("target_index", pa.int64()),
+        ("target_date", pa.timestamp("ns")),
+        ("horizon_step", pa.int64()),
+        ("actual", pa.float64()),
+        ("observed", pa.bool_()),
+        ("forecast", pa.float64()),
+        *[(q, pa.float64()) for q in QUANTILE_COLUMNS],
+        *[(f"baseline_{b}", pa.float64()) for b in BASELINE_NAMES],
+        # last OBSERVED value of the model's context window (price units);
+        # the normalizer of the committed primary export.
+        ("context_last_observed", pa.float64()),
+    ]
+    return pa.schema(fields)
+
+
+CELL_SCHEMA = cell_arrow_schema()
+
+
+def last_observed_context_value(
+    values: np.ndarray, observed: np.ndarray, origin: int, context_len: int
+) -> float:
+    """Value of the last observed point inside the context window
+    values[origin-context_len:origin]; NaN if none is observed or the value
+    is not a positive finite number (it is used as a divisor)."""
+    window = context_slice(origin, context_len)
+    idx = np.flatnonzero(np.asarray(observed[window], dtype=bool))
+    if len(idx) == 0:
+        return float("nan")
+    value = float(np.asarray(values[window], dtype=float)[idx[-1]])
+    return value if np.isfinite(value) and value > 0 else float("nan")
+
+
+def _to_naive_ns(col: pd.Series) -> pd.Series:
+    out = pd.to_datetime(col)
+    if getattr(out.dt, "tz", None) is not None:
+        out = out.dt.tz_convert(None)
+    return out.astype("datetime64[ns]")
+
+
+def canonicalize_cell_frame(
+    df: pd.DataFrame,
+    *,
+    combo: AblationCombo,
+    run_id: str,
+    config_id: str,
+    series_list: list,
+) -> pa.Table:
+    """Backtest output -> one cell's canonical Arrow table: fixed columns
+    and dtypes (CELL_SCHEMA), the normalizer column, rows sorted by
+    CELL_KEY_COLUMNS. `series_list` are the SeriesData this cell forecast."""
+    out = df.rename(columns={"origin_index": "origin"}).copy()
+    out["cell_id"] = combo.cell_id
+    out["run_id"] = run_id
+    out["config_id"] = config_id
+    out["context_len"] = combo.context_len
+    out["requested_horizon"] = combo.horizon
+    for b in BASELINE_NAMES:
+        if f"baseline_{b}" not in out.columns:
+            out[f"baseline_{b}"] = np.nan
+    origins = sorted({int(o) for o in out["origin"].unique()})
+    scale_rows = [
+        (s.name, o, last_observed_context_value(s.values, s.observed, o, combo.context_len))
+        for s in series_list
+        for o in origins
+    ]
+    scales = pd.DataFrame(scale_rows, columns=["series", "origin", "context_last_observed"])
+    out["series"] = out["series"].astype(str)
+    out["origin"] = out["origin"].astype("int64")
+    scales["series"] = scales["series"].astype(str)
+    scales["origin"] = scales["origin"].astype("int64")
+    out = out.merge(scales, on=["series", "origin"], how="left", validate="many_to_one")
+    for c in ("origin_date", "target_date"):
+        out[c] = _to_naive_ns(out[c])
+    out = out.sort_values(list(CELL_KEY_COLUMNS), kind="mergesort").reset_index(drop=True)
+    names = CELL_SCHEMA.names
+    return pa.Table.from_pandas(out[names], schema=CELL_SCHEMA, preserve_index=False)
+
+
+PRIMARY_EXPORT_FORBIDDEN = frozenset(
+    {"actual", "forecast", "context_last_observed", *QUANTILE_COLUMNS}
+    | {f"baseline_{b}" for b in BASELINE_NAMES}
+)
+
+
+def primary_export_frame(cell_df: pd.DataFrame, baselines: tuple[str, ...]) -> pd.DataFrame:
+    """Normalized, price-free view of one primary cell for the committed
+    export (Preregistration v2 s7, data option b): absolute errors and
+    y/q10/q50/q90 divided by the last observed context value. No column
+    holds an actual price.
+
+    Only the row at horizon_step == requested_horizon is kept (the horizon
+    each cell was run for); intermediate steps stay in the heavy run
+    directory. Rows whose scale is NaN, zero or negative get
+    `scale_valid=False` and NaN normalized values instead of inf."""
+    cell_df = cell_df[cell_df["horizon_step"] == cell_df["requested_horizon"]]
+    scale_raw = cell_df["context_last_observed"].to_numpy(dtype=float)
+    valid = np.isfinite(scale_raw) & (scale_raw > 0)
+    scale = np.where(valid, scale_raw, np.nan)
+    y = cell_df["actual"].to_numpy(dtype=float)
+    out = pd.DataFrame(
+        {
+            "config_id": cell_df["config_id"].astype(str).to_numpy(),
+            "run_id": cell_df["run_id"].astype(str).to_numpy(),
+            "mode": cell_df["mode"].astype(str).to_numpy(),
+            "context_len": cell_df["context_len"].to_numpy(),
+            "card": cell_df["series"].astype(str).to_numpy(),
+            "origin_date": cell_df["origin_date"].to_numpy(),
+            "target_date": cell_df["target_date"].to_numpy(),
+            "requested_horizon": cell_df["requested_horizon"].to_numpy(),
+            "horizon": cell_df["horizon_step"].to_numpy(),
+            "observed": cell_df["observed"].to_numpy(dtype=bool),
+            "scale_valid": valid,
+            "ae_model_scaled": np.abs(y - cell_df["forecast"].to_numpy(dtype=float)) / scale,
+        }
+    )
+    for b in baselines:
+        pred = cell_df[f"baseline_{b}"].to_numpy(dtype=float)
+        out[f"ae_baseline_{b}_scaled"] = np.abs(y - pred) / scale
+    out["y_norm"] = y / scale
+    for q in ("q10", "q50", "q90"):
+        out[f"{q}_norm"] = cell_df[q].to_numpy(dtype=float) / scale
+    leaked = PRIMARY_EXPORT_FORBIDDEN & set(out.columns)
+    if leaked:  # defensive: never ship a price column
+        raise AssertionError(f"primary export would contain price columns {sorted(leaked)}")
+    return out

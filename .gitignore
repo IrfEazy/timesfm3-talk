@@ -36,3 +36,7 @@ results/exp_mtg_benchmark_raw_predictions.parquet
 .pytest_cache/
 .mypy_cache/
 *.ipynb_checkpoints/
+
+# scripts/02b_exp_mtg_benchmark.py's heavy per-cell run directories (actual
+# prices, millions of rows); only the small normalized exports are committed.
+results/benchmark/

@@ -128,3 +128,33 @@ def test_timesfm2p5_adapter_allows_univariate_only_config(bench02b, tmp_path, mo
     bench02b.main(["--config", str(cfg_path), "--dry-run", "--adapter", "timesfm2.5"])
     report = json.loads(capsys.readouterr().out)
     assert all(c["mode"] == "univariate" for c in report["combos"])
+
+
+def test_dry_run_reports_projected_rows_and_bytes_per_cell(bench02b, tmp_path, monkeypatch, capsys):
+    cfg_path = _write_config(tmp_path)
+    monkeypatch.setattr(bench02b.config, "CACHE_DIR", tmp_path)
+    bench02b.main(["--config", str(cfg_path), "--dry-run"])
+    report = json.loads(capsys.readouterr().out)
+    assert len(report["cells"]) == report["n_combos"]
+    assert all(
+        {"cell_id", "projected_rows", "projected_bytes_estimate"} <= set(c) for c in report["cells"]
+    )
+
+
+def test_repair_requires_resume(bench02b, tmp_path, capsys):
+    cfg_path = _write_config(tmp_path)
+    with pytest.raises(SystemExit):
+        bench02b.main(["--config", str(cfg_path), "--as-of", "2026-09-01", "--repair"])
+    assert "--resume" in capsys.readouterr().err
+
+
+def test_dry_run_does_not_call_preflight(bench02b, tmp_path, monkeypatch, capsys):
+    cfg_path = _write_config(tmp_path)
+    monkeypatch.setattr(bench02b.config, "CACHE_DIR", tmp_path)
+
+    def boom(*a, **k):
+        raise AssertionError("preflight must not run for --dry-run")
+
+    monkeypatch.setattr(bench02b, "preflight_model", boom)
+    bench02b.main(["--config", str(cfg_path), "--dry-run"])
+    assert json.loads(capsys.readouterr().out)["config_id"] == "test_grid"

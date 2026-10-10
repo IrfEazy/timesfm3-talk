@@ -1,0 +1,44 @@
+{
+  "config_id": "preregistered_v2_timesfm2p5",
+  "description": "TimesFM-2.5 comparison grid FROZEN by Preregistration v2 (docs/analysis-plan.md, commit 5ed53db); run with --adapter timesfm2.5. Identical to preregistered_v2 except modes: univariate only, because TimesFM-2.5 is univariate. Model comparison only, never a cutoff control. Do not edit without a dated amendment.",
+  "context_lengths": [
+    64,
+    128,
+    256,
+    512
+  ],
+  "horizons": [
+    1,
+    7,
+    28,
+    56,
+    64
+  ],
+  "primary_horizons": [
+    28,
+    56
+  ],
+  "origin_stride": 7,
+  "max_origins": null,
+  "cards": "configs/benchmark_pool_v2.csv",
+  "transforms": [
+    "raw",
+    "log1p"
+  ],
+  "make_positive": [
+    true,
+    false
+  ],
+  "modes": [
+    "univariate"
+  ],
+  "placebo_panel_size": 7,
+  "placebo_seed": 42,
+  "season_length": 7,
+  "baselines": [
+    "naive",
+    "seasonal_naive",
+    "drift",
+    "ets"
+  ]
+}

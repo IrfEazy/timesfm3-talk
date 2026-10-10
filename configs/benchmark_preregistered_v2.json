@@ -1,0 +1,46 @@
+{
+  "config_id": "preregistered_v2",
+  "description": "Experiment A grid FROZEN by Preregistration v2 (docs/analysis-plan.md, commit 5ed53db). Do not edit: any change needs a dated amendment in the preregistration. Primary cell: TimesFM-3, univariate, raw, make_positive true, context 512, origin_stride 7, primary horizons 28 and 56. Card pool: the frozen 40-card manifest configs/benchmark_pool_v2.csv.",
+  "context_lengths": [
+    64,
+    128,
+    256,
+    512
+  ],
+  "horizons": [
+    1,
+    7,
+    28,
+    56,
+    64
+  ],
+  "primary_horizons": [
+    28,
+    56
+  ],
+  "origin_stride": 7,
+  "max_origins": null,
+  "cards": "configs/benchmark_pool_v2.csv",
+  "transforms": [
+    "raw",
+    "log1p"
+  ],
+  "make_positive": [
+    true,
+    false
+  ],
+  "modes": [
+    "univariate",
+    "multivariate",
+    "multivariate_placebo"
+  ],
+  "placebo_panel_size": 7,
+  "placebo_seed": 42,
+  "season_length": 7,
+  "baselines": [
+    "naive",
+    "seasonal_naive",
+    "drift",
+    "ets"
+  ]
+}

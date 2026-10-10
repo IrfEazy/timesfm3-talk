@@ -141,3 +141,139 @@ def test_dry_run_report_estimated_calls_scale_with_card_pool_for_univariate():
     small = dry_run_report(cfg, n_days=30, card_pool_size=2)
     large = dry_run_report(cfg, n_days=30, card_pool_size=8)
     assert large["estimated_predict_batch_calls"] == 4 * small["estimated_predict_batch_calls"]
+
+
+def test_cell_id_is_stable_from_fields_not_order():
+    a = AblationCombo(512, 28, "raw", True, "univariate")
+    b = AblationCombo(512, 28, "raw", True, "univariate")
+    assert a.cell_id == b.cell_id == "ctx00512-h0028-raw-mp1-univariate"
+    cfg = _cfg(context_lengths=(8, 4), horizons=(2, 1))
+    reordered = _cfg(context_lengths=(4, 8), horizons=(1, 2))
+    ids = {c.cell_id for c in iter_ablation_combos(cfg, 7)}
+    assert ids == {c.cell_id for c in iter_ablation_combos(reordered, 7)}
+    assert len(ids) == len(iter_ablation_combos(cfg, 7))
+    # zero padding: lexical order == numeric order on context length
+    assert AblationCombo(64, 1, "raw", True, "univariate").cell_id < a.cell_id
+
+
+def test_primary_cell_flag():
+    assert AblationCombo(512, 1, "raw", True, "univariate").is_primary
+    assert not AblationCombo(512, 1, "log1p", True, "univariate").is_primary
+    assert not AblationCombo(256, 1, "raw", True, "univariate").is_primary
+    assert not AblationCombo(512, 1, "raw", False, "univariate").is_primary
+    assert not AblationCombo(512, 1, "raw", True, "multivariate").is_primary
+
+
+def test_dry_run_report_projects_rows_and_bytes_per_cell():
+    cfg = _cfg(
+        modes=("univariate", "multivariate_placebo"),
+        placebo_panel_size=3,
+        context_lengths=(4,),
+        horizons=(1, 2),
+    )
+    report = dry_run_report(cfg, n_days=30, card_pool_size=5)
+    n_origins = report["n_origins"]
+    by_id = {c["cell_id"]: c for c in report["cells"]}
+    assert by_id["ctx00004-h0002-raw-mp1-univariate"]["projected_rows"] == 5 * n_origins * 2
+    assert by_id["ctx00004-h0001-raw-mp1-multivariate_placebo"]["projected_rows"] == 3 * n_origins
+    per_row = report["bytes_per_row_estimate"]
+    for c in report["cells"]:
+        assert c["projected_bytes_estimate"] == c["projected_rows"] * per_row
+    assert report["projected_rows_total"] == sum(c["projected_rows"] for c in report["cells"])
+
+
+def test_canonicalize_cell_frame_sorts_and_fills_schema():
+    import pandas as pd
+
+    from tests.conftest import ReversedFakeForecaster
+    from tfm3lab.backtest import SeriesData, run_univariate_backtest
+    from tfm3lab.benchmark import CELL_SCHEMA, canonicalize_cell_frame
+
+    n = 20
+    dates = pd.date_range("2025-01-01", periods=n).to_numpy()
+    observed = np.ones(n, dtype=bool)
+    observed[7] = False  # last context point of origin 8 is unobserved
+    series = [
+        SeriesData("b", np.arange(1.0, n + 1), dates, observed),
+        SeriesData("a", np.arange(2.0, n + 2), dates, np.ones(n, dtype=bool)),
+    ]
+    combo = AblationCombo(4, 2, "raw", True, "univariate")
+    df = run_univariate_backtest(ReversedFakeForecaster(), series, np.array([8, 10]), 4, 2)
+    table = canonicalize_cell_frame(df, combo=combo, run_id="r", config_id="c", series_list=series)
+    assert table.schema.equals(CELL_SCHEMA)
+    out = table.to_pandas()
+    keys = list(zip(out["series"], out["origin"], out["horizon_step"], strict=True))
+    assert keys == sorted(keys) and len(set(keys)) == len(keys) == 2 * 2 * 2
+    assert out["baseline_ets"].dtype == float  # present even if not computed
+    b8 = out[(out["series"] == "b") & (out["origin"] == 8)]["context_last_observed"].unique()
+    assert b8.tolist() == [7.0]  # value at index 6, the last OBSERVED context point
+
+
+def test_primary_export_frame_has_no_price_columns():
+    import pandas as pd
+
+    from tfm3lab.benchmark import PRIMARY_EXPORT_FORBIDDEN, primary_export_frame
+
+    cell = pd.DataFrame(
+        {
+            "config_id": ["c"],
+            "run_id": ["r"],
+            "mode": ["timesfm3_univariate"],
+            "context_len": [512],
+            "series": ["X"],
+            "origin_date": pd.to_datetime(["2025-01-01"]),
+            "target_date": pd.to_datetime(["2025-01-02"]),
+            "requested_horizon": [28],
+            "horizon_step": [28],
+            "observed": [True],
+            "actual": [12.0],
+            "forecast": [9.0],
+            "q10": [8.0],
+            "q50": [9.0],
+            "q90": [11.0],
+            "baseline_naive": [10.0],
+            "context_last_observed": [10.0],
+        }
+    )
+    out = primary_export_frame(cell, ("naive",))
+    assert not (PRIMARY_EXPORT_FORBIDDEN & set(out.columns))
+    assert out.loc[0, "y_norm"] == pytest.approx(1.2)
+    assert out.loc[0, "ae_model_scaled"] == pytest.approx(0.3)
+    assert out.loc[0, "ae_baseline_naive_scaled"] == pytest.approx(0.2)
+    assert out.loc[0, "q90_norm"] == pytest.approx(1.1)
+
+
+def test_primary_export_keeps_only_requested_horizon_and_flags_bad_scale():
+    import numpy as np
+    import pandas as pd
+
+    from tfm3lab.benchmark import primary_export_frame
+
+    n = 6
+    cell = pd.DataFrame(
+        {
+            "config_id": ["c"] * n,
+            "run_id": ["r"] * n,
+            "mode": ["timesfm3_univariate"] * n,
+            "context_len": [512] * n,
+            "series": ["X"] * 3 + ["Y"] * 3,
+            "origin_date": pd.to_datetime(["2025-01-01"] * n),
+            "target_date": pd.to_datetime(["2025-01-02"] * n),
+            "requested_horizon": [3] * n,
+            "horizon_step": [1, 2, 3, 1, 2, 3],
+            "observed": [True] * n,
+            "actual": [12.0] * n,
+            "forecast": [9.0] * n,
+            "q10": [8.0] * n,
+            "q50": [9.0] * n,
+            "q90": [11.0] * n,
+            "baseline_naive": [10.0] * n,
+            "context_last_observed": [10.0, 10.0, 10.0, 0.0, 0.0, np.nan],
+        }
+    )
+    out = primary_export_frame(cell, ("naive",)).reset_index(drop=True)
+    assert out["horizon"].tolist() == [3, 3]  # one row per series/origin, at the requested step
+    assert out["scale_valid"].tolist() == [True, False]
+    norm = [c for c in out.columns if c.endswith("_norm") or c.endswith("_scaled")]
+    assert not np.isinf(out[norm].to_numpy(dtype=float)).any()
+    assert out.loc[1, norm].isna().all()
