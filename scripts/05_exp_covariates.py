@@ -1,247 +1,307 @@
 #!/usr/bin/env python3
-"""Experiment D — covariate lecite (fatte bene), e una fatta male apposta.
+"""Experiment D — covariates, made falsifiable (Preregistration v2, section 5).
 
-Two genuinely-known-in-advance covariates:
-  - market: day-of-week, cyclically encoded (sin/cos) — trivially known for
-    any future calendar date, for any series.
-  - MTG: days until the next set release, from TCGCSV's own `publishedOn`
-    field (Wizards announces sets months ahead of release — this is real
-    lead time, not a leak).
+Arms (per series, same origins):
+  no_covariate  the univariate baseline
+  legit         a covariate known at the forecast origin
+                  - market: day-of-week sin/cos (calendar)
+                  - MTG: days to the next set release, from release dates known
+                    at the origin (publishedOn minus a documented announcement
+                    lead proxy — a limitation, see tfm3lab.covariates)
+  placebo       same shape, no information: MTG release dates circularly shifted
+                by a seeded 60-300 day offset; market weekday labels permuted
+                by a seeded permutation (seed 20261010)
+  leaked        TEACHING CONTRAST ONLY: the series' own real future handed in as
+                a "covariate". Written ONLY to the leakage-demo file with a
+                watermark; never summarized.
 
-Plus one deliberate NEGATIVE CONTROL: a card's forecast is handed the
-card's OWN actual future price as a "covariate" — a textbook leakage bug.
-The resulting (artificially inflated) accuracy is the live-demo payload:
-"here is what a metric looks like when the future leaks into the
-pipeline" — the same failure mode the speaker's day job (agentic claims
-document triage) has to design against structurally, not just avoid by
-discipline.
+Pool: MTG over the frozen pool configs/benchmark_pool_v2.csv (cards whose set
+release date resolves; the others are listed as excluded with a reason);
+market over SP500 and the other v2 indices present in the cache. Context 128,
+horizon 7, origin_stride 7. Outputs are normalized by the last observed context
+value (no raw prices). "Helps" iff the paired skill-delta primary CI (cluster
+bootstrap, cards/series as clusters) is > 0 versus BOTH no_covariate AND placebo.
 
-This script calls tfm3lab.model.forecast_batch directly rather than
-backtest.run_*_backtest: covariates vary per-origin in a way the other
-three experiments don't need, so that plumbing lives here instead of
-complicating the shared engine.
+Requires scripts/01_fetch_data.py already run and a loaded TimesFM-3 forecaster.
 
-Requires:
-  - scripts/01_fetch_data.py already run
-  - a loaded TimesFM-3 forecaster (see scripts/02_exp_mtg.py's header)
-
-Usage (--as-of is REQUIRED: the data freeze date, recorded in the manifest;
---allow-cpu skips the GPU preflight for smoke runs):
+Usage (--as-of is REQUIRED; --allow-cpu skips the GPU preflight):
     uv run scripts/05_exp_covariates.py --as-of 2026-09-01 [--allow-cpu]
 
-Preflight (GPU, HF token, gated-checkpoint access, resolved commit sha) runs
-before anything else; results/manifests/ gets one manifest per run.
-
 Writes to results/:
-    exp_covariates_market_dow.parquet
-    exp_covariates_mtg_release.parquet
-    exp_covariates_leakage_demo.parquet
+    exp_covariates_v2_predictions.parquet
+    exp_covariates_v2_summary.parquet
+    exp_covariates_v2_excluded.parquet
+    exp_covariates_v2_leakage_demo.parquet   (watermarked, leaked arm only)
 """
 
 from __future__ import annotations
 
 import argparse
 import datetime as dt
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import requests
 
-from tfm3lab import config
+from tfm3lab import config, covariates
 from tfm3lab.backtest import SeriesData
-from tfm3lab.data.mtg import DEFAULT_CARDS, MAGIC_CATEGORY_ID, fetch_groups
+from tfm3lab.data.mtg import MAGIC_CATEGORY_ID, fetch_groups, load_card_manifest
 from tfm3lab.manifest import capture_git_state, write_run_manifest
-from tfm3lab.metrics import mae, relative_mae
 from tfm3lab.model import forecast_batch, load_forecaster
 from tfm3lab.preflight import preflight_model
-from tfm3lab.windows import context_slice, target_indices, valid_origins
+from tfm3lab.windows import context_slice, valid_origins
 
-CONTEXT_LEN = 32
-HORIZON = 5
-MAX_ORIGINS = 40
+CONTEXT_LEN = 128
+HORIZON = 7
+ORIGIN_STRIDE = 7
+POOL_PATH = config.REPO_ROOT / "configs" / "benchmark_pool_v2.csv"
+MARKET_SERIES = ("SP500", "Nasdaq100", "EuroStoxx50", "Nikkei225", "Gold")
+
+OUT_PREDICTIONS = "exp_covariates_v2_predictions.parquet"
+OUT_SUMMARY = "exp_covariates_v2_summary.parquet"
+OUT_EXCLUDED = "exp_covariates_v2_excluded.parquet"
+OUT_LEAKAGE = "exp_covariates_v2_leakage_demo.parquet"
 
 
 def _load_series(cache_name: str) -> list[SeriesData]:
     df = pd.read_parquet(config.CACHE_DIR / cache_name)
-    return [
-        SeriesData(
-            name=name,
-            values=g.sort_values("date")["value"].to_numpy(dtype=float),
-            dates=g.sort_values("date")["date"].to_numpy(),
-            observed=g.sort_values("date")["observed"].to_numpy(dtype=bool),
+    out = []
+    for name, g in df.groupby("series"):
+        g = g.sort_values("date")
+        out.append(
+            SeriesData(
+                name=str(name),
+                values=g["value"].to_numpy(dtype=float),
+                dates=g["date"].to_numpy(),
+                observed=g["observed"].to_numpy(dtype=bool),
+            )
         )
-        for name, g in df.groupby("series")
-    ]
+    return out
 
 
-def day_of_week_covariate(dates: np.ndarray) -> np.ndarray:
-    """Cyclical day-of-week encoding, shape (2, len(dates)): sin/cos of the
-    weekday — known for any date, past or future, by construction."""
-    dow = pd.DatetimeIndex(dates).dayofweek.to_numpy().astype(float)
-    angle = 2 * np.pi * dow / 7.0
-    return np.stack([np.sin(angle), np.cos(angle)], axis=0)
+def strided_origins(n: int, context_len: int, horizon: int, stride: int) -> np.ndarray:
+    return valid_origins(n, context_len, horizon)[::stride]
 
 
-def days_until_next_release_covariate(
-    dates: np.ndarray, release_dates: list[np.datetime64]
-) -> np.ndarray:
-    """Days until the nearest upcoming set release on or after each date,
-    shape (1, len(dates)) — genuinely known in advance (announced release
-    calendar), capped at 365 to keep the covariate's scale bounded."""
-    dates64 = np.asarray(dates, dtype="datetime64[D]")
-    releases = np.sort(np.asarray(release_dates, dtype="datetime64[D]"))
-    out = np.empty(len(dates64), dtype=float)
-    for i, d in enumerate(dates64):
-        future = releases[releases >= d]
-        out[i] = float((future[0] - d).astype(int)) if len(future) else 365.0
-    return np.clip(out, 0, 365)[None, :]
+def fetch_release_map(abbreviations) -> dict[str, np.datetime64]:
+    """group abbreviation (upper) -> publishedOn date. Network."""
+    groups = fetch_groups(MAGIC_CATEGORY_ID, requests.Session())
+    wanted = {a.upper() for a in abbreviations}
+    out = {}
+    for _, row in groups.dropna(subset=["publishedOn"]).iterrows():
+        ab = str(row["abbreviation"]).upper()
+        if ab in wanted:
+            out[ab] = np.datetime64(str(row["publishedOn"])[:10])
+    return out
 
 
-def run_covariate_ablation(
+def run_arm(
     forecaster,
     s: SeriesData,
     origins: np.ndarray,
-    build_covariate_fn,
-    label: str,
+    arm: str,
+    spec: covariates.CovariateSpec | None,
+    cov_fn,
+    *,
+    context_len: int,
+    horizon: int,
+    domain: str,
+    teaching_only: bool = False,
 ) -> pd.DataFrame:
-    """Runs the same origins with and without one past_future covariate."""
+    """One arm over the given origins. Legit/placebo arms go through the
+    availability contract; the leaked arm must say teaching_only=True."""
+    if arm == covariates.LEAKED_ARM:
+        if not teaching_only:
+            raise covariates.CovariateAvailabilityError(
+                "the leaked arm needs the explicit teaching_only path"
+            )
+    elif spec is not None:
+        covariates.require_future_known(spec)
+    contexts, covs, ts_ids = [], [], []
+    for origin in origins:
+        origin = int(origin)
+        ctx = s.values[context_slice(origin, context_len)]
+        contexts.append(ctx)
+        ts_ids.append(f"{s.name}::{origin}::{arm}")
+        covs.append(None if cov_fn is None else cov_fn(s, origin))
+    batch = forecast_batch(
+        forecaster,
+        contexts,
+        horizon,
+        ts_ids=ts_ids,
+        past_future_covariates=covs if cov_fn is not None else None,
+    )
     rows = []
-    for with_cov in (False, True):
-        contexts, covariates, ts_ids = [], [], []
-        for origin in origins:
-            origin = int(origin)
-            contexts.append(s.values[context_slice(origin, CONTEXT_LEN)])
-            ts_ids.append(f"{s.name}::{origin}::{'cov' if with_cov else 'nocov'}")
-            if with_cov:
-                full = slice(origin - CONTEXT_LEN, origin + HORIZON)
-                covariates.append(build_covariate_fn(s.dates[full]))
-            else:
-                covariates.append(None)
-
-        batch = forecast_batch(
-            forecaster,
-            contexts,
-            HORIZON,
-            ts_ids=ts_ids,
-            past_future_covariates=covariates if with_cov else None,
-        )
-        for i, origin in enumerate(origins):
-            origin = int(origin)
-            tgt = target_indices(origin, HORIZON)
-            for h, t_idx in enumerate(tgt):
-                if t_idx >= len(s.values):
-                    break
-                rows.append(
-                    {
-                        "covariate": label,
-                        "series": s.name,
-                        "origin_index": origin,
-                        "horizon_step": h + 1,
-                        "with_covariate": with_cov,
-                        "actual": float(s.values[t_idx]),
-                        "forecast": float(batch.forecast[i, h]),
-                    }
-                )
+    for i, origin in enumerate(origins):
+        origin = int(origin)
+        scale = float(contexts[i][-1])
+        for h in range(horizon):
+            t = origin + h
+            actual = float(s.values[t])
+            fc = float(batch.forecast[i, h])
+            rows.append(
+                {
+                    "domain": domain,
+                    "series": s.name,
+                    "origin_index": origin,
+                    "target_date": pd.Timestamp(s.dates[t]),
+                    "horizon_step": h + 1,
+                    "arm": arm,
+                    "observed": bool(s.observed[t]) and scale != 0,
+                    "actual_norm": actual / scale if scale else np.nan,
+                    "forecast_norm": fc / scale if scale else np.nan,
+                    "abs_err_norm": abs(fc - actual) / abs(scale) if scale else np.nan,
+                }
+            )
     return pd.DataFrame(rows)
 
 
-def leakage_demo(forecaster, s: SeriesData, origins: np.ndarray) -> pd.DataFrame:
-    """NEGATIVE CONTROL: hands the model the series' own actual FUTURE
-    values as a 'covariate'. Must show a dramatic, artificial accuracy
-    improvement — if it doesn't, the demo itself is broken, not the model.
+def _window_dates(s: SeriesData, origin: int, context_len: int, horizon: int):
+    return s.dates[origin - context_len : origin + horizon]
 
-    Three arms, not two — "clean" plus TWO leaked variants:
 
-    - "leaked_flat_past": the first version of this fix, kept as a
-      documented dead end. It padded the covariate's PAST with a constant
-      (`ctx[-1]` repeated) before appending the real future. TimesFM-3
-      treats a past_future_covariate as an extra variate and RevIN-
-      normalizes it with its OWN per-variate running mean/std (see the
-      installed timesfm3.model.py's `_preprocess`, which calls
-      `util.get_running_stats` per variate before `util.revin`). A
-      constant past has zero variance, so `util._make_safe_for_division`
-      clamps that variate's std to 1.0 — an arbitrary scale unrelated to
-      every other variate's real scale — AND gives the model nothing in
-      the covariate's past to recognize as "this tracks the target",
-      since a flat line correlates with nothing. The leak is present but
-      illegible: measured effect on this card was ~0.33% (see
-      docs/talk-outline.md), not the dramatic blowup the demo needs.
-    - "leaked": the actual fix. The covariate's past IS the series' own
-      real past (`ctx`), so it shares the target's real scale and a
-      genuine, recognizable one-step-behind relationship with it before
-      the leaked future ever appears.
-    - "clean": no covariate, the baseline both leaked arms are compared
-      against.
-    """
-    rows = []
-    arms = ("clean", "leaked_flat_past", "leaked")
-    for arm in arms:
-        contexts, covariates, ts_ids = [], [], []
-        for origin in origins:
-            origin = int(origin)
-            ctx = s.values[context_slice(origin, CONTEXT_LEN)]
-            contexts.append(ctx)
-            ts_ids.append(f"{s.name}::{origin}::{arm}")
-            if arm == "clean":
-                covariates.append(None)
-            elif arm == "leaked_flat_past":
-                future = s.values[target_indices(origin, HORIZON)]
-                past_filler = np.full(CONTEXT_LEN, ctx[-1])
-                covariates.append(np.concatenate([past_filler, future])[None, :])
-            else:  # "leaked": real past + real future
-                future = s.values[target_indices(origin, HORIZON)]
-                covariates.append(np.concatenate([ctx, future])[None, :])
+def _arm_specs(domain, release_dates, perm, offset, span, lead, cl, hz):
+    """{arm: (spec, cov_fn)} for one domain. cov_fn(s, origin) -> (k, ctx+h)."""
+    if domain == "market":
 
-        batch = forecast_batch(
-            forecaster,
-            contexts,
-            HORIZON,
-            ts_ids=ts_ids,
-            past_future_covariates=covariates if arm != "clean" else None,
+        def legit(s, o):
+            return covariates.day_of_week_covariate(_window_dates(s, o, cl, hz))
+
+        def placebo(s, o):
+            return covariates.permuted_day_of_week_covariate(
+                _window_dates(s, o, cl, hz), perm
+            )
+
+        return {
+            "legit": (covariates.DAY_OF_WEEK, legit),
+            "placebo": (covariates.DAY_OF_WEEK_PLACEBO, placebo),
+        }
+    shifted = covariates.shift_release_dates_circular(release_dates, span[0], span[1], offset)
+
+    def legit(s, o):
+        return covariates.days_to_next_release(
+            _window_dates(s, o, cl, hz), s.dates[o - 1], release_dates,
+            announce_lead_days=lead,
         )
-        for i, origin in enumerate(origins):
-            origin = int(origin)
-            tgt = target_indices(origin, HORIZON)
-            for h, t_idx in enumerate(tgt):
-                rows.append(
-                    {
-                        "series": s.name,
-                        "origin_index": origin,
-                        "horizon_step": h + 1,
-                        "arm": arm,
-                        "leaked": arm != "clean",  # back-compat column, see build_values() below
-                        "actual": float(s.values[t_idx]),
-                        "forecast": float(batch.forecast[i, h]),
-                    }
+
+    def placebo(s, o):
+        return covariates.days_to_next_release(
+            _window_dates(s, o, cl, hz), s.dates[o - 1], shifted,
+            announce_lead_days=lead,
+        )
+
+    return {
+        "legit": (covariates.DAYS_TO_RELEASE, legit),
+        "placebo": (covariates.DAYS_TO_RELEASE_PLACEBO, placebo),
+    }
+
+
+def run_experiment(
+    forecaster,
+    *,
+    market_series: list[SeriesData],
+    mtg_series: list[SeriesData],
+    release_dates,
+    excluded: list[dict],
+    results_dir: Path,
+    context_len: int = CONTEXT_LEN,
+    horizon: int = HORIZON,
+    stride: int = ORIGIN_STRIDE,
+    seed: int = covariates.SEED,
+    n_boot: int | None = None,
+    announce_lead_days: int = covariates.ANNOUNCE_LEAD_DAYS_PROXY,
+) -> dict[str, Path]:
+    """All arms over both domains; writes the four v2 outputs."""
+    perm = covariates.dow_permutation(seed)
+    offset = covariates.placebo_offset_days(seed)
+    all_dates = [s.dates[0] for s in mtg_series] + [s.dates[-1] for s in mtg_series]
+    span = (
+        (np.datetime64(min(all_dates), "D"), np.datetime64(max(all_dates), "D"))
+        if all_dates
+        else (np.datetime64("2024-01-01"), np.datetime64("2026-01-01"))
+    )
+
+    pred_frames, leak_frames = [], []
+    for domain, series_list in (("market", market_series), ("mtg", mtg_series)):
+        arms = _arm_specs(
+            domain, release_dates, perm, offset, span, announce_lead_days, context_len, horizon
+        )
+        for s in series_list:
+            origins = strided_origins(len(s.values), context_len, horizon, stride)
+            if len(origins) == 0:
+                excluded.append({"domain": domain, "series": s.name, "reason": "series too short"})
+                continue
+            kw = {"context_len": context_len, "horizon": horizon, "domain": domain}
+            pred_frames.append(run_arm(forecaster, s, origins, "no_covariate", None, None, **kw))
+            for arm, (spec, fn) in arms.items():
+                pred_frames.append(run_arm(forecaster, s, origins, arm, spec, fn, **kw))
+            if domain == "mtg":
+                leak = run_arm(
+                    forecaster, s, origins, covariates.LEAKED_ARM, covariates.LEAKED_FUTURE,
+                    lambda ser, o: covariates.teaching_only_leaked_covariate(
+                        ser.values, o, context_len, horizon
+                    ),
+                    teaching_only=True, **kw,
                 )
-    return pd.DataFrame(rows)
+                leak["watermark"] = covariates.LEAKED_WATERMARK
+                leak_frames.append(leak)
+    if not pred_frames:
+        raise RuntimeError("no series produced any origins; nothing to evaluate")
+    preds = pd.concat(pred_frames, ignore_index=True)
+    covariates.assert_no_leaked(preds)  # the leaked arm never shares the main file
+    summary = covariates.paired_skill_summary(
+        preds, primary_horizon=horizon, n_boot=n_boot, seed=seed
+    )
+    summary["context_len"] = context_len
+    summary["origin_stride"] = stride
+    summary["placebo_offset_days"] = offset
+    summary["announce_lead_days_proxy"] = announce_lead_days
+
+    paths = {
+        "predictions": results_dir / OUT_PREDICTIONS,
+        "summary": results_dir / OUT_SUMMARY,
+        "excluded": results_dir / OUT_EXCLUDED,
+        "leakage_demo": results_dir / OUT_LEAKAGE,
+    }
+    leak_df = (
+        pd.concat(leak_frames, ignore_index=True)
+        if leak_frames
+        else pd.DataFrame(columns=[*preds.columns, "watermark"])
+    )
+    preds.to_parquet(paths["predictions"], index=False)
+    summary.to_parquet(paths["summary"], index=False)
+    pd.DataFrame(excluded, columns=["domain", "series", "reason"]).to_parquet(
+        paths["excluded"], index=False
+    )
+    leak_df.to_parquet(paths["leakage_demo"], index=False)
+    return paths
 
 
-def fetch_mtg_release_dates(cards=DEFAULT_CARDS) -> list[np.datetime64]:
-    session = requests.Session()
-    groups = fetch_groups(MAGIC_CATEGORY_ID, session)
-    abbrevs = {c.group_abbreviation.upper() for c in cards}
-    matched = groups[groups["abbreviation"].str.upper().isin(abbrevs)]
-    return [np.datetime64(d[:10]) for d in matched["publishedOn"].dropna()]
-
-
-def _require_origins(origins: np.ndarray, what: str) -> None:
-    if len(origins) == 0:
-        raise RuntimeError(
-            f"no valid origins for {what} with context_len={CONTEXT_LEN}, horizon={HORIZON} — "
-            "the cached series is too short. Fetch more history (scripts/01_fetch_data.py) or "
-            "lower CONTEXT_LEN/HORIZON at the top of this script."
-        )
-
-
-def _print_ablation_summary(df: pd.DataFrame, group_col: str, label_col: str) -> None:
-    for key, group in df.groupby(group_col):
-        with_c = group[group[label_col]]
-        without_c = group[~group[label_col]]
-        mae_with = mae(with_c["actual"], with_c["forecast"])
-        mae_without = mae(without_c["actual"], without_c["forecast"])
-        rel = relative_mae(mae_with, mae_without) if mae_without > 0 else float("nan")
-        print(f"  {key}: MAE without={mae_without:.4f}, with={mae_with:.4f}, relative={rel:.3f}")
+def build_mtg_inputs(pool_path: Path = POOL_PATH, cache_name: str = "mtg_prices.parquet"):
+    """(mtg_series, release_dates, excluded) for the frozen pool."""
+    cards = load_card_manifest(pool_path)
+    cached = {s.name: s for s in _load_series(cache_name)}
+    release_map = fetch_release_map({c.group_abbreviation for c in cards})
+    series, excluded = [], []
+    for c in cards:
+        if c.group_abbreviation.upper() not in release_map:
+            excluded.append(
+                {"domain": "mtg", "series": c.label, "reason": "set release date unresolved"}
+            )
+        elif c.label not in cached:
+            excluded.append(
+                {"domain": "mtg", "series": c.label, "reason": "no cached price series"}
+            )
+        else:
+            series.append(cached[c.label])
+    used = {
+        c.group_abbreviation.upper()
+        for c in cards
+        if c.label in {s.name for s in series}
+    }
+    release_dates = np.array(sorted(release_map[a] for a in used), dtype="datetime64[D]")
+    return series, release_dates, excluded
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -256,9 +316,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="the data freeze date used for the fetch; recorded in the run manifest (required)",
     )
     parser.add_argument(
-        "--allow-cpu",
-        action="store_true",
-        help="skip the GPU requirement (slow smoke runs only)",
+        "--allow-cpu", action="store_true", help="skip the GPU requirement (slow smoke runs only)"
+    )
+    parser.add_argument(
+        "--announce-lead-days",
+        type=int,
+        default=covariates.ANNOUNCE_LEAD_DAYS_PROXY,
+        help="proxy for the unavailable set announcement date: publishedOn minus this many days",
     )
     return parser
 
@@ -269,77 +333,41 @@ def main() -> None:
     checkpoint = preflight_model(allow_cpu=args.allow_cpu)
     forecaster = load_forecaster(revision=checkpoint["revision_resolved"])
 
-    print("=== Legitimate covariate 1: market day-of-week ===")
-    market_series = _load_series("market_prices.parquet")
-    sp500 = next(s for s in market_series if s.name == "SP500")
-    origins = valid_origins(len(sp500.values), CONTEXT_LEN, HORIZON, max_origins=MAX_ORIGINS)
-    _require_origins(origins, "the market day-of-week ablation")
-    market_df = run_covariate_ablation(
-        forecaster, sp500, origins, day_of_week_covariate, "day_of_week"
+    market = [s for s in _load_series("market_prices.parquet") if s.name in MARKET_SERIES]
+    mtg, release_dates, excluded = build_mtg_inputs()
+    print(f"market series: {[s.name for s in market]}; MTG cards: {len(mtg)}; "
+          f"excluded: {len(excluded)}")
+    for e in excluded:
+        print(f"  excluded {e['series']}: {e['reason']}")
+    paths = run_experiment(
+        forecaster,
+        market_series=market,
+        mtg_series=mtg,
+        release_dates=release_dates,
+        excluded=excluded,
+        results_dir=config.RESULTS_DIR,
+        announce_lead_days=args.announce_lead_days,
     )
-    market_df.to_parquet(config.RESULTS_DIR / "exp_covariates_market_dow.parquet", index=False)
-    _print_ablation_summary(market_df, "covariate", "with_covariate")
-
-    print("\n=== Legitimate covariate 2: MTG days-until-next-set-release ===")
-    mtg_series = _load_series("mtg_prices.parquet")
-    release_dates = fetch_mtg_release_dates()
-    print(f"  {len(release_dates)} release dates found for the tracked sets")
-    card = mtg_series[0]
-    origins_mtg = valid_origins(len(card.values), CONTEXT_LEN, HORIZON, max_origins=MAX_ORIGINS)
-    _require_origins(origins_mtg, "the MTG release-date ablation")
-
-    def release_cov_fn(dates: np.ndarray) -> np.ndarray:
-        return days_until_next_release_covariate(dates, release_dates)
-
-    mtg_df = run_covariate_ablation(
-        forecaster, card, origins_mtg, release_cov_fn, "days_to_release"
-    )
-    mtg_df.to_parquet(config.RESULTS_DIR / "exp_covariates_mtg_release.parquet", index=False)
-    _print_ablation_summary(mtg_df, "covariate", "with_covariate")
-
-    print("\n=== NEGATIVE CONTROL: leaking the actual future into the covariate ===")
-    print("  three arms: clean (no covariate), leaked_flat_past (documented dead end,")
-    print("  see leakage_demo's docstring), leaked (real past + real future)")
-    leakage_df = leakage_demo(forecaster, card, origins_mtg)
-    leakage_df.to_parquet(config.RESULTS_DIR / "exp_covariates_leakage_demo.parquet", index=False)
-    mae_by_arm = {
-        arm: mae(g["actual"], g["forecast"]) for arm, g in leakage_df.groupby("arm")
-    }
-    for arm, value in mae_by_arm.items():
-        print(f"  MAE {arm}={value:.4f}")
-    mae_clean = mae_by_arm["clean"]
-    mae_leaked = mae_by_arm["leaked"]
-    if mae_leaked >= mae_clean:
-        print(
-            "  WARNING: leaking the future (real past + real future) did not improve "
-            "MAE — the demo did not reproduce the expected leakage effect even with a "
-            "readable covariate. Report this as-is, don't force a positive result."
-        )
-    else:
-        ratio = relative_mae(mae_leaked, mae_clean)
-        print(
-            f"  Confirmed: leaking the future drops MAE to {ratio:.1%} of the clean "
-            "error — DO NOT present this as a real result."
-        )
-    flat_ratio = relative_mae(mae_by_arm["leaked_flat_past"], mae_clean)
-    print(
-        f"  For comparison, leaked_flat_past (the illegible variant) moved MAE to "
-        f"{flat_ratio:.1%} of clean — the size of the effect a badly-wired leak produces."
-    )
-
-    print(f"\nWrote covariate experiment results to {config.RESULTS_DIR}")
-
+    summary = pd.read_parquet(paths["summary"])
+    primary = summary[summary["is_primary"]]
+    print(primary[["domain", "comparison", "skill_delta", "ci_low", "ci_high", "n_clusters",
+                   "verdict"]].to_string(index=False))
+    print("Leakage demo is watermarked and excluded from every summary.")
     manifest_path = write_run_manifest(
-        "exp_covariates",
-        [
-            config.RESULTS_DIR / "exp_covariates_market_dow.parquet",
-            config.RESULTS_DIR / "exp_covariates_mtg_release.parquet",
-            config.RESULTS_DIR / "exp_covariates_leakage_demo.parquet",
-        ],
+        "exp_covariates_v2",
+        list(paths.values()),
         as_of=args.as_of,
         checkpoint=checkpoint,
-        seed=None,
+        seed=covariates.SEED,
         git_dirty=git_dirty,
+        extra={
+            "pool": str(POOL_PATH),
+            "context_len": CONTEXT_LEN,
+            "horizon": HORIZON,
+            "origin_stride": ORIGIN_STRIDE,
+            "announce_lead_days_proxy": args.announce_lead_days,
+            "excluded": excluded,
+        },
     )
     print(f"Manifest written to {manifest_path}")
 
