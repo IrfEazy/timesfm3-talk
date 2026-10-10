@@ -67,6 +67,12 @@ PRED_SCHEMA = pa.schema(
         ("actual_norm", pa.float64()),
         ("forecast_norm", pa.float64()),
         ("ape", pa.float64()),
+        ("q10_norm", pa.float64()),
+        ("q50_norm", pa.float64()),
+        ("q90_norm", pa.float64()),
+        ("origin_date", pa.timestamp("ns")),
+        ("target_date", pa.timestamp("ns")),
+        ("onset_index", pa.string()),
     ]
 )
 
@@ -162,6 +168,19 @@ def _frame(df, values, pos, spec, forecaster, perturbation="none", seed=0, colum
     out = shock.normalized_rows(
         df["origin_index"], df["horizon_step"], df["actual"], df[column], last, pos
     )
+    n = len(out)
+    for q in ("q10", "q50", "q90"):
+        # Quantiles are normalized like forecast_norm; NaN for baselines
+        # and perturbed runs, which carry point forecasts only.
+        col = df[q].to_numpy(float) if (column == "forecast" and q in df) else np.full(n, np.nan)
+        out[f"{q}_norm"] = col / last
+    for d in ("origin_date", "target_date"):
+        out[d] = (
+            pd.to_datetime(df[d]).to_numpy("datetime64[ns]")
+            if d in df
+            else np.full(n, np.datetime64("NaT"), dtype="datetime64[ns]")
+        )
+    out["onset_index"] = str(spec.onset_index)
     out.insert(0, "seed", np.int32(seed))
     out.insert(0, "perturbation", perturbation)
     out.insert(0, "forecaster", forecaster)

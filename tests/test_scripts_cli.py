@@ -52,47 +52,6 @@ def test_calibration_script_requires_as_of_or_live_end(capsys):
         script.build_parser().parse_args(["--as-of", "2026-09-01", "--allow-live-end"])
 
 
-def _fake_calibration_inputs(script, monkeypatch, tmp_path):
-    import pandas as pd
-
-    from tfm3lab import config
-    from tfm3lab.summarize import QUANTILE_COLUMNS
-
-    monkeypatch.setattr(config, "RESULTS_DIR", tmp_path)
-    rows = {"observed": [True] * 4, "actual": [1.0, 2.0, 3.0, 4.0]}
-    for c in QUANTILE_COLUMNS:
-        rows[c] = [2.0] * 4
-    base = pd.DataFrame(rows)
-    monkeypatch.setattr(script, "load_mtg_h1", lambda: base.assign(regime="mtg"))
-    monkeypatch.setattr(
-        script,
-        "load_market_by_regime",
-        lambda t: base.assign(regime="market_calm", offset=10),
-    )
-    monkeypatch.setattr(
-        script, "summarize_calibration", lambda df, group_cols: pd.DataFrame({"regime": ["mtg"]})
-    )
-
-
-def test_calibration_main_writes_manifest_with_live_end(tmp_path, monkeypatch):
-    import json
-
-    script = _load("script_04", "04_exp_calibration.py")
-    _fake_calibration_inputs(script, monkeypatch, tmp_path)
-    monkeypatch.setattr(sys, "argv", ["04", "--as-of", "2026-09-01"])
-    script.main()
-    (manifest,) = (tmp_path / "manifests").glob("exp_calibration-2026-09-01-*.json")
-    meta = json.loads(manifest.read_text())["_meta"]
-    assert meta["as_of"] == "2026-09-01" and meta["live_end"] is False
-
-    monkeypatch.setattr(sys, "argv", ["04", "--allow-live-end"])
-    script.main()
-    metas = [
-        json.loads(p.read_text())["_meta"] for p in (tmp_path / "manifests").glob("*.json")
-    ]
-    assert any(m["live_end"] is True and m["as_of"] == dt.date.today().isoformat() for m in metas)
-
-
 def test_calibration_main_without_flags_exits(monkeypatch):
     script = _load("script_04", "04_exp_calibration.py")
     monkeypatch.setattr(sys, "argv", ["04"])

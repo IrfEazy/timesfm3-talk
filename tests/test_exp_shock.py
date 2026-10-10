@@ -83,7 +83,18 @@ def test_end_to_end_writes_normalized_outputs_only(tmp_path):
         "actual_norm",
         "forecast_norm",
         "ape",
+        "q10_norm",
+        "q50_norm",
+        "q90_norm",
+        "origin_date",
+        "target_date",
+        "onset_index",
     }
+    tfm = pred[(pred["forecaster"] == "timesfm3_univariate") & (pred["perturbation"] == "none")]
+    assert tfm[["q10_norm", "q90_norm", "origin_date", "target_date"]].notna().all().all()
+    assert (tfm["q10_norm"] <= tfm["q90_norm"]).all()
+    assert (tfm["target_date"] >= tfm["origin_date"]).all()
+    assert pred[pred["forecaster"] == "naive"]["q10_norm"].isna().all()
     assert pred["actual_norm"].between(0.5, 2).all()  # normalized, not raw prices (~1000+)
     assert {"timesfm3_univariate", "timesfm3_multivariate", "naive", "ets"} <= set(
         pred["forecaster"]
