@@ -137,13 +137,25 @@ def _max_consecutive_false(mask: np.ndarray) -> int:
     return best
 
 
+def _price_range_ratio(values) -> float:
+    """max/min of a price series; NaN when empty or when min <= 0."""
+    if len(values) == 0:
+        return float("nan")
+    lo = float(np.min(values))
+    if lo <= 0:
+        return float("nan")
+    return float(np.max(values)) / lo
+
+
 def data_quality_table(series_list: list) -> pd.DataFrame:
     """Per-card data-quality summary: observed rate, forward-fill rate, the
     longest run of consecutive unobserved points (assumes daily frequency —
     true for build_card_series's output, the only caller), glitch count
     (reusing find_glitches against the raw, not truth-reconstructed, price
-    frame), price range, and log-return volatility restricted to observed
-    points.
+    frame), price_range_ratio (max/min price, a scale-free stand-in for
+    absolute prices, which are never written to committed outputs; NaN when
+    the series is empty or its minimum is <= 0), and log-return volatility
+    restricted to observed points.
     """
     frames = [
         pd.DataFrame({
@@ -174,8 +186,7 @@ def data_quality_table(series_list: list) -> pd.DataFrame:
                 "fallback_rate": fallback_rate,
                 "max_gap_days": _max_consecutive_false(s.observed),
                 "glitch_count": int(glitch_counts.get(s.name, 0)),
-                "price_min": float(np.min(s.values)) if n else float("nan"),
-                "price_max": float(np.max(s.values)) if n else float("nan"),
+                "price_range_ratio": _price_range_ratio(s.values),
                 "log_return_volatility": volatility,
             }
         )

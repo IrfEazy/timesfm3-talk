@@ -470,13 +470,37 @@ def test_data_quality_table_glitch_count_reuses_find_glitches():
     assert table.iloc[0]["glitch_count"] == 1
 
 
-def test_data_quality_table_price_range_and_volatility():
+def test_data_quality_table_price_range_ratio_and_volatility():
     s = _series("A", [10.0, 20.0, 10.0], [True, True, True])
     table = figdata.data_quality_table([s])
     row = table.iloc[0]
-    assert row["price_min"] == 10.0
-    assert row["price_max"] == 20.0
+    assert row["price_range_ratio"] == pytest.approx(2.0)
     assert row["log_return_volatility"] > 0
+
+
+def test_data_quality_table_has_no_absolute_price_columns():
+    s = _series("A", [10.0, 20.0, 10.0], [True, True, True])
+    table = figdata.data_quality_table([s])
+    assert "price_min" not in table.columns
+    assert "price_max" not in table.columns
+    assert "price_range_ratio" in table.columns
+
+
+def test_data_quality_price_range_ratio_nan_when_min_nonpositive():
+    s = _series("A", [0.0, 5.0, 10.0], [True, True, True])
+    table = figdata.data_quality_table([s])
+    assert np.isnan(table.iloc[0]["price_range_ratio"])
+
+
+def test_data_quality_price_range_ratio_nan_for_empty_series():
+    s = SeriesData(
+        name="A",
+        values=np.array([], dtype=float),
+        dates=np.array([], dtype="datetime64[ns]"),
+        observed=np.array([], dtype=bool),
+    )
+    table = figdata.data_quality_table([s])
+    assert np.isnan(table.iloc[0]["price_range_ratio"])
 
 
 def test_data_quality_table_one_row_per_series():

@@ -230,14 +230,34 @@ def test_plot_data_quality_three_panels_one_bar_per_series():
             "fallback_rate": [0.1, 0.3],
             "max_gap_days": [1, 3],
             "glitch_count": [0, 2],
-            "price_min": [1.0, 2.0],
-            "price_max": [10.0, 20.0],
+            "price_range_ratio": [10.0, 10.0],
             "log_return_volatility": [0.01, 0.05],
         }
     )
     axes = plots.plot_data_quality(table)
     assert len(axes) == 3
     assert len(axes[0].patches) == 2
+
+
+def test_plot_data_quality_shows_no_absolute_prices():
+    table = pd.DataFrame(
+        {
+            "series": ["A", "B"],
+            "observed_rate": [0.9, 0.7],
+            "fallback_rate": [0.1, 0.3],
+            "max_gap_days": [1, 3],
+            "glitch_count": [0, 2],
+            "price_range_ratio": [2.0, 3.5],
+            "log_return_volatility": [0.01, 0.05],
+        }
+    )
+    axes = plots.plot_data_quality(table)
+    texts = [t.get_text() for ax in axes for t in ax.texts]
+    texts += [ax.get_title() for ax in axes]
+    texts += [lab.get_text() for ax in axes for lab in ax.get_yticklabels()]
+    texts += [lab.get_text() for ax in axes for lab in ax.get_xticklabels()]
+    assert not any("$" in t or "price" in t.lower() for t in texts)
+    assert "price" not in " ".join(ax.get_ylabel() for ax in axes).lower()
 
 
 def test_save_writes_a_png(tmp_path):
