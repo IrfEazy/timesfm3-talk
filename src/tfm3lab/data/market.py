@@ -13,6 +13,7 @@ docs/talk-outline.md.
 from __future__ import annotations
 
 import datetime as dt
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -26,6 +27,22 @@ DEFAULT_TICKERS = {
     "Gold": "GC=F",
     "Oil": "CL=F",
 }
+
+# Experiment B v2 (Preregistration v2 s3): the five detector indices. Each is
+# fetched on ITS OWN trading calendar (never intersected) so a holiday in one
+# market cannot hide or invent a shock in another.
+INDEX_TICKERS = {
+    "SP500": "^GSPC",
+    "Nasdaq100": "^NDX",
+    "EuroStoxx50": "^STOXX50E",
+    "Nikkei225": "^N225",
+    "Gold": "GC=F",
+}
+# Every ticker the fetch path knows (existing VIX/Oil callers are unchanged).
+ALL_TICKERS = {**DEFAULT_TICKERS, **INDEX_TICKERS}
+
+TRAILING_WINDOW = 250
+SHOCK_Z_THRESHOLD = 4.0
 
 
 def fetch_close(ticker: str, start: str, end: str | None = None) -> pd.Series:
@@ -99,3 +116,71 @@ def detect_shock_days(values: np.ndarray, z_threshold: float = 4.0) -> np.ndarra
         return np.array([], dtype=int)
     z = (log_returns - mean) / std
     return np.where(np.abs(z) >= z_threshold)[0] + 1  # +1: np.diff shifts the index by one
+
+
+def trailing_shock_z(values: np.ndarray, window: int = TRAILING_WINDOW) -> np.ndarray:
+    """z-score of each day's log return against the mean and std (ddof=1) of
+    the `window` log returns STRICTLY BEFORE that day. Returns an array the
+    length of `values`; entry t is NaN until `window` past returns exist (and
+    where the trailing std is 0). Entry t depends only on values[: t + 1], so
+    changing future values can never change an earlier z (no look-ahead)."""
+    values = np.asarray(values, dtype=float)
+    ret = pd.Series(np.concatenate([[np.nan], np.diff(np.log(values))]))
+    past = ret.shift(1)
+    mean = past.rolling(window, min_periods=window).mean()
+    std = past.rolling(window, min_periods=window).std(ddof=1)
+    z = (ret - mean) / std.where(std > 0)
+    return z.to_numpy(dtype=float)
+
+
+def detect_trailing_shock_days(
+    values: np.ndarray, z_threshold: float = SHOCK_Z_THRESHOLD, window: int = TRAILING_WINDOW
+) -> tuple[np.ndarray, np.ndarray]:
+    """(positions, z) of days with |z| >= `z_threshold` under `trailing_shock_z`.
+    Positions index `values` on that index's own trading calendar."""
+    if z_threshold <= 0:
+        raise ValueError(f"z_threshold must be positive, got {z_threshold}")
+    z = trailing_shock_z(values, window)
+    pos = np.flatnonzero(np.abs(z) >= z_threshold)
+    return pos, z[pos]
+
+
+def fetch_index_closes(
+    tickers: dict[str, str] = INDEX_TICKERS, start: str = "2018-01-01", end: str | None = None
+) -> dict[str, pd.Series]:
+    """label -> daily close on that index's own calendar (no intersection)."""
+    return {label: fetch_close(t, start, end).dropna() for label, t in tickers.items()}
+
+
+def index_cache_path(cache_dir, label: str, as_of) -> Path:
+    return Path(cache_dir) / f"shock_v2_{label}_{as_of}.parquet"
+
+
+def save_index_closes(closes: dict[str, pd.Series], cache_dir, as_of) -> list:
+    Path(cache_dir).mkdir(parents=True, exist_ok=True)
+    paths = []
+    for label, s in closes.items():
+        path = index_cache_path(cache_dir, label, as_of)
+        pd.DataFrame(
+            {"date": pd.to_datetime(s.index), "close": s.to_numpy(dtype=float)}
+        ).to_parquet(path, index=False)
+        paths.append(path)
+    return paths
+
+
+def load_index_series(cache_dir, as_of, labels=tuple(INDEX_TICKERS)) -> dict[str, SeriesData]:
+    """Reads what `save_index_closes` wrote; each index keeps its own calendar."""
+    out = {}
+    for label in labels:
+        path = index_cache_path(cache_dir, label, as_of)
+        if not path.exists():
+            raise FileNotFoundError(f"{path} not found -- run scripts/03a_select_events.py first")
+        df = pd.read_parquet(path).sort_values("date")
+        df = df[df["close"] > 0]
+        out[label] = SeriesData(
+            name=label,
+            values=df["close"].to_numpy(dtype=float),
+            dates=df["date"].to_numpy(),
+            observed=np.ones(len(df), dtype=bool),
+        )
+    return out

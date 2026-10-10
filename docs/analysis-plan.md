@@ -200,6 +200,10 @@ By rule, frozen and committed before any model run.
 - Every run manifest records: git SHA + dirty flag, this preregistration commit, as_of, checkpoint repo id + resolved revision, package versions, GPU name, CUDA and torch versions, seed, config id.
 - Data redistribution: new committed outputs carry errors and normalized values only; actual prices stay in the local Kaggle archive (PM Q6/Q12).
 
+## Amendment 2026-10-10, before any v2 data were seen
+
+Experiment B's primary forecaster mode is univariate, so that TimesFM-3, the naive and ETS baselines and TimesFM-2.5 (univariate only) are directly comparable. The multivariate mode is a sensitivity analysis. Nothing else in section 3 changes.
+
 ---
 
 # v1 (historical, Italian) — SUPERSEDED by Preregistration v2 above

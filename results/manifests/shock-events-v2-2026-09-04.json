@@ -1,0 +1,94 @@
+{
+  "_meta": {
+    "git_sha": "588e6671e5e0297e3108cb094cd5510a46cd4dec",
+    "git_dirty": true,
+    "prereg_commit": "5ed53db54e6a2dea37c0d5cb8dbf7ea518b5b503",
+    "environment": {
+      "gpu_name": "cpu",
+      "cuda_version": null,
+      "torch_version": "2.13.0+cu130",
+      "device_count": 0
+    },
+    "checkpoint": null,
+    "seed": null,
+    "as_of": "2026-09-04",
+    "live_end": false,
+    "written_at_utc": "2026-10-10T11:22:40.549358+00:00",
+    "package_versions": {
+      "requests": "2.34.2",
+      "py7zr": "1.1.3",
+      "pandas": "3.0.5",
+      "numpy": "2.5.2",
+      "scipy": "1.18.1",
+      "huggingface_hub": "1.29.0",
+      "timesfm": "3.0.0",
+      "timesfm3": "unknown",
+      "torch": "2.13.0"
+    }
+  },
+  "script": "03a_select_events",
+  "events_csv": "/home/icela/dev/timesfm3-talk/configs/shock_events_v2.csv",
+  "events_csv_sha256": "0cab3c6205ecba42be0e847729ad1905658aa24a71c50a797ab56620e9d7c666",
+  "data_sha256": {
+    "SP500": "c33bbce513fa0dc65fc9b99e8c348f70126102f675941e657c74f66a3a848a86",
+    "Nasdaq100": "67b2c948b34c97eea8e18f5fbbf43e6a7b1385739620a6d6b9eb286672c13763",
+    "EuroStoxx50": "80667b5bd31539455378211c0c86248968b3255606fad6270b151116dba07759",
+    "Nikkei225": "73768d074f3896cd7f0c30dd43d12f46236808a52ca4121f0c0169d52e34d00d",
+    "Gold": "41ad6fa7ebb5f7772e28c41a6748daa6cb2bf372e41119a2ecf90e38e1e80606"
+  },
+  "data_ranges": {
+    "SP500": [
+      "2018-01-02",
+      "2026-09-04",
+      2181
+    ],
+    "Nasdaq100": [
+      "2018-01-02",
+      "2026-09-04",
+      2181
+    ],
+    "EuroStoxx50": [
+      "2018-01-03",
+      "2026-09-04",
+      2178
+    ],
+    "Nikkei225": [
+      "2018-01-04",
+      "2026-09-04",
+      2117
+    ],
+    "Gold": [
+      "2018-01-02",
+      "2026-09-04",
+      2183
+    ]
+  },
+  "tickers": {
+    "SP500": "^GSPC",
+    "Nasdaq100": "^NDX",
+    "EuroStoxx50": "^STOXX50E",
+    "Nikkei225": "^N225",
+    "Gold": "GC=F"
+  },
+  "rule": {
+    "z_threshold": 4.0,
+    "trailing_window": 250,
+    "decluster_gap_trading_days": 20,
+    "pre_end": "2023-05-31",
+    "post_start": "2024-06-01",
+    "context_len": 256,
+    "window_before": 12,
+    "window_after": 25
+  },
+  "counts": {
+    "candidates_by_arm": {
+      "pre": 8,
+      "post": 7
+    },
+    "used_by_arm": {
+      "pre": 8,
+      "post": 7
+    },
+    "excluded_by_reason": {}
+  }
+}

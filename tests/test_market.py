@@ -32,3 +32,17 @@ def test_detect_shock_days_quiet_series_flags_nothing_at_high_threshold():
     values = 100.0 * np.exp(np.cumsum(rng.normal(scale=0.005, size=300)))
     # No engineered spike; a very high threshold should find nothing.
     assert detect_shock_days(values, z_threshold=6.0).size == 0
+
+
+def test_index_tickers_added_without_breaking_defaults():
+    from tfm3lab.data.market import ALL_TICKERS, DEFAULT_TICKERS, INDEX_TICKERS
+
+    assert INDEX_TICKERS == {
+        "SP500": "^GSPC",
+        "Nasdaq100": "^NDX",
+        "EuroStoxx50": "^STOXX50E",
+        "Nikkei225": "^N225",
+        "Gold": "GC=F",
+    }
+    assert set(DEFAULT_TICKERS) == {"SP500", "VIX", "Gold", "Oil"}
+    assert set(ALL_TICKERS) >= set(INDEX_TICKERS) | set(DEFAULT_TICKERS)
