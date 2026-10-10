@@ -1,0 +1,14 @@
+tfm3lab
+Copyright 2026 Irfan Cela
+
+The source code in this repository is licensed under the Apache License,
+Version 2.0 (see LICENSE).
+
+Third-party terms. The following are NOT covered by that license, remain under
+their own terms, and are not redistributed by this repository:
+
+  * TimesFM model checkpoints (Google, hosted on Hugging Face): released under a
+    non-commercial / non-production license (timesfm-non-commercial-license-v1.0).
+    Accept the terms on Hugging Face before downloading them.
+  * Data: TCGplayer prices (obtained via TCGCSV), Yahoo Finance market data, and
+    FRED economic series. Each remains subject to its provider's terms of use.

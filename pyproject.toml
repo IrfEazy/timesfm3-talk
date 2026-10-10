@@ -3,6 +3,8 @@ name = "tfm3lab"
 version = "0.1.0"
 description = "TimesFM-3 experiments — Magic: The Gathering, market shocks, calibration, covariates"
 readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 authors = [
     { name = "Irfan Cela", email = "50823808+IrfEazy@users.noreply.github.com" }
 ]
@@ -80,9 +82,15 @@ explicit = true
 line-length = 100
 src = ["src", "scripts", "tests"]
 target-version = "py312"
+# docs/ holds prose plans (Markdown); formatting them is out of scope.
+extend-exclude = ["docs"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# Legacy Colab notebook: imports follow shell/setup cells.
+"notebooks/run_on_colab.ipynb" = ["E402", "I001"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
