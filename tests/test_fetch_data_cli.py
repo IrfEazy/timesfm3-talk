@@ -73,3 +73,115 @@ def test_skip_mtg_manifest_records_skip_and_outputs(fetch01, tmp_path):
     assert data["mtg"] == "skipped"
     assert [o["path"] for o in data["outputs"]] == [str(market), str(cpi)]
     assert data["_meta"]["as_of"] == "2026-09-01"
+
+
+def _fake_ingest(captured):
+    import numpy as np
+    import pandas as pd
+
+    from tfm3lab.backtest import SeriesData
+    from tfm3lab.data.mtg import IngestReport
+
+    def fake(cards, start, end, price_policy):
+        captured["cards"] = tuple(cards)
+        dates = pd.date_range("2026-08-01", periods=5).to_numpy()
+        series = [SeriesData(c.label, np.ones(5), dates, np.ones(5, dtype=bool)) for c in cards]
+        report = IngestReport(
+            resolved_cards=pd.DataFrame({"label": [c.label for c in cards]}),
+            archive_hashes={},
+            price_field_counts={},
+            subtype_counts={},
+        )
+        return series, report
+
+    return fake
+
+
+def test_cards_default_is_showcase(fetch01):
+    from tfm3lab.data.mtg import DEFAULT_CARDS
+
+    cards, records = fetch01.resolve_card_sources(None)
+    assert cards == DEFAULT_CARDS
+    assert [r["source"] for r in records] == ["showcase"] and len(records[0]["sha256"]) == 64
+
+
+def test_cards_union_dedups_and_hashes_manifest(fetch01, tmp_path):
+    import hashlib
+
+    from tfm3lab.data.mtg import DEFAULT_CARDS
+
+    csv = tmp_path / "pool.csv"
+    first = DEFAULT_CARDS[0]
+    csv.write_text(
+        "label,group_abbreviation,product_name,product_id\n"
+        f'{first.label},{first.group_abbreviation},"{first.product_name}",\n'
+        "Other Card,ZZZ,Other Card,4242\n"
+    )
+    cards, records = fetch01.resolve_card_sources(["showcase", str(csv)])
+    assert len(cards) == len(DEFAULT_CARDS) + 1
+    other = cards[-1]
+    assert other.label == "Other Card" and other.product_id == 4242
+    assert records[1]["sha256"] == hashlib.sha256(csv.read_bytes()).hexdigest()
+    assert records[1]["n_cards"] == 2
+
+
+def test_conflicting_card_label_is_an_error(fetch01, tmp_path):
+    from tfm3lab.data.mtg import DEFAULT_CARDS
+
+    csv = tmp_path / "pool.csv"
+    csv.write_text(
+        "label,group_abbreviation,product_name,product_id\n"
+        f"{DEFAULT_CARDS[0].label},ZZZ,Different,99\n"
+    )
+    with pytest.raises(SystemExit, match="defined differently"):
+        fetch01.resolve_card_sources(["showcase", str(csv)])
+
+
+def test_main_builds_union_cache_and_records_card_sources(fetch01, tmp_path, monkeypatch):
+    import json
+
+    import pandas as pd
+
+    csv = tmp_path / "pool.csv"
+    csv.write_text(
+        "label,group_abbreviation,product_name,product_id\nPool Card,ZZZ,Pool Card,4242\n"
+    )
+    captured: dict = {}
+    monkeypatch.setattr(fetch01, "build_card_series", _fake_ingest(captured))
+    monkeypatch.setattr(fetch01.config, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(fetch01.config, "RESULTS_DIR", tmp_path / "results")
+    (tmp_path / "cache").mkdir()
+    (tmp_path / "results").mkdir()
+    monkeypatch.setattr(fetch01.plots, "save", lambda *a, **k: None)
+    monkeypatch.setattr(fetch01.plots, "plot_data_quality", lambda *a, **k: None)
+    monkeypatch.setattr(fetch01, "build_market_series", lambda end: [])
+    monkeypatch.setattr(fetch01, "build_cpi_series", lambda end: None)
+    monkeypatch.setattr(fetch01, "_series_list_to_frame", _frame_stub(fetch01))
+    monkeypatch.setattr(
+        sys, "argv", ["01", "--as-of", "2026-09-04", "--cards", "showcase", "--cards", str(csv)]
+    )
+    try:  # noqa: SIM105
+        fetch01.main()
+    except IndexError:  # the empty market stub ends the run after the MTG part
+        pass
+    labels = [c.label for c in captured["cards"]]
+    assert "Pool Card" in labels and len(labels) == 8
+    assert [c for c in captured["cards"] if c.label == "Pool Card"][0].product_id == 4242
+    (man,) = (tmp_path / "results" / "manifests").glob("fetch-2026-09-04-*.json")
+    sources = json.loads(man.read_text())["card_sources"]
+    assert [s["source"] for s in sources] == ["showcase", str(csv)]
+    assert all(len(s["sha256"]) == 64 for s in sources)
+    assert isinstance(pd.read_parquet(tmp_path / "cache" / "mtg_prices.parquet"), pd.DataFrame)
+
+
+def _frame_stub(fetch01):
+    original = fetch01._series_list_to_frame
+
+    def stub(series_list):
+        if not series_list:
+            import pandas as pd
+
+            return pd.DataFrame({"date": [], "value": [], "observed": [], "series": []})
+        return original(series_list)
+
+    return stub

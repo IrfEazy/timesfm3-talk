@@ -1,0 +1,40 @@
+{
+  "config_id": "preregistered_v2_ffill1",
+  "description": "Forward-fill sensitivity (Preregistration v2 s2), primary cell only on the pool: non-observed points re-filled forward with limit 1 day(s) (primary data uses 3). Origins whose 512-day context keeps a gap are dropped and counted. Secondary, descriptive. Do not edit without a dated amendment.",
+  "context_lengths": [
+    512
+  ],
+  "horizons": [
+    1,
+    7,
+    28,
+    56,
+    64
+  ],
+  "primary_horizons": [
+    28,
+    56
+  ],
+  "origin_stride": 7,
+  "max_origins": null,
+  "cards": "configs/benchmark_pool_v2.csv",
+  "transforms": [
+    "raw"
+  ],
+  "make_positive": [
+    true
+  ],
+  "modes": [
+    "univariate"
+  ],
+  "placebo_panel_size": 7,
+  "placebo_seed": 42,
+  "season_length": 7,
+  "baselines": [
+    "naive",
+    "seasonal_naive",
+    "drift",
+    "ets"
+  ],
+  "ffill_days": 1
+}

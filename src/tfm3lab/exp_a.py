@@ -41,6 +41,10 @@ SUBSET_ROLE = {
     "showcase_only": "descriptive",
 }
 
+NOT_RUN = "not run"
+MODEL_COMPARISON_LABEL = "model comparison only, not a cutoff control"
+FFILL_REFERENCE_DAYS = 3  # the cached data's own forward-fill limit
+
 N_DEFINITION = (
     "leaderboard n = observed rows on raw prices (no error-scale filter); "
     "may differ from the headline's valid-scale row set"
@@ -275,7 +279,10 @@ def flag_disagreements(df: pd.DataFrame) -> pd.DataFrame:
     df["pool_verdict"] = df["horizon"].map(pool_v)
     effective = df["verdict"].where(df["subset"] != "showcase_only", df["descriptive_direction"])
     df["verdict_disagrees_with_pool"] = (
-        (df["subset"] != "pool") & df["pool_verdict"].notna() & (effective != df["pool_verdict"])
+        (df["subset"] != "pool")
+        & df["pool_verdict"].notna()
+        & (df["verdict"] != NOT_RUN)
+        & (effective != df["pool_verdict"])
     )
     if "ci_low" in df.columns:
 
@@ -286,6 +293,62 @@ def flag_disagreements(df: pd.DataFrame) -> pd.DataFrame:
             df["cal_ci_low"], df["cal_ci_high"]
         )
     return df
+
+
+def replace_showcase_rows(
+    headline: pd.DataFrame,
+    showcase_primary: pd.DataFrame | None,
+    selfcheck: pd.DataFrame,
+    *,
+    horizons=PRIMARY_HORIZONS,
+    baseline: str = "naive",
+    n_boot: int = bootstrap.DEFAULT_N_BOOT,
+    seed: int = bootstrap.DEFAULT_SEED,
+) -> pd.DataFrame:
+    """showcase_only rows come from the dedicated showcase run (its own
+    primary export), not from the showcase cards that happen to be in the
+    pool. Without that export the rows say 'not run'. Descriptive only: no
+    verdict, a `descriptive_direction` for the disagreement flag."""
+    keep = headline[headline["subset"] != "showcase_only"].drop(
+        columns=["pool_verdict", "verdict_disagrees_with_pool", "primary_vs_calendar_disagree"],
+        errors="ignore",
+    )
+    if showcase_primary is None:
+        stub = [
+            {
+                "subset": "showcase_only",
+                "subset_role": SUBSET_ROLE["showcase_only"],
+                "horizon": int(h),
+                "baseline": baseline,
+                "statistic": "none",
+                "verdict": NOT_RUN,
+                "descriptive_direction": NOT_RUN,
+                "n_cards": 0,
+                "n_rows": 0,
+            }
+            for h in horizons
+        ]
+        new = pd.DataFrame(stub)
+    else:
+        cards = set(showcase_primary["card"].astype(str))
+        full = headline_table(
+            showcase_primary, cards, selfcheck, horizons=horizons, baseline=baseline,
+            n_boot=n_boot, seed=seed,
+        )  # fmt: skip
+        new = full[full["subset"] == "pool"].copy()
+        direction = new["verdict"]
+        new["subset"] = "showcase_only"
+        new["subset_role"] = SUBSET_ROLE["showcase_only"]
+        new["descriptive_direction"] = direction
+        new["verdict"] = "descriptive (no verdict)"
+        new = new.drop(
+            columns=["pool_verdict", "verdict_disagrees_with_pool", "primary_vs_calendar_disagree"],
+            errors="ignore",
+        )
+        new.loc[new["descriptive_direction"] == "no data", "verdict"] = "no data"
+    if "descriptive_direction" not in keep.columns:
+        keep = keep.assign(descriptive_direction=None)
+    return flag_disagreements(pd.concat([keep, new], ignore_index=True))
 
 
 # --- secondary ---------------------------------------------------------------
@@ -527,6 +590,144 @@ def secondary_table(
         if rows
         else pd.DataFrame(columns=cols)
     )
+
+
+def model_comparison_table(
+    lb_2p5: pd.DataFrame,
+    lb_3: pd.DataFrame,
+    *,
+    horizons=PRIMARY_HORIZONS,
+    n_boot: int = bootstrap.DEFAULT_N_BOOT,
+    seed: int = bootstrap.DEFAULT_SEED,
+) -> pd.DataFrame:
+    """TimesFM-2.5 vs TimesFM-3 on the primary cell, paired by card (loss
+    sums mae x n; cards with unequal n are dropped and counted). Positive
+    skill = TimesFM-2.5 has the lower loss. Model comparison ONLY: there is
+    no sourced 2.5 cutoff, so this is never a cutoff control."""
+    a = _leaderboard_rows(lb_2p5, "timesfm2p5")
+    b = _leaderboard_rows(lb_3, "timesfm3")
+    spec = dict(suffix="univariate", transform="raw", make_positive=True, context=PRIMARY_CONTEXT)
+    rows: list[dict] = []
+    for h in horizons:
+        ca, cb = _cell(a, h=h, **spec), _cell(b, h=h, **spec)
+        cards, n_mismatch, only_a, only_b = _pair_cells(ca, cb)
+        if len(cards) == 0:
+            continue
+        rows.extend(
+            _paired_ci_rows(
+                "timesfm2p5_vs_timesfm3",
+                "model_comparison",
+                h,
+                ca.loc[cards, "loss_model"].to_numpy(float),
+                cb.loc[cards, "loss_model"].to_numpy(float),
+                ca.loc[cards, "n"].to_numpy(float),
+                n_boot,
+                seed,
+                {
+                    "reference": "timesfm3",
+                    "comparison_label": MODEL_COMPARISON_LABEL,
+                    "n_cards_dropped_n_mismatch": n_mismatch,
+                    "n_cards_only_in_model": only_a,
+                    "n_cards_only_in_reference": only_b,
+                },
+            )
+        )
+    return pd.DataFrame(rows)
+
+
+def ffill_sensitivity_table(
+    ffill_primary: dict[int, pd.DataFrame],
+    primary: pd.DataFrame,
+    *,
+    horizons=PRIMARY_HORIZONS,
+    n_boot: int = bootstrap.DEFAULT_N_BOOT,
+    seed: int = bootstrap.DEFAULT_SEED,
+) -> pd.DataFrame:
+    """Forward-fill 0/1 vs 3 days on the primary cell (descriptive). For each
+    k in `ffill_primary` (k -> primary export of the ffill_days=k run) and
+    horizon: (a) skill vs naive on the run's own rows; (b) skill of the
+    k-day run's model errors against the 3-day primary export's model errors
+    on the (card, origin, horizon) rows usable in both (positive = fewer
+    forward-filled days is better). The ffill run drops origins whose
+    context keeps a gap, so (b) is restricted to the common origins."""
+    rows: list[dict] = []
+    ref = usable_rows(primary)
+    for k, frame in sorted(ffill_primary.items()):
+        own = usable_rows(frame)
+        for h in horizons:
+            cell = own[own["requested_horizon"] == h]
+            if cell.empty:
+                continue
+            common = _paired_rows(cell, ref[ref["requested_horizon"] == h])
+            n_ref = int((ref["requested_horizon"] == h).sum())
+            for name, kind, m, b, ids, n_rows in (
+                (
+                    f"ffill{k}_vs_naive",
+                    "vs_baseline",
+                    cell["ae_model_scaled"],
+                    cell["ae_baseline_naive_scaled"],
+                    cell["card"],
+                    len(cell),
+                ),
+                (
+                    f"ffill{k}_vs_ffill{FFILL_REFERENCE_DAYS}",
+                    "paired_ffill",
+                    common[0]["ae_model_scaled"],
+                    common[1]["ae_model_scaled"],
+                    common[0]["card"],
+                    len(common[0]),
+                ),
+            ):
+                if n_rows == 0:
+                    continue
+                res = bootstrap.paired_cluster_bootstrap(
+                    m.to_numpy(float),
+                    b.to_numpy(float),
+                    ids.astype(str).to_numpy(),
+                    n_boot=n_boot,
+                    seed=seed,
+                )
+                for stat in bootstrap.SKILL_STATISTICS:
+                    r = res[stat]
+                    rows.append(
+                        {
+                            "comparison": name,
+                            "kind": kind,
+                            "horizon": int(h),
+                            "statistic": stat,
+                            "estimate": r.estimate,
+                            "ci_low": r.ci_low,
+                            "ci_high": r.ci_high,
+                            "ci_method": r.method,
+                            "n_cards": r.n_clusters,
+                            "n_rows": int(n_rows),
+                            "n_rows_primary_reference": n_ref,
+                            # share of the 3-day primary's usable rows that this
+                            # run's (card, origin) set also covers; < 1 means the
+                            # rows differ from the primary and are not directly
+                            # comparable to it
+                            "origin_overlap_fraction": (
+                                len(common[0]) / n_ref if n_ref else np.nan
+                            ),
+                            "n_invalid_replicates": r.n_invalid,
+                            "n_boot": n_boot,
+                            "seed": seed,
+                            "ffill_days": int(k),
+                            "reference": "naive" if kind == "vs_baseline" else "ffill3",
+                            "verdict": "descriptive (no verdict)",
+                            "secondary_label": "secondary, descriptive",
+                        }
+                    )
+    return pd.DataFrame(rows)
+
+
+def _paired_rows(a: pd.DataFrame, b: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Rows of `a` and `b` on their common (card, origin_date) keys, aligned."""
+    key = ["card", "origin_date"]
+    ka = a.set_index(key)
+    kb = b.set_index(key)
+    idx = ka.index.intersection(kb.index)
+    return ka.loc[idx].reset_index(), kb.loc[idx].reset_index()
 
 
 # --- significance -------------------------------------------------------------

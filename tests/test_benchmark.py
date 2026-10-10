@@ -327,3 +327,39 @@ def test_primary_export_skill_equals_raw_ratio_per_card():
         ).abs().sum()
         got = g["ae_model_scaled"].sum() / g["ae_baseline_naive_scaled"].sum()
         assert got == pytest.approx(want)
+
+
+def test_refill_series_limits_fill_and_marks_gaps():
+    import pandas as pd
+
+    from tfm3lab.backtest import SeriesData
+    from tfm3lab.benchmark import (
+        filter_kept_rows,
+        gap_drop_summary,
+        keep_origins_per_card,
+        refill_series,
+    )
+
+    n = 12
+    observed = np.ones(n, dtype=bool)
+    observed[[3, 4, 5, 6]] = False  # a 4-day hole
+    values = np.arange(1.0, n + 1)
+    values[[3, 4, 5, 6]] = 3.0  # cached 3-day fill ... then stale value
+    s = SeriesData("a", values, pd.date_range("2025-01-01", periods=n).to_numpy(), observed)
+    out, gap = refill_series(s, 2)
+    assert gap.tolist() == [False] * 5 + [True, True] + [False] * 5
+    assert np.isfinite(out.values).all() and (out.observed == observed).all()
+    _, gap0 = refill_series(s, 0)
+    assert gap0.sum() == 4
+    origins = np.arange(4, 12)
+    kept = keep_origins_per_card(origins, {"a": gap, "b": np.zeros(n, dtype=bool)}, context_len=3)
+    # origin o has window [o-3, o); gaps at 5,6 -> card a loses origins 6..9; b keeps all
+    assert kept["a"].tolist() == [4, 5, 10, 11] and kept["b"].tolist() == origins.tolist()
+    summ = gap_drop_summary(origins, kept)
+    assert summ["dropped_per_card"] == {"a": 4, "b": 0}
+    assert summ["kept_fraction_per_card"] == {"a": 0.5, "b": 1.0}
+    assert summ["kept_fraction_overall"] == 0.75 and summ["excluded_cards"] == []
+    allgap = keep_origins_per_card(origins, {"c": np.ones(n, dtype=bool)}, context_len=3)
+    assert gap_drop_summary(origins, allgap)["excluded_cards"] == ["c"]
+    df = pd.DataFrame({"series": ["a", "a", "b", "c"], "origin": [4, 6, 6, 4]})
+    assert filter_kept_rows(df, kept).index.tolist() == [0, 2]

@@ -49,6 +49,10 @@ class BenchmarkConfig:
     placebo_seed: int = 42
     season_length: int | None = None
     baselines: tuple[str, ...] = ("naive", "seasonal_naive", "drift", "ets")
+    # None = data as cached (3-day forward fill). k >= 0: non-observed points
+    # are re-filled forward with limit k before contexts are built (prereg s2
+    # forward-fill sensitivity); origins whose context keeps a gap are dropped.
+    ffill_days: int | None = None
     description: str = ""
 
     def __post_init__(self):
@@ -81,6 +85,14 @@ class BenchmarkConfig:
             )
         if self.placebo_panel_size < 1:
             raise ValueError(f"placebo_panel_size must be >= 1, got {self.placebo_panel_size}")
+        if self.ffill_days is not None and self.ffill_days < 0:
+            raise ValueError(f"ffill_days must be >= 0 or null, got {self.ffill_days}")
+        if self.ffill_days is not None and set(self.modes) != {"univariate"}:
+            raise ValueError(
+                "ffill_days is only supported for univariate-only grids (the gap-origin "
+                "drop is per card, which a joint multivariate context cannot honour); "
+                f"got modes {list(self.modes)}"
+            )
         if self.origin_stride < 1:
             raise ValueError(f"origin_stride must be >= 1, got {self.origin_stride}")
         unknown_primary = set(self.primary_horizons) - set(self.horizons)

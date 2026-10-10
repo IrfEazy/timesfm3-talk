@@ -12,6 +12,15 @@ Inputs (each missing one stops the run naming its producer):
     configs/benchmark_pool_v2.csv  (is_showcase)   scripts/01b_select_pool.py
     results/inference_selfcheck.parquet            scripts/08_inference_selfcheck.py
 
+Optional inputs (missing ones never fail the run; their rows say "not run" or
+are simply absent):
+    results/exp_mtg_benchmark_primary__preregistered_v2_showcase.parquet
+        -> showcase_only rows (descriptive); without it they say "not run"
+    results/exp_mtg_benchmark_leaderboard__preregistered_v2_timesfm2p5.parquet
+        -> TimesFM-2.5 vs 3 secondary ("model comparison only, not a cutoff control")
+    results/exp_mtg_benchmark_primary__preregistered_v2_ffill{0,1}.parquet
+        -> forward-fill 0/1 vs 3 days secondary
+
 Outputs:
     results/exp_mtg_v2_verdict.parquet       headline rows, verdict per (subset, h)
     results/exp_mtg_v2_secondary.parquet     descriptive paired comparisons
@@ -59,6 +68,26 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--leaderboard", type=Path, default=RESULTS / "exp_mtg_benchmark_leaderboard.parquet"
     )
+    p.add_argument(
+        "--showcase-primary",
+        type=Path,
+        default=None,
+        help="default: sibling exp_mtg_benchmark_primary__preregistered_v2_showcase.parquet",
+    )
+    p.add_argument(
+        "--leaderboard-2p5",
+        type=Path,
+        default=None,
+        help="default: sibling exp_mtg_benchmark_leaderboard__preregistered_v2_timesfm2p5.parquet",
+    )
+    p.add_argument(
+        "--ffill-primary",
+        action="append",
+        default=None,
+        metavar="K=PATH",
+        help="forward-fill sensitivity export, repeatable (default: <dir of --primary>/"
+        "exp_mtg_benchmark_primary__preregistered_v2_ffill{0,1}.parquet when present)",
+    )
     p.add_argument("--pool", type=Path, default=REPO_ROOT / "configs" / "benchmark_pool_v2.csv")
     p.add_argument("--selfcheck", type=Path, default=RESULTS / "inference_selfcheck.parquet")
     p.add_argument("--output-dir", type=Path, default=RESULTS)
@@ -80,6 +109,20 @@ def _require(path: Path, producer: str) -> Path:
     if not path.exists():
         raise SystemExit(f"error: missing input {path}; produce it with {producer}")
     return path
+
+
+def _ffill_paths(specs: list[str] | None, base: Path) -> dict[int, Path]:
+    if specs:
+        out = {}
+        for spec in specs:
+            k, _, path = spec.partition("=")
+            if not path or not k.isdigit():
+                raise SystemExit(f"error: --ffill-primary expects K=PATH, got {spec!r}")
+            out[int(k)] = Path(path)
+        return out
+    return {
+        k: base / f"exp_mtg_benchmark_primary__preregistered_v2_ffill{k}.parquet" for k in (0, 1)
+    }
 
 
 def _resolve_as_of(args) -> tuple[dt.date, bool]:
@@ -116,7 +159,46 @@ def main(argv: list[str] | None = None) -> int:
         primary, showcase, selfcheck, pool_cards=pool_cards, n_boot=args.n_boot, seed=args.seed
     )
     coverage = exp_a.pool_coverage(primary, pool_cards)
+    sibling = args.primary.parent
+    showcase_path = args.showcase_primary or (
+        sibling / "exp_mtg_benchmark_primary__preregistered_v2_showcase.parquet"
+    )
+    lb_2p5_path = args.leaderboard_2p5 or (
+        sibling / "exp_mtg_benchmark_leaderboard__preregistered_v2_timesfm2p5.parquet"
+    )
+    optional: dict[str, Path] = {}
+    showcase_primary = None
+    if showcase_path.exists():
+        showcase_primary = pd.read_parquet(showcase_path)
+        optional["showcase_primary"] = showcase_path
+    verdict = exp_a.replace_showcase_rows(
+        verdict, showcase_primary, selfcheck, n_boot=args.n_boot, seed=args.seed
+    )
     secondary = exp_a.secondary_table(leaderboard, n_boot=args.n_boot, seed=args.seed)
+    extra = []
+    if lb_2p5_path.exists():
+        optional["leaderboard_2p5"] = lb_2p5_path
+        extra.append(
+            exp_a.model_comparison_table(
+                pd.read_parquet(lb_2p5_path),
+                leaderboard,
+                n_boot=args.n_boot,
+                seed=args.seed,
+            )
+        )
+    ffill_paths = _ffill_paths(args.ffill_primary, args.primary.parent)
+    ffill_frames = {}
+    for k, path in ffill_paths.items():
+        if path.exists():
+            ffill_frames[k] = pd.read_parquet(path)
+            optional[f"ffill{k}_primary"] = path
+    if ffill_frames:
+        extra.append(
+            exp_a.ffill_sensitivity_table(ffill_frames, primary, n_boot=args.n_boot, seed=args.seed)
+        )
+    extra = [e for e in extra if len(e)]
+    if extra:
+        secondary = pd.concat([secondary, *extra], ignore_index=True)
     significance = exp_a.significance_frame(leaderboard)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -137,6 +219,11 @@ def main(argv: list[str] | None = None) -> int:
     payload = {
         "script": SCRIPT_NAME,
         "inputs": {k: {"path": str(v), "sha256": _sha256(v)} for k, v in inputs.items()},
+        "optional_inputs": {k: {"path": str(v), "sha256": _sha256(v)} for k, v in optional.items()},
+        "optional_inputs_not_present": sorted(
+            {"showcase_primary", "leaderboard_2p5", *(f"ffill{k}_primary" for k in ffill_paths)}
+            - set(optional)
+        ),
         "outputs": {k: {"path": str(v), "sha256": _sha256(v)} for k, v in outputs.items()},
         "settings": {
             "n_boot": args.n_boot,

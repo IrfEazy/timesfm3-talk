@@ -59,3 +59,34 @@ def test_v2_timesfm2p5_config_is_univariate_twin():
     for key, value in _v2_expected_fields().items():
         assert getattr(cfg, key) == value, key
     assert "Preregistration v2" in cfg.description and "5ed53db" in cfg.description
+
+
+def _primary_cell_expected() -> dict:
+    return {
+        "context_lengths": (512,),
+        "horizons": (1, 7, 28, 56, 64),
+        "primary_horizons": (28, 56),
+        "origin_stride": 7,
+        "transforms": ("raw",),
+        "make_positive": (True,),
+        "modes": ("univariate",),
+        "baselines": ("naive", "seasonal_naive", "drift", "ets"),
+    }
+
+
+def test_v2_showcase_config_is_primary_cell_on_showcase():
+    cfg = load_benchmark_config(REPO_ROOT / "configs" / "benchmark_v2_showcase.json")
+    assert cfg.config_id == "preregistered_v2_showcase"
+    assert cfg.cards == "showcase" and cfg.ffill_days is None
+    for key, value in _primary_cell_expected().items():
+        assert getattr(cfg, key) == value, key
+
+
+def test_v2_ffill_configs_are_primary_cell_on_the_pool():
+    for k in (0, 1):
+        cfg = load_benchmark_config(REPO_ROOT / "configs" / f"benchmark_v2_ffill{k}.json")
+        assert cfg.config_id == f"preregistered_v2_ffill{k}"
+        assert cfg.ffill_days == k
+        assert cfg.cards == "configs/benchmark_pool_v2.csv"
+        for key, value in _primary_cell_expected().items():
+            assert getattr(cfg, key) == value, key

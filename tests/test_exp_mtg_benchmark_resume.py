@@ -158,7 +158,9 @@ class Env:
     def outputs(self, partial: bool = False) -> dict[str, pd.DataFrame]:
         suffix = "_partial" if partial else ""
         return {
-            name: pd.read_parquet(self.results / f"{name}{suffix}.parquet")
+            name: pd.read_parquet(
+                self.results / f"{self.bench.output_name(name, 'tiny')}{suffix}.parquet"
+            )
             for name in (
                 "exp_mtg_benchmark_leaderboard",
                 "exp_mtg_benchmark_leaderboard_aggregate",
@@ -348,7 +350,7 @@ def test_partial_summary_refused_unless_allowed(env, monkeypatch):
     loads = env.loads
     env.run("--resume", "--summary-only", "--allow-partial-summary")
     assert env.loads == loads
-    lb = pd.read_parquet(env.results / "exp_mtg_benchmark_leaderboard_partial.parquet")
+    lb = pd.read_parquet(env.results / "exp_mtg_benchmark_leaderboard__tiny_partial.parquet")
     assert not lb["summary_complete"].any()
     assert set(lb["n_cells_committed"]) == {5} and set(lb["n_cells_expected"]) == {N_CELLS}
     assert not (env.results / "exp_mtg_benchmark_leaderboard.parquet").exists()
@@ -470,3 +472,90 @@ def test_dependency_versions_are_not_in_the_fingerprint(env):
     env.run()
     m = json.loads((env.run_dir() / "manifest.json").read_text())
     assert "dependency_versions" not in json.dumps(m["fingerprint_payload"])
+
+
+def test_non_canonical_config_writes_suffixed_light_outputs(env):
+    env.run()
+    names = sorted(p.name for p in env.results.glob("*.parquet"))
+    assert names == [
+        "exp_mtg_benchmark_leaderboard__tiny.parquet",
+        "exp_mtg_benchmark_leaderboard_aggregate__tiny.parquet",
+        "exp_mtg_benchmark_primary__tiny.parquet",
+    ]
+
+
+def test_output_name_canonical_config_keeps_canonical_names(bench):
+    assert bench.output_name(bench.PRIMARY_NAME, "preregistered_v2") == "exp_mtg_benchmark_primary"
+    assert (
+        bench.output_name(bench.LEADERBOARD_NAME, "preregistered_v2_showcase")
+        == "exp_mtg_benchmark_leaderboard__preregistered_v2_showcase"
+    )
+
+
+def _ffill_cache(env, gaps: dict[int, list[int]]) -> list[str]:
+    """All points observed except `gaps` (card index -> day positions)."""
+    df = pd.read_parquet(env.cache / "mtg_prices.parquet")
+    df["observed"] = True
+    labels = [c.label for c in DEFAULT_CARDS]
+    pos = df.groupby("series").cumcount()
+    for i, days in gaps.items():
+        df.loc[(df["series"] == labels[i]) & pos.isin(days), "observed"] = False
+    df.to_parquet(env.cache / "mtg_prices.parquet")
+    return labels
+
+
+def _ffill_config(env, **over):
+    cfg = {
+        "ffill_days": 0,
+        "context_lengths": [512],
+        "modes": ["univariate"],
+        "max_origins": None,
+        "origin_stride": 1,
+    }
+    env.cfg_path = env.write_config(**{**cfg, **over})
+
+
+def test_ffill_days_drops_gap_origins_per_card_and_enters_fingerprint(env):
+    # card0: gap at day 520 -> origins 521..527 dropped (7 of 16); card1: gap at
+    # day 100 sits in every candidate window -> excluded; the rest keep everything.
+    labels = _ffill_cache(env, {0: [520], 1: [100]})
+    _ffill_config(env)
+    env.run()
+    man = json.loads(next((env.results / "manifests").glob("benchmark-tiny-*.json")).read_text())
+    drop = man["grid"]["ffill_gap_drop"]
+    assert man["grid"]["ffill_days"] == 0
+    assert man["fingerprint_payload"]["extra"]["ffill_gap_drop"] == drop
+    assert drop["n_candidate_origins"] == 16
+    assert drop["dropped_per_card"][labels[0]] == 7
+    assert drop["dropped_per_card"][labels[1]] == 16
+    assert drop["dropped_per_card"][labels[2]] == 0
+    assert drop["kept_fraction_per_card"][labels[0]] == pytest.approx(9 / 16)
+    assert drop["excluded_cards"] == [labels[1]]
+    primary = env.outputs()["exp_mtg_benchmark_primary"]
+    assert labels[1] not in set(primary["card"])
+    counts = primary[primary["requested_horizon"] == 3].groupby("card").size()
+    assert counts[labels[0]] == 9 and counts[labels[2]] == 16
+    frac = primary.drop_duplicates("card").set_index("card")["ffill_card_kept_fraction"]
+    assert frac[labels[0]] == pytest.approx(9 / 16)
+    lb = env.outputs()["exp_mtg_benchmark_leaderboard"]
+    assert labels[1] not in set(lb["series"]) if "series" in lb.columns else True
+
+
+def test_ffill_days_all_cards_without_origins_is_a_clear_error(env):
+    _ffill_cache(env, {i: [100] for i in range(len(DEFAULT_CARDS))})
+    _ffill_config(env)
+    with pytest.raises(RuntimeError, match="every candidate origin of every card"):
+        env.run()
+
+
+def test_ffill_days_rejected_for_multivariate_modes(env):
+    _ffill_config(env, modes=["univariate", "multivariate"])
+    with pytest.raises(ValueError, match="univariate-only"):
+        env.run()
+
+
+def test_no_ffill_days_keeps_prior_fingerprint_shape(env):
+    env.run()
+    man = json.loads(next((env.results / "manifests").glob("benchmark-tiny-*.json")).read_text())
+    assert "ffill_days" not in man["fingerprint_payload"]["resolved_config"]
+    assert "ffill_gap_drop" not in man["fingerprint_payload"]["extra"]

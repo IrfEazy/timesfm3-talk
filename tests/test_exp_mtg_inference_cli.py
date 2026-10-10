@@ -91,3 +91,40 @@ def test_missing_input_names_producer(script, inputs, tmp_path, key, producer):
 def test_requires_as_of_or_live_end(script, inputs, tmp_path):
     with pytest.raises(SystemExit):
         script.main(argv(tmp_path, inputs))
+
+
+def test_optional_inputs_absent_do_not_fail_and_showcase_says_not_run(script, inputs, tmp_path):
+    assert script.main(argv(tmp_path, inputs, "--as-of", "2026-09-04")) == 0
+    verdict = pd.read_parquet(tmp_path / "out" / "exp_mtg_v2_verdict.parquet")
+    assert set(verdict[verdict["subset"] == "showcase_only"]["verdict"]) == {"not run"}
+    sec = pd.read_parquet(tmp_path / "out" / "exp_mtg_v2_secondary.parquet")
+    assert not sec["comparison"].str.startswith(("timesfm2p5", "ffill")).any()
+    man = json.loads((tmp_path / "man" / "exp-mtg-v2-inference-2026-09-04.json").read_text())
+    assert man["optional_inputs"] == {}
+    assert "showcase_primary" in man["optional_inputs_not_present"]
+
+
+def test_optional_inputs_present_are_read(script, inputs, tmp_path):
+    from tests.test_exp_a import make_primary as mk_primary
+
+    sib = inputs["primary"].parent
+    show = ["s0", "s1", "s2"]
+    mk_primary(show, {c: 0.7 for c in show}, seed=2).to_parquet(
+        sib / "exp_mtg_benchmark_primary__preregistered_v2_showcase.parquet"
+    )
+    lb25 = make_leaderboard(CARDS, CARDS[:7])
+    lb25 = lb25[lb25["mode"] == "timesfm3_univariate"].copy()
+    lb25["mode"] = "timesfm2p5_univariate"
+    lb25.to_parquet(sib / "exp_mtg_benchmark_leaderboard__preregistered_v2_timesfm2p5.parquet")
+    mk_primary(CARDS, {c: 0.5 for c in CARDS}, seed=4).to_parquet(
+        sib / "exp_mtg_benchmark_primary__preregistered_v2_ffill1.parquet"
+    )
+    assert script.main(argv(tmp_path, inputs, "--as-of", "2026-09-04")) == 0
+    verdict = pd.read_parquet(tmp_path / "out" / "exp_mtg_v2_verdict.parquet")
+    assert set(verdict[verdict["subset"] == "showcase_only"]["n_cards"]) == {3}
+    sec = pd.read_parquet(tmp_path / "out" / "exp_mtg_v2_secondary.parquet")
+    comps = set(sec["comparison"])
+    assert {"timesfm2p5_vs_timesfm3", "ffill1_vs_naive", "ffill1_vs_ffill3"} <= comps
+    assert "ffill0_vs_naive" not in comps
+    man = json.loads((tmp_path / "man" / "exp-mtg-v2-inference-2026-09-04.json").read_text())
+    assert set(man["optional_inputs"]) == {"showcase_primary", "leaderboard_2p5", "ffill1_primary"}

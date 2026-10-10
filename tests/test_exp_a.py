@@ -343,3 +343,63 @@ def test_significance_families_and_nan_counts():
     assert sig["family_n_nan"].sum() > 0
     fam = sig.groupby(list(exp_a.SIGNIFICANCE_FAMILY))["family_size"].first()
     assert (fam == 2 * 24).any() and (fam <= 48).all()  # card x horizon per family
+
+
+def _lb_2p5(cards):
+    lb = make_leaderboard(cards, cards[:7])
+    lb = lb[lb["mode"] == "timesfm3_univariate"].copy()
+    lb["mode"] = lb["mode"].str.replace("timesfm3", "timesfm2p5")
+    return lb
+
+
+def test_replace_showcase_rows_not_run_when_export_absent():
+    cards = [f"c{i}" for i in range(6)]
+    prim = make_primary(cards, {c: 0.6 for c in cards})
+    head = exp_a.headline_table(prim, {"c0"}, make_selfcheck(), n_boot=NB)
+    out = exp_a.replace_showcase_rows(head, None, make_selfcheck(), n_boot=NB)
+    show = out[out["subset"] == "showcase_only"]
+    assert set(show["verdict"]) == {exp_a.NOT_RUN} and len(show) == 2
+    assert not show["verdict_disagrees_with_pool"].any()
+    assert (out[out["subset"] == "pool"]["verdict"] == "beats naive").all()
+
+
+def test_replace_showcase_rows_uses_showcase_export():
+    cards = [f"c{i}" for i in range(6)]
+    prim = make_primary(cards, {c: 0.6 for c in cards})
+    head = exp_a.headline_table(prim, {"c0"}, make_selfcheck(), n_boot=NB)
+    show_cards = ["s0", "s1", "s2"]
+    sp = make_primary(show_cards, {c: 1.5 for c in show_cards}, seed=3)
+    out = exp_a.replace_showcase_rows(head, sp, make_selfcheck(), n_boot=NB)
+    show = out[out["subset"] == "showcase_only"]
+    assert set(show["n_cards"]) == {3}
+    assert set(show["verdict"]) == {"descriptive (no verdict)"}
+    assert set(show["descriptive_direction"]) == {exp_a.LOSES}
+    assert show["verdict_disagrees_with_pool"].all()
+    assert set(show["subset_role"]) == {"descriptive"}
+
+
+def test_model_comparison_is_paired_and_labelled():
+    cards = [f"c{i}" for i in range(8)]
+    lb3 = make_leaderboard(cards, cards[:7])
+    lb25 = _lb_2p5(cards)
+    out = exp_a.model_comparison_table(lb25, lb3, n_boot=NB)
+    assert set(out["comparison"]) == {"timesfm2p5_vs_timesfm3"}
+    assert set(out["comparison_label"]) == {exp_a.MODEL_COMPARISON_LABEL}
+    assert set(out["n_cards"]) == {8} and set(out["horizon"]) == {28, 56}
+    assert set(out["verdict"]) == {"descriptive (no verdict)"}
+
+
+def test_ffill_sensitivity_pairs_on_common_origins():
+    cards = [f"c{i}" for i in range(6)]
+    ratios = {c: 0.8 for c in cards}
+    prim3 = make_primary(cards, ratios, seed=0)
+    prim0 = prim3[prim3["origin_date"] >= pd.Timestamp("2025-02-01")].copy()
+    prim0["ae_model_scaled"] = prim0["ae_model_scaled"] * 0.5  # better than the 3-day run
+    out = exp_a.ffill_sensitivity_table({0: prim0}, prim3, n_boot=NB)
+    assert set(out["comparison"]) == {"ffill0_vs_naive", "ffill0_vs_ffill3"}
+    paired = out[(out["comparison"] == "ffill0_vs_ffill3") & (out["statistic"] == "median")]
+    assert (paired["estimate"] > 0.4).all() and set(paired["ffill_days"]) == {0}
+    assert (paired["n_rows"] > 0).all()
+    assert (paired["origin_overlap_fraction"] <= 1).all()
+    assert (paired["n_rows_primary_reference"] >= paired["n_rows"]).all()
+    assert exp_a.ffill_sensitivity_table({}, prim3, n_boot=NB).empty

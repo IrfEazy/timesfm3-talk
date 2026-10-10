@@ -136,3 +136,27 @@ def test_benchmark_config_rejects_primary_horizon_not_in_horizons():
         BenchmarkConfig(
             config_id="t", context_lengths=(64,), horizons=(1, 7), primary_horizons=(28,)
         )
+
+
+def test_ffill_days_defaults_to_none_and_loads(tmp_path):
+    assert load_benchmark_config(_write(tmp_path, _valid_payload())).ffill_days is None
+    cfg = load_benchmark_config(
+        _write(tmp_path, _valid_payload(ffill_days=0, modes=["univariate"]))
+    )
+    assert cfg.ffill_days == 0
+
+
+def test_negative_ffill_days_rejected():
+    with pytest.raises(ValueError, match="ffill_days"):
+        BenchmarkConfig(config_id="x", context_lengths=(8,), horizons=(1,), ffill_days=-1)
+
+
+def test_ffill_days_rejects_multivariate_modes():
+    with pytest.raises(ValueError, match="univariate-only"):
+        BenchmarkConfig(
+            config_id="x",
+            context_lengths=(8,),
+            horizons=(1,),
+            ffill_days=1,
+            modes=("univariate", "multivariate"),
+        )

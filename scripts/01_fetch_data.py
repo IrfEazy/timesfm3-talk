@@ -22,12 +22,17 @@ Usage:
     uv run scripts/01_fetch_data.py --as-of 2026-09-01 --mtg-start 2026-08-01  # quick check
     uv run scripts/01_fetch_data.py --as-of 2026-09-01 --skip-mtg             # market+CPI only
     uv run scripts/01_fetch_data.py --allow-live-end                         # dev only
+    uv run scripts/01_fetch_data.py --as-of 2026-09-04 \\
+        --cards showcase --cards configs/benchmark_pool_v2.csv
 """
 
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import datetime as dt
+import hashlib
+import json
 import sys
 from pathlib import Path
 
@@ -38,7 +43,14 @@ from tfm3lab import config, figdata, plots
 from tfm3lab.backtest import SeriesData
 from tfm3lab.data.macro import build_cpi_series
 from tfm3lab.data.market import build_market_series
-from tfm3lab.data.mtg import TCGCSV_ARCHIVE_START, PriceSelectionPolicy, build_card_series
+from tfm3lab.data.mtg import (
+    DEFAULT_CARDS,
+    TCGCSV_ARCHIVE_START,
+    CardSpec,
+    PriceSelectionPolicy,
+    build_card_series,
+    load_card_manifest,
+)
 from tfm3lab.manifest import build_fetch_manifest, write_manifest, write_run_manifest
 
 plots.apply_style()
@@ -46,12 +58,38 @@ plots.apply_style()
 
 def _series_list_to_frame(series_list: list[SeriesData]) -> pd.DataFrame:
     frames = [
-        pd.DataFrame(
-            {"date": s.dates, "value": s.values, "observed": s.observed, "series": s.name}
-        )
+        pd.DataFrame({"date": s.dates, "value": s.values, "observed": s.observed, "series": s.name})
         for s in series_list
     ]
     return pd.concat(frames, ignore_index=True)
+
+
+def resolve_card_sources(
+    sources: list[str] | None,
+) -> tuple[tuple[CardSpec, ...], list[dict]]:
+    """Union of the card sources ('showcase' = DEFAULT_CARDS, or a card
+    manifest CSV/JSON path), de-duplicated by label in first-seen order.
+    Returns (cards, source records with n_cards and sha256). Two different
+    specs under one label are an error (the cache keys series by label)."""
+    cards: dict[str, CardSpec] = {}
+    records = []
+    for src in sources or ["showcase"]:
+        if src == "showcase":
+            pool = DEFAULT_CARDS
+            digest = hashlib.sha256(
+                json.dumps([dataclasses.asdict(c) for c in DEFAULT_CARDS], sort_keys=True).encode()
+            ).hexdigest()
+        else:
+            pool = load_card_manifest(src)
+            digest = hashlib.sha256(Path(src).read_bytes()).hexdigest()
+        records.append({"source": src, "n_cards": len(pool), "sha256": digest})
+        for c in pool:
+            if c.label in cards and cards[c.label] != c:
+                raise SystemExit(
+                    f"error: card label {c.label!r} is defined differently by two --cards sources"
+                )
+            cards.setdefault(c.label, c)
+    return tuple(cards.values()), records
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -63,6 +101,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--mtg-start",
         default=None,
         help="override MTG start date (YYYY-MM-DD); default is the full TCGCSV history",
+    )
+    parser.add_argument(
+        "--cards",
+        action="append",
+        default=None,
+        metavar="SOURCE",
+        help="card source, repeatable: 'showcase' (default, the 7 DEFAULT_CARDS) or a card "
+        "manifest CSV path; the MTG cache is built for the union of all sources",
     )
     end_group = parser.add_mutually_exclusive_group()
     end_group.add_argument(
@@ -124,8 +170,10 @@ def main() -> None:
     if not args.skip_mtg:
         start = dt.date.fromisoformat(args.mtg_start) if args.mtg_start else TCGCSV_ARCHIVE_START
         print(f"Fetching MTG card prices from TCGCSV, {start} .. {as_of} (as_of)...")
+        cards, card_sources = resolve_card_sources(args.cards)
+        print(f"  {len(cards)} cards from sources {[r['source'] for r in card_sources]}")
         mtg_series, ingest_report = build_card_series(
-            start=start, end=as_of, price_policy=PriceSelectionPolicy.MARKET_THEN_MID
+            cards=cards, start=start, end=as_of, price_policy=PriceSelectionPolicy.MARKET_THEN_MID
         )
         mtg_df = _series_list_to_frame(mtg_series)
         mtg_df.to_parquet(config.CACHE_DIR / "mtg_prices.parquet", index=False)
@@ -151,6 +199,7 @@ def main() -> None:
                 orient="records"
             ),
         )
+        manifest_payload["card_sources"] = card_sources
         manifest_path = write_manifest(
             manifest_payload,
             config.RESULTS_DIR / "manifests" / f"fetch-{as_of.isoformat()}-{utc_ts}.json",

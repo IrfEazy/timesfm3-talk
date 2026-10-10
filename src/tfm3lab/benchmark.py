@@ -16,6 +16,7 @@ import pandas as pd
 import pyarrow as pa
 
 from . import config
+from .backtest import SeriesData
 from .benchmark_config import BenchmarkConfig
 from .windows import context_slice, valid_origins
 
@@ -37,6 +38,68 @@ BYTES_PER_ROW_ESTIMATE = 220
 # every grid horizon of this (mode, transform, make_positive, context) slice
 # goes into the small committed export.
 PRIMARY_CELL = {"mode": "univariate", "transform": "raw", "make_positive": True, "context_len": 512}
+
+
+def refill_series(series: SeriesData, ffill_days: int) -> tuple[SeriesData, np.ndarray]:
+    """Forward-fill sensitivity (prereg s2): non-observed points are set to
+    NaN, then re-filled forward from the last observed value with at most
+    `ffill_days` consecutive fills. Returns (series, gap_mask): `gap_mask` is
+    True where a NaN remains (a gap longer than the limit, or a leading gap).
+
+    Neither the model (forecast_batch) nor the baselines accept NaN, and
+    SeriesData forbids it, so the returned series keeps the cached value at
+    gap positions as an inert placeholder: `keep_origins_per_card`
+    drops, per card, every origin whose context window touches the mask, so a
+    placeholder never reaches a model or baseline. Targets keep their
+    `observed` flags, so metrics still use observed points only."""
+    vals = np.asarray(series.values, dtype=float).copy()
+    vals[~np.asarray(series.observed, dtype=bool)] = np.nan
+    # pandas rejects limit=0; zero fills means the NaNs simply stay
+    refilled = np.array(pd.Series(vals).ffill(limit=ffill_days)) if ffill_days > 0 else vals.copy()
+    gap = np.isnan(refilled)
+    refilled[gap] = np.asarray(series.values, dtype=float)[gap]
+    return SeriesData(series.name, refilled, series.dates, series.observed), gap
+
+
+def keep_origins_per_card(
+    origins: np.ndarray, gap_masks: Mapping[str, np.ndarray], context_len: int
+) -> dict[str, np.ndarray]:
+    """Per-card gap rule: card c keeps origin o iff c's widest context window
+    [o-context_len, o) holds no remaining gap in c's OWN series. Cards never
+    drop each other's origins. Returns {card: kept origins} (possibly empty).
+    Widest window => superset of every smaller context's window."""
+    out: dict[str, np.ndarray] = {}
+    for name, mask in gap_masks.items():
+        keep = np.array(
+            [not mask[max(int(o) - context_len, 0) : int(o)].any() for o in origins], dtype=bool
+        )
+        out[name] = origins[keep]
+    return out
+
+
+def gap_drop_summary(origins: np.ndarray, kept: Mapping[str, np.ndarray]) -> dict:
+    """Manifest/fingerprint summary of a per-card gap drop: per-card dropped
+    counts, per-card kept fraction, overall kept fraction, and the cards left
+    with zero origins (excluded from the run's summaries and export)."""
+    n = len(origins)
+    dropped = {c: int(n - len(k)) for c, k in kept.items()}
+    frac = {c: (len(k) / n if n else 0.0) for c, k in kept.items()}
+    total = n * len(kept)
+    return {
+        "n_candidate_origins": int(n),
+        "dropped_per_card": dropped,
+        "kept_fraction_per_card": frac,
+        "kept_fraction_overall": (sum(len(k) for k in kept.values()) / total if total else 0.0),
+        "excluded_cards": sorted(c for c, k in kept.items() if len(k) == 0),
+    }
+
+
+def filter_kept_rows(df: pd.DataFrame, kept: Mapping[str, np.ndarray]) -> pd.DataFrame:
+    """Keeps only rows whose (series, origin) pair is in the per-card kept
+    set; a card absent from `kept` or with no kept origins loses all rows."""
+    keep_pairs = {(c, int(o)) for c, k in kept.items() for o in k}
+    idx = pd.MultiIndex.from_arrays([df["series"].astype(str), df["origin"].astype("int64")])
+    return df[idx.isin(list(keep_pairs))]
 
 
 def common_origin_set(

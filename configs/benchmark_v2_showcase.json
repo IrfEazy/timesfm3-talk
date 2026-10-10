@@ -1,0 +1,39 @@
+{
+  "config_id": "preregistered_v2_showcase",
+  "description": "Showcase-only DESCRIPTIVE primary cell (Preregistration v2 s2): the 7 DEFAULT_CARDS, TimesFM-3, univariate, raw, make_positive true, context 512, stride 7. Not part of the pooled claim. Do not edit without a dated amendment.",
+  "context_lengths": [
+    512
+  ],
+  "horizons": [
+    1,
+    7,
+    28,
+    56,
+    64
+  ],
+  "primary_horizons": [
+    28,
+    56
+  ],
+  "origin_stride": 7,
+  "max_origins": null,
+  "cards": "showcase",
+  "transforms": [
+    "raw"
+  ],
+  "make_positive": [
+    true
+  ],
+  "modes": [
+    "univariate"
+  ],
+  "placebo_panel_size": 7,
+  "placebo_seed": 42,
+  "season_length": 7,
+  "baselines": [
+    "naive",
+    "seasonal_naive",
+    "drift",
+    "ets"
+  ]
+}

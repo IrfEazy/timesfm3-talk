@@ -89,6 +89,7 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pyarrow as pa
 
@@ -108,8 +109,12 @@ from tfm3lab.benchmark import (
     canonicalize_cell_frame,
     common_origin_set,
     dry_run_report,
+    filter_kept_rows,
+    gap_drop_summary,
     iter_ablation_combos,
+    keep_origins_per_card,
     primary_export_frame,
+    refill_series,
     select_placebo_panel,
 )
 from tfm3lab.benchmark_config import BenchmarkConfig, load_benchmark_config
@@ -134,6 +139,14 @@ _NON_SCIENTIFIC_CONFIG_FIELDS = ("description",)
 LEADERBOARD_NAME = "exp_mtg_benchmark_leaderboard"
 AGGREGATE_NAME = "exp_mtg_benchmark_leaderboard_aggregate"
 PRIMARY_NAME = "exp_mtg_benchmark_primary"
+CANONICAL_CONFIG_ID = "preregistered_v2"
+
+
+def output_name(base: str, config_id: str) -> str:
+    """Light-output file stem: the canonical config keeps the canonical
+    names; every other config gets '<base>__<config_id>' so configs never
+    overwrite each other."""
+    return base if config_id == CANONICAL_CONFIG_ID else f"{base}__{config_id}"
 
 
 def _resolve_card_pool(cfg: BenchmarkConfig, cards_override: str | None) -> tuple[CardSpec, ...]:
@@ -313,7 +326,7 @@ def _run_cell(forecaster, combo, combo_series, origins, cfg, use_sym, adapter) -
     )
 
 
-def summarize_store(store: cellstore.RunStore, cfg: BenchmarkConfig, mase_scales: dict):
+def summarize_store(store: cellstore.RunStore, cfg: BenchmarkConfig, mase_scales: dict, kept=None):
     """Leaderboard + aggregate computed by streaming over committed cells in
     sorted cell_id order. Every leaderboard group lies inside one cell (all
     cell dimensions are group columns), so per-cell summaries concatenated
@@ -323,6 +336,8 @@ def summarize_store(store: cellstore.RunStore, cfg: BenchmarkConfig, mase_scales
     parts = []
     for _cid, table in store.iter_committed():
         df = table.to_pandas()
+        if kept is not None:
+            df = filter_kept_rows(df, kept)
         # an all-NaN baseline column means "not computed in this cell": drop
         # it, as summarize_leaderboard skips absent baselines.
         present = tuple(c for c in baseline_cols if df[c].notna().any())
@@ -348,17 +363,27 @@ def summarize_store(store: cellstore.RunStore, cfg: BenchmarkConfig, mase_scales
 
 
 def export_primary(
-    store: cellstore.RunStore, combos, cfg: BenchmarkConfig, error_scales: dict[str, float]
+    store: cellstore.RunStore,
+    combos,
+    cfg: BenchmarkConfig,
+    error_scales: dict[str, float],
+    kept=None,
+    kept_fraction=None,
 ) -> pd.DataFrame | None:
     primary_ids = sorted(c.cell_id for c in combos if c.is_primary)
     committed = [cid for cid in primary_ids if cid in store.committed]
     if not committed:
         return None
-    frames = [
-        primary_export_frame(table.to_pandas(), cfg.baselines, error_scales)
-        for _cid, table in store.iter_committed(cell_ids=committed)
-    ]
-    return pd.concat(frames, ignore_index=True)
+    frames = []
+    for _cid, table in store.iter_committed(cell_ids=committed):
+        df = table.to_pandas()
+        if kept is not None:
+            df = filter_kept_rows(df, kept)
+        frames.append(primary_export_frame(df, cfg.baselines, error_scales))
+    out = pd.concat(frames, ignore_index=True)
+    if kept_fraction is not None:
+        out["ffill_card_kept_fraction"] = out["card"].map(kept_fraction).astype(float)
+    return out
 
 
 def _label(df: pd.DataFrame, cfg, run_id, n_committed, n_expected) -> pd.DataFrame:
@@ -459,11 +484,37 @@ def main(argv: list[str] | None = None) -> None:
         origin_stride=cfg.origin_stride,
         max_origins=cfg.max_origins,
     )
+    n_origins_before_gap_drop = len(origins)
+    gap_summary: dict | None = None
+    kept_per_card: dict[str, np.ndarray] | None = None
     if len(origins) == 0:
         raise RuntimeError(
             f"no valid origins: {n} days too short for context_lengths={cfg.context_lengths} "
             f"+ horizons={cfg.horizons}"
         )
+    if cfg.ffill_days is not None:
+        # The store keeps the full Cartesian (card x origin) grid; the per-card
+        # gap rule is applied when summarizing and exporting, so a card never
+        # loses origins because of another card's gaps.
+        refilled = [refill_series(s, cfg.ffill_days) for s in series_list]
+        series_list = [s for s, _ in refilled]
+        kept_per_card = keep_origins_per_card(
+            origins,
+            {s.name: m for s, (_, m) in zip(series_list, refilled, strict=True)},
+            max(cfg.context_lengths),
+        )
+        gap_summary = gap_drop_summary(origins, kept_per_card)
+        print(
+            f"  ffill_days={cfg.ffill_days}: kept {gap_summary['kept_fraction_overall']:.1%} of "
+            f"(card, origin) pairs; excluded cards (no origin left): "
+            f"{gap_summary['excluded_cards'] or 'none'}"
+        )
+        if len(gap_summary["excluded_cards"]) == len(kept_per_card):
+            raise RuntimeError(
+                f"no valid origins: ffill_days={cfg.ffill_days} left a gap in the context "
+                f"window of every candidate origin of every card ({n_origins_before_gap_drop} "
+                "candidates per card)"
+            )
 
     combos = iter_ablation_combos(cfg, card_pool_size=len(cards))
     placebo_series: list[SeriesData] = []
@@ -492,6 +543,8 @@ def main(argv: list[str] | None = None) -> None:
     resolved_config = {
         k: v for k, v in dataclasses.asdict(cfg).items() if k not in _NON_SCIENTIFIC_CONFIG_FIELDS
     }
+    if cfg.ffill_days is None:  # keep pre-existing fingerprints unchanged
+        resolved_config.pop("ffill_days", None)
     payload = cellstore.build_fingerprint_payload(
         resolved_config=resolved_config,
         git_sha=git["sha"],
@@ -510,13 +563,15 @@ def main(argv: list[str] | None = None) -> None:
             "n_days": n,
             "origins_sha256": cellstore.sha256_text(cellstore.canonical_json(origin_list)),
             "cell_ids": [c.cell_id for c in combos],
+            **({"ffill_gap_drop": gap_summary} if gap_summary is not None else {}),
         },
     )
     fingerprint = cellstore.fingerprint_of(payload)
 
-    if args.summary_only and not (
-        config.RESULTS_DIR / "benchmark" / cfg.config_id / fingerprint[:12]
-    ).is_dir():
+    if (
+        args.summary_only
+        and not (config.RESULTS_DIR / "benchmark" / cfg.config_id / fingerprint[:12]).is_dir()
+    ):
         raise SystemExit(
             f"error: --summary-only: no run directory for execution fingerprint "
             f"{fingerprint[:12]} under {config.RESULTS_DIR / 'benchmark' / cfg.config_id}"
@@ -574,19 +629,30 @@ def main(argv: list[str] | None = None) -> None:
         )
 
     mase_scales = compute_mase_scales(series_list, boundary_index=int(origins.min()))
-    leaderboard, aggregate, stride_passed = summarize_store(store, cfg, mase_scales)
+    leaderboard, aggregate, stride_passed = summarize_store(store, cfg, mase_scales, kept_per_card)
     outputs = [
         _write_light(
-            _label(leaderboard, cfg, run_id, n_committed, n_expected), LEADERBOARD_NAME, partial
+            _label(leaderboard, cfg, run_id, n_committed, n_expected),
+            output_name(LEADERBOARD_NAME, cfg.config_id),
+            partial,
         ),
         _write_light(
-            _label(aggregate, cfg, run_id, n_committed, n_expected), AGGREGATE_NAME, partial
+            _label(aggregate, cfg, run_id, n_committed, n_expected),
+            output_name(AGGREGATE_NAME, cfg.config_id),
+            partial,
         ),
     ]
     error_scales = {s.name: series_error_scale(s)[0] for s in series_list}
-    primary = export_primary(store, combos, cfg, error_scales)
+    primary = export_primary(
+        store,
+        combos,
+        cfg,
+        error_scales,
+        kept_per_card,
+        gap_summary["kept_fraction_per_card"] if gap_summary else None,
+    )
     if primary is not None:
-        outputs.append(_write_light(primary, PRIMARY_NAME, partial))
+        outputs.append(_write_light(primary, output_name(PRIMARY_NAME, cfg.config_id), partial))
     else:
         print("NOTE: no primary cell (univariate/raw/make_positive/context 512) in this grid")
 
@@ -619,6 +685,8 @@ def main(argv: list[str] | None = None) -> None:
             "season_length": cfg.season_length,
             "n_combos": len(combos),
             "n_origins": len(origins),
+            "ffill_days": cfg.ffill_days,
+            "ffill_gap_drop": gap_summary,
         },
         "baselines": list(cfg.baselines),
         "use_symmetric_averaging": use_symmetric_averaging,
