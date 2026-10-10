@@ -57,8 +57,13 @@ SIGNIFICANCE_FAMILY = ("mode", "transform", "make_positive", "context_len", "bas
 # --- verdict ----------------------------------------------------------------
 
 
+RULE_VERSION = "strict-2026-10-10"
+ORIGINAL_RULE_VERSION = "original-v2"
+
+
 def verdict_from_cis(cis: dict[str, tuple[float, float]]) -> str:
-    """Preregistered rule on the PRIMARY (cluster) CIs of the decision
+    """ORIGINAL preregistered rule (kept as a labelled sensitivity,
+    `verdict_original_rule`) on the PRIMARY (cluster) CIs of the decision
     statistics: 'beats naive' iff every interval lies entirely above 0,
     'loses to naive' iff every one lies entirely below 0, else
     'inconclusive'. A NaN bound is never entirely on either side."""
@@ -67,6 +72,23 @@ def verdict_from_cis(cis: dict[str, tuple[float, float]]) -> str:
     if all(np.isfinite(lo) and lo > 0 for lo in lows):
         return BEATS
     if all(np.isfinite(hi) and hi < 0 for hi in highs):
+        return LOSES
+    return INCONCLUSIVE
+
+
+def verdict_strict(
+    primary: dict[str, tuple[float, float]], calendar: dict[str, tuple[float, float]]
+) -> str:
+    """Rule adopted 2026-10-10 (human decision, before any v2 result): 'beats
+    naive' iff the primary cluster CI AND the calendar-block CI, for BOTH
+    median and n-weighted mean skill (four intervals), all lie entirely above
+    0; 'loses to naive' iff all four lie entirely below 0; else
+    'inconclusive'. Strict at 0; a NaN bound in any interval is never entirely
+    on either side."""
+    cis = [ci for d in (primary, calendar) for s in DECISION_STATISTICS for ci in (d[s],)]
+    if all(np.isfinite(lo) and lo > 0 for lo, _ in cis):
+        return BEATS
+    if all(np.isfinite(hi) and hi < 0 for _, hi in cis):
         return LOSES
     return INCONCLUSIVE
 
@@ -201,7 +223,8 @@ def headline_table(
     pooled skill is a labelled secondary. The verdict (decided on the two
     primary CIs only) is repeated on every row of its (subset, horizon).
     Showcase-only rows carry no verdict but a `descriptive_direction` from the
-    same rule, used for the disagreement flag. `pool_cards` (labels in the
+    same (strict) rule, used for the disagreement flag; `verdict_original_rule`
+    keeps the original primary-CI-only rule as a labelled sensitivity. `pool_cards` (labels in the
     pool CSV) adds n_pool_csv / n_cards_in_export / n_pool_cards_missing."""
     check_single_cell(primary)
     cov = pool_coverage(primary, pool_cards)
@@ -226,7 +249,15 @@ def headline_table(
                 "n_pool_cards_missing": len(cov["missing"]),
             }
             if n_cards == 0:
-                out.append({**base, "statistic": "none", "verdict": "no data"})
+                out.append(
+                    {
+                        **base,
+                        "statistic": "none",
+                        "verdict": "no data",
+                        "verdict_original_rule": "no data",
+                        "rule_version": RULE_VERSION,
+                    }
+                )
                 continue
             m = cell["ae_model_scaled"].to_numpy(float)
             b = cell[b_col].to_numpy(float)
@@ -235,10 +266,13 @@ def headline_table(
             cal = bootstrap.calendar_block_bootstrap(
                 m, b, ids, cell["origin_date"].to_numpy(), int(h), n_boot=n_boot, seed=seed
             )
-            direction = verdict_from_cis(
-                {s: (prim[s].ci_low, prim[s].ci_high) for s in DECISION_STATISTICS}
-            )
-            verdict = "descriptive (no verdict)" if subset == "showcase_only" else direction
+            prim_cis = {s: (prim[s].ci_low, prim[s].ci_high) for s in DECISION_STATISTICS}
+            cal_cis = {s: (cal[s].ci_low, cal[s].ci_high) for s in DECISION_STATISTICS}
+            direction = verdict_strict(prim_cis, cal_cis)
+            direction_original = verdict_from_cis(prim_cis)
+            descriptive = subset == "showcase_only"
+            verdict = "descriptive (no verdict)" if descriptive else direction
+            verdict_original = "descriptive (no verdict)" if descriptive else direction_original
             for stat in bootstrap.SKILL_STATISTICS:
                 p, c = prim[stat], cal[stat]
                 row = {
@@ -256,7 +290,12 @@ def headline_table(
                     "cal_n_invalid_replicates": c.n_invalid,
                     "cal_n_excluded_card_reps": c.n_excluded_card_reps,
                     "verdict": verdict,
-                    "descriptive_direction": direction if subset == "showcase_only" else None,
+                    "verdict_original_rule": verdict_original,
+                    "rule_version": RULE_VERSION,
+                    "descriptive_direction": direction if descriptive else None,
+                    "descriptive_direction_original_rule": (
+                        direction_original if descriptive else None
+                    ),
                     "secondary_label": "secondary, not a decision input"
                     if stat == "pooled"
                     else "",
@@ -264,8 +303,9 @@ def headline_table(
                 row.update(selfcheck_coverage(selfcheck, stat, n_cards))
                 out.append(row)
     df = pd.DataFrame(out)
-    if "descriptive_direction" not in df.columns:
-        df["descriptive_direction"] = None
+    for col in ("descriptive_direction", "descriptive_direction_original_rule"):
+        if col not in df.columns:
+            df[col] = None
     return flag_disagreements(df)
 
 
@@ -322,7 +362,10 @@ def replace_showcase_rows(
                 "baseline": baseline,
                 "statistic": "none",
                 "verdict": NOT_RUN,
+                "verdict_original_rule": NOT_RUN,
+                "rule_version": RULE_VERSION,
                 "descriptive_direction": NOT_RUN,
+                "descriptive_direction_original_rule": NOT_RUN,
                 "n_cards": 0,
                 "n_rows": 0,
             }
@@ -337,17 +380,23 @@ def replace_showcase_rows(
         )  # fmt: skip
         new = full[full["subset"] == "pool"].copy()
         direction = new["verdict"]
+        direction_original = new["verdict_original_rule"]
         new["subset"] = "showcase_only"
         new["subset_role"] = SUBSET_ROLE["showcase_only"]
         new["descriptive_direction"] = direction
+        new["descriptive_direction_original_rule"] = direction_original
         new["verdict"] = "descriptive (no verdict)"
+        new["verdict_original_rule"] = "descriptive (no verdict)"
         new = new.drop(
             columns=["pool_verdict", "verdict_disagrees_with_pool", "primary_vs_calendar_disagree"],
             errors="ignore",
         )
-        new.loc[new["descriptive_direction"] == "no data", "verdict"] = "no data"
-    if "descriptive_direction" not in keep.columns:
-        keep = keep.assign(descriptive_direction=None)
+        no_data = new["descriptive_direction"] == "no data"
+        new.loc[no_data, "verdict"] = "no data"
+        new.loc[no_data, "verdict_original_rule"] = "no data"
+    for col in ("descriptive_direction", "descriptive_direction_original_rule"):
+        if col not in keep.columns:
+            keep = keep.assign(**{col: None})
     return flag_disagreements(pd.concat([keep, new], ignore_index=True))
 
 

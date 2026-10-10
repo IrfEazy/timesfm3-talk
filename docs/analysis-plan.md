@@ -204,6 +204,18 @@ By rule, frozen and committed before any model run.
 
 Experiment B's primary forecaster mode is univariate, so that TimesFM-3, the naive and ETS baselines and TimesFM-2.5 (univariate only) are directly comparable. The multivariate mode is a sensitivity analysis. Nothing else in section 3 changes.
 
+## Amendment of 2026-10-10 (human decision, before any v2 result was seen)
+
+Decision rule for Experiment A, replacing the rule in section 2 ("Decision rule"). At each primary h separately, versus naive:
+
+- BEATS NAIVE iff the 95% primary whole-card cluster CI AND the 95% calendar-block CI, for BOTH median skill and n-weighted mean skill (four intervals), all lie entirely above 0.
+- LOSES TO NAIVE iff all four lie entirely below 0.
+- Otherwise INCONCLUSIVE. Comparison is strict at 0 (an interval touching 0, or with a NaN bound, is not entirely on one side).
+- Reason: the synthetic stress scenario showed the primary CI under-covers under strong common shocks (see docs/inference-selfcheck.md); requiring the calendar-block CI to agree guards against that.
+- Timing: the Kaggle full run had started but no output had been downloaded or inspected when the rule was adopted. The rule can only make claims harder to reach, never easier.
+- The original rule's verdict (primary CI only, both statistics) is still reported as a labelled sensitivity (`verdict_original_rule`). Showcase-only rows stay descriptive; their `descriptive_direction` uses the new rule. All thresholds, horizons and other settings are unchanged. Manifests record `rule_version` (`strict-2026-10-10`).
+- This supersedes the "Recommendation pending a human decision" bullet of amendment B, which the human adopted ("yes, use the stricter verdict rule").
+
 ## Amendments of 2026-10-10 (before any v2 model run)
 
 All items are dated 2026-10-10 and were made before any v2 model run; no v2 model output exists.

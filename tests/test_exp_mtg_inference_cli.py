@@ -70,6 +70,10 @@ def test_end_to_end_writes_outputs_and_manifest(script, inputs, tmp_path, capsys
     assert man["pool_cards_missing_from_export"] == []
     assert set(man["inputs"]) == {"primary", "leaderboard", "pool", "selfcheck"}
     assert "pool h=28 beats naive" in capsys.readouterr().out
+    assert man["rule_version"] == "strict-2026-10-10"
+    assert "pool h=28 beats naive" in man["verdicts_original_rule"]
+    verdict = pd.read_parquet(out / "exp_mtg_v2_verdict.parquet")
+    assert {"verdict_original_rule", "rule_version"} <= set(verdict.columns)
 
 
 @pytest.mark.parametrize(

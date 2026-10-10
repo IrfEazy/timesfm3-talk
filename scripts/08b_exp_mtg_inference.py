@@ -2,7 +2,8 @@
 # scripts/08b_exp_mtg_inference.py
 """Experiment A inference (Preregistration v2 sections 1-2), offline.
 
-Reads the committed 02b outputs and writes the preregistered verdicts:
+Reads the committed 02b outputs and writes the preregistered verdicts (strict rule of
+the 2026-10-10 amendment in `verdict`; original rule in `verdict_original_rule`):
 
     uv run scripts/08b_exp_mtg_inference.py --as-of 2026-09-04
 
@@ -216,6 +217,9 @@ def main(argv: list[str] | None = None) -> int:
 
     first = verdict.drop_duplicates(["subset", "horizon"])
     lines = [f"{r.subset} h={r.horizon} {r.verdict}" for r in first.itertuples(index=False)]
+    lines_original = [
+        f"{r.subset} h={r.horizon} {r.verdict_original_rule}" for r in first.itertuples(index=False)
+    ]
     payload = {
         "script": SCRIPT_NAME,
         "inputs": {k: {"path": str(v), "sha256": _sha256(v)} for k, v in inputs.items()},
@@ -238,7 +242,14 @@ def main(argv: list[str] | None = None) -> int:
         "n_cards_in_export": coverage["n_cards_in_export"],
         "pool_cards_missing_from_export": coverage["missing"],
         "selfcheck_acceptance_failed": exp_a.selfcheck_acceptance_failed(selfcheck),
+        "rule_version": exp_a.RULE_VERSION,
+        "rule_description": (
+            "beats/loses iff primary cluster CI and calendar-block CI, for both median and "
+            "n-weighted mean skill, all lie entirely above/below 0; else inconclusive"
+        ),
+        "original_rule_version": exp_a.ORIGINAL_RULE_VERSION,
         "verdicts": lines,
+        "verdicts_original_rule": lines_original,
     }
     manifest_path = args.manifest_dir / f"exp-mtg-v2-inference-{as_of.isoformat()}.json"
     manifest.write_manifest(payload, manifest_path, as_of=as_of, live_end=live_end, seed=args.seed)

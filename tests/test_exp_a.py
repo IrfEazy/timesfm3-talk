@@ -94,6 +94,62 @@ def test_verdict_rule_branches():
     )
 
 
+def _cis(med, wm):
+    return {"median": med, "weighted_mean": wm}
+
+
+UP = (0.1, 0.2)
+DOWN = (-0.3, -0.1)
+
+
+def test_strict_verdict_all_branches():
+    strict = exp_a.verdict_strict
+    assert strict(_cis(UP, UP), _cis((0.05, 0.3), UP)) == exp_a.BEATS
+    assert strict(_cis(DOWN, DOWN), _cis(DOWN, (-0.2, -0.01))) == exp_a.LOSES
+    # one of the four intervals contains 0 in the interior
+    assert strict(_cis(UP, UP), _cis(UP, (-0.1, 0.3))) == exp_a.INCONCLUSIVE
+    assert strict(_cis(DOWN, DOWN), _cis((-0.2, 0.1), DOWN)) == exp_a.INCONCLUSIVE
+    # touching 0 is not entirely on one side
+    assert strict(_cis(UP, UP), _cis(UP, (0.0, 0.3))) == exp_a.INCONCLUSIVE
+    assert strict(_cis(DOWN, DOWN), _cis(DOWN, (-0.3, 0.0))) == exp_a.INCONCLUSIVE
+    # NaN in any of the four
+    for slot in range(4):
+        cis = [UP, UP, UP, UP]
+        cis[slot] = (np.nan, np.nan)
+        assert strict(_cis(cis[0], cis[1]), _cis(cis[2], cis[3])) == exp_a.INCONCLUSIVE, slot
+    # primary and calendar disagreeing in sign or significance
+    assert strict(_cis(UP, UP), _cis(DOWN, DOWN)) == exp_a.INCONCLUSIVE
+    assert strict(_cis(UP, UP), _cis((-0.1, 0.2), UP)) == exp_a.INCONCLUSIVE
+    # the original rule only looks at the primary CIs
+    assert exp_a.verdict_from_cis(_cis(UP, UP)) == exp_a.BEATS
+
+
+def test_headline_original_rule_column_and_rule_version(monkeypatch):
+    df = headline({c: 0.6 for c in CARDS})
+    assert (df["rule_version"] == exp_a.RULE_VERSION).all()
+    assert (df["verdict_original_rule"] == df["verdict"]).all()  # rules agree here
+    real = exp_a.bootstrap.calendar_block_bootstrap
+
+    def widened(*a, **k):
+        out = real(*a, **k)
+        return {
+            s: type(ci)(**{**ci.__dict__, "ci_low": -0.5, "ci_high": 0.5}) for s, ci in out.items()
+        }
+
+    monkeypatch.setattr(exp_a.bootstrap, "calendar_block_bootstrap", widened)
+    df = headline({c: 0.6 for c in CARDS}, showcase={"c0", "c1", "c2"})
+    pool = df[df["subset"] == "pool"]
+    assert set(pool["verdict"]) == {exp_a.INCONCLUSIVE}
+    assert set(pool["verdict_original_rule"]) == {exp_a.BEATS}
+    assert pool["primary_vs_calendar_disagree"].any()
+    sc = df[df["subset"] == "showcase_only"]
+    assert (sc["descriptive_direction"] == exp_a.INCONCLUSIVE).all()
+    assert (sc["descriptive_direction_original_rule"] == exp_a.BEATS).all()
+    assert set(sc["verdict_original_rule"]) == {"descriptive (no verdict)"}
+    # the disagreement flag follows the new rule: showcase inconclusive == pool inconclusive
+    assert not df["verdict_disagrees_with_pool"].any()
+
+
 def test_headline_beats_loses_inconclusive():
     assert set(verdicts(headline({c: 0.6 for c in CARDS})).values()) == {exp_a.BEATS}
     assert set(verdicts(headline({c: 1.6 for c in CARDS})).values()) == {exp_a.LOSES}
