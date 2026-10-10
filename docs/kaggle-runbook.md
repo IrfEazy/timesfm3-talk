@@ -132,6 +132,18 @@ plan from rules of thumb: run the probe on the GPU you select and read its
 projection. If the quota is tight, switch accelerators only between sessions,
 because a different GPU means a different projection.
 
+## Model settings
+
+TimesFM-2.5 is compiled with its README-recommended `ForecastConfig`:
+`normalize_inputs=True`, `use_continuous_quantile_head=True`,
+`force_flip_invariance=True`, `infer_is_positive=True`,
+`fix_quantile_crossing=True`, plus `max_context=512`, `max_horizon=64` and
+`per_core_batch_size=128` (one device batch for up to 128 series; TimesFM-3
+keeps `load_forecaster`'s default of 16). These differ from TimesFM-3's
+settings, so 2.5 vs 3 is a model-as-recommended comparison, not like-for-like.
+Flip invariance runs every series twice, so 2.5 latency numbers include about
+2x compute.
+
 ## Parameters (first code cell)
 
 | Name | Meaning |
@@ -181,7 +193,7 @@ probe): `probe`, `02b_preregistered_v2`, `02b_timesfm2p5`, `02b_showcase`,
    manifest.
 5. Preflight: GPU name, CUDA, token, gated access to both checkpoints, the
    resolved checkpoint commit shas, free disk and RAM.
-6. Runs each step in its own cell through `uv run`. Exit status and elapsed
+6. Runs each step in its own cell through `uv run --no-sync` (never re-resolves the environment built by `uv sync --extra cuda --frozen`; the torch version is printed once after the sync and recorded in the preflight). Exit status and elapsed
    time go into a status table (`results/run_status.json`, per-step logs in
    `results/logs/`). A failing step does not block later steps.
 7. Packs the archives.

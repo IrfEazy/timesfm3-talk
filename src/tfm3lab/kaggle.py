@@ -119,8 +119,10 @@ def uv_argv(*args: str) -> list[str]:
 def step_argv(
     step: Step, as_of: str, *, allow_cpu: bool = False, extra: Sequence[str] = ()
 ) -> list[str]:
-    """The exact `uv run ...` command line for a step."""
-    argv = uv_argv("run", step.script, *step.args, "--as-of", as_of, *extra)
+    """The exact `uv run --no-sync ...` command line for a step. --no-sync keeps
+    the environment built by `uv sync --extra cuda --frozen` (a bare `uv run`
+    re-resolves and replaced the locked cu124 torch with cu130 on Kaggle)."""
+    argv = uv_argv("run", "--no-sync", step.script, *step.args, "--as-of", as_of, *extra)
     if allow_cpu:
         argv.append("--allow-cpu")
     return argv
@@ -712,8 +714,27 @@ def per_forecast_seconds(measurements: Sequence[dict], adapter: str, context: in
         if c not in by_ctx or b > by_ctx[c][0]:
             by_ctx[c] = (b, float(m["median_s"]) / b)
     if not by_ctx:
-        raise ValueError(f"no usable measurement for adapter {adapter!r}")
+        msgs = [
+            str(m["message"]) for m in measurements
+            if m.get("adapter") == adapter and m.get("message")
+        ]
+        why = f": {msgs[0]}" if msgs else ""
+        raise ValueError(f"no usable measurement for adapter {adapter!r}{why}")
     return _interp({c: by_ctx[c][1] for c in by_ctx}, context)
+
+
+def _not_projected(work: StepWork, load_seconds: dict[str, float], exc: Exception) -> dict:
+    return {
+        "step_id": work.step_id,
+        "adapter": work.adapter,
+        "n_forecasts": 0,
+        "compute_s": 0.0,
+        "load_s": float(load_seconds.get(work.adapter, 0.0)),
+        "projected_s": 0.0,
+        "basis": f"not projected (adapter failed: {exc})",
+        "note": work.note,
+        "projected": False,
+    }
 
 
 def project_step(
@@ -723,12 +744,18 @@ def project_step(
     bases: set[str] = set()
     n_fc = 0
     for context, n in work.items:
-        spf, basis = per_forecast_seconds(measurements, work.adapter, context)
+        try:
+            spf, basis = per_forecast_seconds(measurements, work.adapter, context)
+        except ValueError as exc:
+            return _not_projected(work, load_seconds, exc)
         total += spf * n
         n_fc += n
         bases.add(basis)
     for context, batch, calls in work.cells:
-        sec, basis = per_call_seconds(measurements, work.adapter, context, batch)
+        try:
+            sec, basis = per_call_seconds(measurements, work.adapter, context, batch)
+        except ValueError as exc:
+            return _not_projected(work, load_seconds, exc)
         total += sec * calls
         n_fc += batch * calls
         bases.add(basis)

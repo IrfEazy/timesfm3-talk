@@ -193,3 +193,29 @@ def test_gather_work_for_shock_and_latency_is_offline(probe):
     by = {w.step_id: w for w in works}
     assert by["03_timesfm3"].items[0][1] > by["03_timesfm2p5"].items[0][1] > 0  # panel only for 3
     assert len(by["09_latency_timesfm3"].cells) == 16  # 4 batches x 2 contexts x 2 horizons
+
+
+def test_failed_adapter_is_not_projected_instead_of_crashing():
+    ok = [{"adapter": "timesfm3", "context": 128, "horizon": 64, "batch": 1,
+           "status": "ok", "median_s": 0.1}]
+    bad = [{"adapter": "timesfm2.5", "context": 128, "horizon": 64, "batch": 1,
+            "status": "error", "message": "RuntimeError: Model is not compiled"}]
+    works = [
+        kg.StepWork("a", "timesfm3", ((128, 10),)),
+        kg.StepWork("b", "timesfm2.5", ((128, 10),)),
+        kg.StepWork("c", "timesfm2.5", (), cells=((128, 1, 3),)),
+    ]
+    rows = kg.project_plan(works, ok + bad, {}, 1.0)
+    assert rows[0]["projected_s"] > 0
+    for r in rows[1:]:
+        assert r["basis"].startswith("not projected (adapter failed:")
+        assert "not compiled" in r["basis"]
+        assert r["projected_s"] == 0.0
+    assert "not projected" in kg.format_plan(rows)
+
+
+def test_exit_code_nonzero_only_if_no_adapter_measured(probe):
+    ok = {"adapter": "timesfm3", "status": "ok"}
+    bad = {"adapter": "timesfm2.5", "status": "error"}
+    assert probe.adapters_measured([ok, bad], ["timesfm2.5", "timesfm3"]) == 0
+    assert probe.adapters_measured([bad], ["timesfm2.5"]) == 1

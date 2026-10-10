@@ -113,8 +113,8 @@ def test_step_argv_parses_with_the_scripts_own_parser(step):
     assert script.is_file()
     module = _load_script(script.name)
     argv = kg.step_argv(step, "2026-09-04")
-    assert argv[:5] == [sys.executable, "-m", "uv", "run", step.script]
-    args = module.build_parser().parse_args(argv[5:])
+    assert argv[:6] == [sys.executable, "-m", "uv", "run", "--no-sync", step.script]
+    args = module.build_parser().parse_args(argv[6:])
     assert str(args.as_of) == "2026-09-04"
     if "--config" in step.args:
         cfg = ROOT / step.args[step.args.index("--config") + 1]
@@ -123,7 +123,7 @@ def test_step_argv_parses_with_the_scripts_own_parser(step):
     if "--adapter" in step.args:
         assert args.adapter == "timesfm2.5"
         assert step.adapter == "timesfm2.5"
-    assert module.build_parser().parse_args([*argv[5:], "--allow-cpu"]).allow_cpu is True
+    assert module.build_parser().parse_args([*argv[6:], "--allow-cpu"]).allow_cpu is True
 
 
 def test_probe_extra_args_parse():
@@ -370,7 +370,7 @@ def _session(tmp_path, monkeypatch, codes, experiments=kg.DEFAULT_EXPERIMENTS, r
 
     def fake_run(argv, *, cwd, log_path, env=None, echo=None):
         calls.append(argv)
-        key = argv[4].split("/")[-1] + " ".join(argv[5:6])
+        key = argv[5].split("/")[-1] + " ".join(argv[6:7])
         return codes.get(key, codes.get("default", 0)), 60.0
 
     monkeypatch.setattr(kg, "run_command", fake_run)
@@ -403,7 +403,7 @@ def test_session_skips_unselected_and_completed_steps(tmp_path, monkeypatch):
     s2, calls2 = _session(tmp_path, monkeypatch, {}, experiments=["03_timesfm3", "probe"])
     s2.run("03_timesfm3")  # restored as ok -> skipped under RESUME
     s2.run("probe")  # the probe always re-runs
-    assert [c[4] for c in calls2] == ["scripts/00b_runtime_probe.py"]
+    assert [c[5] for c in calls2] == ["scripts/00b_runtime_probe.py"]
     s3, calls3 = _session(tmp_path, monkeypatch, {}, experiments=["03_timesfm3"], resume=False)
     s3.run("03_timesfm3")
     assert len(calls3) == 1
@@ -426,3 +426,13 @@ def test_run_command_streams_and_reports_exit(tmp_path):
 def test_validate_experiments_rejects_unknown():
     with pytest.raises(ValueError, match="unknown"):
         kg.validate_experiments(["probe", "nope"])
+
+
+def test_no_step_or_notebook_command_can_re_resolve_the_environment():
+    for step in kg.STEPS:
+        argv = kg.step_argv(step, "2026-09-04")
+        assert argv[3:5] == ["run", "--no-sync"]
+    nb = (ROOT / "notebooks" / "run_on_kaggle.ipynb").read_text(encoding="utf-8")
+    assert 'uv_argv(\\"run\\", \\"--no-sync\\"' in nb
+    assert 'uv_argv(\\"run\\", \\"python\\"' not in nb
+    assert "torch.__version__" in nb

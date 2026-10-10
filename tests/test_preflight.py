@@ -121,3 +121,13 @@ def test_run_environment_without_torch(monkeypatch):
     assert env["gpu_name"] == "cpu"
     assert env["torch_version"] is None
     assert env["device_count"] == 0
+
+
+def test_pinned_checkpoint_revisions():
+    import importlib
+
+    from tfm3lab import config
+
+    importlib.reload(config)
+    assert config.CHECKPOINT_REVISION == "43046b85ec22d584a13f8098c2ed39c889e129c2"
+    assert config.CHECKPOINT_REVISION_2P5 == "1d952420fba87f3c6dee4f240de0f1a0fbc790e3"

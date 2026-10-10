@@ -204,7 +204,16 @@ def to_frame(measurements: list[dict], plan: list[dict], load_s: dict) -> pd.Dat
     return pd.DataFrame(rows)
 
 
-def main() -> None:
+def adapters_measured(measurements: list[dict], adapters: list[str]) -> int:
+    """Exit code: 0 if at least one adapter has an ok measurement, else 1."""
+    ok = {m["adapter"] for m in measurements if m.get("status", "ok") == "ok"}
+    failed = [a for a in adapters if a not in ok]
+    if failed:
+        print(f"warning: no usable measurement for {failed}; their steps are not projected")
+    return 0 if ok else 1
+
+
+def main() -> int:
     args = build_parser().parse_args()
     missing = grid_contexts_missing(args.points)
     if missing:
@@ -234,7 +243,15 @@ def main() -> None:
         checkpoints[adapter] = preflight_model(repo, rev, allow_cpu=args.allow_cpu)
         print(f"[{adapter}] {repo}@{checkpoints[adapter]['revision_resolved']}")
         t0 = time.perf_counter()
-        forecaster = _load_forecaster(adapter, checkpoints[adapter])
+        try:
+            forecaster = _load_forecaster(adapter, checkpoints[adapter])
+        except Exception as exc:  # noqa: BLE001 - one adapter failing must not end the probe
+            print(f"[{adapter}] load failed: {type(exc).__name__}: {exc}")
+            measurements.append({
+                "adapter": adapter, "status": "error",
+                "message": f"load failed: {type(exc).__name__}: {exc}",
+            })
+            continue
         sync()
         load_s[adapter] = time.perf_counter() - t0
         print(f"[{adapter}] model load {load_s[adapter]:.1f} s")
@@ -271,7 +288,8 @@ def main() -> None:
         },
     )
     print(f"Wrote {out}; manifest {manifest}")
+    return adapters_measured(measurements, adapters)
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

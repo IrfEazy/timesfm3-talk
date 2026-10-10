@@ -63,16 +63,18 @@ PRETRAIN_CUTOFF = date(2023, 11, 30)
 # see README.md.
 CHECKPOINT_ID = "google/timesfm-3.0-pytorch"
 
-# Checkpoint commit pin (Preregistration v2 s7). None = "latest on the hub",
-# which is NOT reproducible; it is pinned to the resolved commit sha (from the
-# first Kaggle run's manifest) after that run. Override without editing code via
-# the TFM3LAB_CHECKPOINT_REVISION / TFM3LAB_CHECKPOINT_REVISION_2P5 env vars.
-CHECKPOINT_REVISION: str | None = os.environ.get("TFM3LAB_CHECKPOINT_REVISION") or None
+# Checkpoint commit pins (Preregistration v2 s7). Both shas were resolved by the
+# Kaggle preflight on 2026-10-10 (run irfancela/tfm3lab-v2-run v4). Override
+# without editing code via the TFM3LAB_CHECKPOINT_REVISION /
+# TFM3LAB_CHECKPOINT_REVISION_2P5 env vars.
+CHECKPOINT_REVISION: str | None = (
+    os.environ.get("TFM3LAB_CHECKPOINT_REVISION") or "43046b85ec22d584a13f8098c2ed39c889e129c2"
+)
 
 # TimesFM-2.5 comparison checkpoint (same pinning policy as above).
 CHECKPOINT_ID_2P5 = "google/timesfm-2.5-200m-pytorch"
 CHECKPOINT_REVISION_2P5: str | None = (
-    os.environ.get("TFM3LAB_CHECKPOINT_REVISION_2P5") or None
+    os.environ.get("TFM3LAB_CHECKPOINT_REVISION_2P5") or "1d952420fba87f3c6dee4f240de0f1a0fbc790e3"
 )
 
 # From timesfm3._ModelConfig / TimesFM3Forecaster.global_context: the true
