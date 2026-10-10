@@ -82,8 +82,9 @@ def _fake_ingest(captured):
     from tfm3lab.backtest import SeriesData
     from tfm3lab.data.mtg import IngestReport
 
-    def fake(cards, start, end, price_policy):
+    def fake(cards, start, end, price_policy, cached_only=False):
         captured["cards"] = tuple(cards)
+        captured["cached_only"] = cached_only
         dates = pd.date_range("2026-08-01", periods=5).to_numpy()
         series = [SeriesData(c.label, np.ones(5), dates, np.ones(5, dtype=bool)) for c in cards]
         report = IngestReport(
@@ -91,6 +92,9 @@ def _fake_ingest(captured):
             archive_hashes={},
             price_field_counts={},
             subtype_counts={},
+            missing_dates=["2026-08-03"] if cached_only else [],
+            cached_archives_only=cached_only,
+            catalog={"dir": "catalog-x", "sha256": "0" * 64} if cached_only else None,
         )
         return series, report
 
@@ -185,3 +189,38 @@ def _frame_stub(fetch01):
         return original(series_list)
 
     return stub
+
+
+def test_cached_archives_only_flag_parses(fetch01):
+    parser = fetch01.build_parser()
+    assert parser.parse_args(["--as-of", "2026-09-04"]).cached_archives_only is False
+    args = parser.parse_args(["--as-of", "2026-09-04", "--cached-archives-only"])
+    assert args.cached_archives_only is True
+
+
+def test_main_cached_archives_only_records_manifest(fetch01, tmp_path, monkeypatch):
+    captured = {}
+    monkeypatch.setattr(fetch01, "build_card_series", _fake_ingest(captured))
+    monkeypatch.setattr(fetch01.config, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(fetch01.config, "RESULTS_DIR", tmp_path / "results")
+    (tmp_path / "cache").mkdir()
+    (tmp_path / "results").mkdir()
+    monkeypatch.setattr(fetch01.plots, "save", lambda *a, **k: None)
+    monkeypatch.setattr(fetch01.plots, "plot_data_quality", lambda *a, **k: None)
+    monkeypatch.setattr(fetch01, "build_market_series", lambda end: [])
+    monkeypatch.setattr(fetch01, "build_cpi_series", lambda end: None)
+    monkeypatch.setattr(fetch01, "_series_list_to_frame", _frame_stub(fetch01))
+    monkeypatch.setattr(sys, "argv", ["01", "--as-of", "2026-09-04", "--cached-archives-only"])
+    try:  # noqa: SIM105
+        fetch01.main()
+    except IndexError:  # the empty market stub ends the run after the MTG part
+        pass
+    assert captured["cached_only"] is True
+    (man,) = (tmp_path / "results" / "manifests").glob("fetch-2026-09-04-*.json")
+    import json
+
+    payload = json.loads(man.read_text())
+    assert payload["cached_archives_only"] is True
+    assert payload["missing_dates"] == ["2026-08-03"]
+    assert payload["missing_dates_count"] == 1
+    assert payload["catalog_snapshot"]["dir"] == "catalog-x"

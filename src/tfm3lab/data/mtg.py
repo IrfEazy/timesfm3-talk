@@ -35,7 +35,7 @@ import json
 import lzma
 import os
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import ijson
@@ -116,6 +116,9 @@ class IngestReport:
     archive_hashes: dict[str, str]
     price_field_counts: dict[str, int]
     subtype_counts: dict[str, int]
+    missing_dates: list[str] = field(default_factory=list)
+    cached_archives_only: bool = False
+    catalog: dict | None = None  # {"dir", "sha256"} of the cached catalog used, if any
 
 
 def _session_with_retries() -> requests.Session:
@@ -229,6 +232,40 @@ def load_card_manifest(path: str | Path) -> tuple[CardSpec, ...]:
     return cards
 
 
+def find_cached_catalog(raw_dir: Path = config.RAW_DIR) -> Path:
+    """Newest `catalog-<date>/` snapshot under raw_dir (as written by
+    scripts/01b_select_pool.py) that has a groups.json. Raises
+    FileNotFoundError with a clear message if there is none."""
+    candidates = sorted(d for d in Path(raw_dir).glob("catalog-*") if (d / "groups.json").is_file())
+    if not candidates:
+        raise FileNotFoundError(
+            f"cached-archives-only mode needs a cached TCGCSV catalog snapshot "
+            f"({Path(raw_dir) / 'catalog-<date>'}/groups.json + products-<groupId>.json), "
+            f"but none was found; run scripts/01b_select_pool.py once with network access"
+        )
+    return candidates[-1]
+
+
+def catalog_digest(catalog_dir: Path) -> str:
+    """sha256 over the sorted (filename, file sha256) pairs of the snapshot."""
+    digest = hashlib.sha256()
+    for p in sorted(Path(catalog_dir).glob("*.json")):
+        digest.update(f"{p.name}:{_sha256_file(p)}\n".encode())
+    return digest.hexdigest()
+
+
+def load_cached_groups(catalog_dir: Path) -> pd.DataFrame:
+    path = Path(catalog_dir) / "groups.json"
+    return pd.DataFrame(json.loads(path.read_text(encoding="utf-8"))["results"])
+
+
+def load_cached_products(catalog_dir: Path, group_id: int) -> pd.DataFrame:
+    path = Path(catalog_dir) / f"products-{group_id}.json"
+    if not path.is_file():
+        raise FileNotFoundError(f"cached catalog {catalog_dir} has no {path.name}")
+    return pd.DataFrame(json.loads(path.read_text(encoding="utf-8"))["results"])
+
+
 def fetch_groups(
     category_id: int = MAGIC_CATEGORY_ID, session: requests.Session | None = None
 ) -> pd.DataFrame:
@@ -253,16 +290,30 @@ def resolve_card_specs(
     cards: tuple[CardSpec, ...] = DEFAULT_CARDS,
     category_id: int = MAGIC_CATEGORY_ID,
     session: requests.Session | None = None,
+    catalog_dir: Path | None = None,
 ) -> pd.DataFrame:
     """Resolves each CardSpec to a concrete (group_id, product_id).
+
+    With `catalog_dir`, groups/products are read from that cached catalog
+    snapshot and no HTTP request is made.
 
     Raises with close-match suggestions on any miss, rather than silently
     dropping a card — a card missing from the experiment without a logged
     reason is exactly the "no silent caps" failure mode this project's
     plan explicitly rules out.
     """
-    session = session or _session_with_retries()
-    groups = fetch_groups(category_id, session)
+    if catalog_dir is not None:
+        groups = load_cached_groups(catalog_dir)
+
+        def get_products(gid: int) -> pd.DataFrame:
+            return load_cached_products(catalog_dir, gid)
+    else:
+        session = session or _session_with_retries()
+        groups = fetch_groups(category_id, session)
+
+        def get_products(gid: int) -> pd.DataFrame:
+            return fetch_products(gid, category_id, session)
+
     products_cache: dict[int, pd.DataFrame] = {}
     rows = []
     for card in cards:
@@ -281,7 +332,7 @@ def resolve_card_specs(
             found = None
             for gid in (int(g) for g in matches["groupId"]):
                 if gid not in products_cache:
-                    products_cache[gid] = fetch_products(gid, category_id, session)
+                    products_cache[gid] = get_products(gid)
                 hit = products_cache[gid][products_cache[gid]["productId"] == card.product_id]
                 if not hit.empty:
                     found = (gid, int(card.product_id))
@@ -295,7 +346,7 @@ def resolve_card_specs(
         else:
             group_id = int(matches.iloc[0]["groupId"])
             if group_id not in products_cache:
-                products_cache[group_id] = fetch_products(group_id, category_id, session)
+                products_cache[group_id] = get_products(group_id)
             products = products_cache[group_id]
             exact = products[products["name"].str.casefold() == card.product_name.casefold()]
             if exact.empty:
@@ -377,6 +428,7 @@ def fetch_daily_prices(
     session: requests.Session | None = None,
     raw_dir: Path = config.RAW_DIR,
     price_policy: PriceSelectionPolicy = PriceSelectionPolicy.MARKET_THEN_MID,
+    cached_only: bool = False,
 ) -> tuple[dict[int, dict[int, PricePoint]], str | None]:
     """Downloads one day's archive (cached under raw_dir, atomic write +
     sha256), extracts only the requested groups' price files, and returns
@@ -391,15 +443,20 @@ def fetch_daily_prices(
     subTypeName — e.g. Normal vs Foil bundled together), the row is resolved
     by preferring subTypeName in ("Normal", None); anything left ambiguous
     raises ValueError naming the productId/date/subtypes seen.
+
+    With `cached_only=True` no HTTP request is ever made: a date without a
+    cached archive raises ArchiveNotAvailableError exactly like a 404.
     """
     import py7zr
 
-    session = session or _session_with_retries()
-    raw_dir.mkdir(parents=True, exist_ok=True)
     archive_path = raw_dir / f"tcgcsv-prices-{date.isoformat()}.ppmd.7z"
     if archive_path.exists():
         archive_sha256 = _sha256_file(archive_path)
+    elif cached_only:
+        raise ArchiveNotAvailableError(date)
     else:
+        session = session or _session_with_retries()
+        raw_dir.mkdir(parents=True, exist_ok=True)
         archive_sha256 = _download_archive_atomic(_archive_url(date), archive_path, session)
         if archive_sha256 is None:
             raise ArchiveNotAvailableError(date)
@@ -436,6 +493,8 @@ def build_card_series(
     max_ffill_days: int = 3,
     session: requests.Session | None = None,
     price_policy: PriceSelectionPolicy = PriceSelectionPolicy.MARKET_THEN_MID,
+    cached_only: bool = False,
+    catalog_dir: Path | None = None,
 ) -> tuple[list[SeriesData], IngestReport]:
     """Builds one SeriesData per card over [start, end], daily frequency, and
     an IngestReport (resolved card specs, archive sha256 per date, price
@@ -451,10 +510,22 @@ def build_card_series(
     — a full experiment run must pass an explicit `end` (see
     scripts/01_fetch_data.py's --as-of/--allow-live-end policy); that
     constraint is enforced at the script layer, not here.
+
+    `cached_only=True` rebuilds from already-cached archives with no network:
+    dates lacking a cached archive are treated as unpublished (NaN, then the
+    usual limited forward fill) and listed in `IngestReport.missing_dates`;
+    products/groups come from a cached catalog snapshot (`catalog_dir`, else
+    the newest `catalog-*` under raw_dir; FileNotFoundError if none).
     """
     end = end or dt.date.today()
-    session = session or _session_with_retries()
-    resolved = resolve_card_specs(cards, session=session)
+    catalog_info = None
+    if cached_only:
+        catalog_dir = Path(catalog_dir) if catalog_dir else find_cached_catalog(raw_dir)
+        catalog_info = {"dir": str(catalog_dir), "sha256": catalog_digest(catalog_dir)}
+        resolved = resolve_card_specs(cards, catalog_dir=catalog_dir)
+    else:
+        session = session or _session_with_retries()
+        resolved = resolve_card_specs(cards, session=session)
     group_ids = set(resolved["group_id"])
 
     date_range = pd.date_range(start, end, freq="D")
@@ -463,14 +534,21 @@ def build_card_series(
     archive_hashes: dict[str, str] = {}
     price_field_counts: dict[str, int] = {"market": 0, "mid": 0}
     subtype_counts: dict[str, int] = {}
+    missing_dates: list[str] = []
 
     for date in date_range:
         day = date.date()
         try:
             prices_by_group, archive_sha256 = fetch_daily_prices(
-                day, group_ids, raw_dir=raw_dir, session=session, price_policy=price_policy
+                day,
+                group_ids,
+                raw_dir=raw_dir,
+                session=session,
+                price_policy=price_policy,
+                cached_only=cached_only,
             )
         except ArchiveNotAvailableError:
+            missing_dates.append(day.isoformat())
             continue  # archive missing for this day — left as NaN, filled below
         if archive_sha256 is not None:
             archive_hashes[day.isoformat()] = archive_sha256
@@ -500,6 +578,9 @@ def build_card_series(
         archive_hashes=archive_hashes,
         price_field_counts=price_field_counts,
         subtype_counts=subtype_counts,
+        missing_dates=missing_dates,
+        cached_archives_only=cached_only,
+        catalog=catalog_info,
     )
     return series_list, report
 

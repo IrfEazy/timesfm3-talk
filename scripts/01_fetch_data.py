@@ -110,6 +110,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="card source, repeatable: 'showcase' (default, the 7 DEFAULT_CARDS) or a card "
         "manifest CSV path; the MTG cache is built for the union of all sources",
     )
+    parser.add_argument(
+        "--cached-archives-only",
+        action="store_true",
+        help="rebuild the MTG cache from already-cached TCGCSV archives and a cached catalog "
+        "snapshot under data/raw/ with no MTG network access; dates without a cached archive "
+        "are recorded as unavailable in the manifest",
+    )
     end_group = parser.add_mutually_exclusive_group()
     end_group.add_argument(
         "--as-of",
@@ -173,7 +180,11 @@ def main() -> None:
         cards, card_sources = resolve_card_sources(args.cards)
         print(f"  {len(cards)} cards from sources {[r['source'] for r in card_sources]}")
         mtg_series, ingest_report = build_card_series(
-            cards=cards, start=start, end=as_of, price_policy=PriceSelectionPolicy.MARKET_THEN_MID
+            cards=cards,
+            start=start,
+            end=as_of,
+            price_policy=PriceSelectionPolicy.MARKET_THEN_MID,
+            cached_only=args.cached_archives_only,
         )
         mtg_df = _series_list_to_frame(mtg_series)
         mtg_df.to_parquet(config.CACHE_DIR / "mtg_prices.parquet", index=False)
@@ -200,6 +211,10 @@ def main() -> None:
             ),
         )
         manifest_payload["card_sources"] = card_sources
+        manifest_payload["cached_archives_only"] = ingest_report.cached_archives_only
+        manifest_payload["missing_dates"] = ingest_report.missing_dates
+        manifest_payload["missing_dates_count"] = len(ingest_report.missing_dates)
+        manifest_payload["catalog_snapshot"] = ingest_report.catalog
         manifest_path = write_manifest(
             manifest_payload,
             config.RESULTS_DIR / "manifests" / f"fetch-{as_of.isoformat()}-{utc_ts}.json",

@@ -422,3 +422,90 @@ def test_resolve_card_specs_product_id_missing_raises():
     cards = (CardSpec("Nope [MH2]", "MH2", "Nope", product_id=1),)
     with pytest.raises(ValueError, match="productId 1 not found"):
         resolve_card_specs(cards, session=_make_session())
+
+
+# --- cached-archives-only mode ------------------------------------------------
+
+
+def _write_catalog(raw_dir: Path, name: str = "catalog-2026-09-04") -> Path:
+    cdir = raw_dir / name
+    cdir.mkdir(parents=True)
+    (cdir / "groups.json").write_text(
+        json.dumps({"results": [{"groupId": 2809, "abbreviation": "MH2", "name": "MH2"}]}),
+        encoding="utf-8",
+    )
+    (cdir / "products-2809.json").write_text(
+        json.dumps({"results": [{"productId": 239857, "name": "Ragavan, Nimble Pilferer"}]}),
+        encoding="utf-8",
+    )
+    return cdir
+
+
+def _forbid_network(monkeypatch):
+    def boom(*args, **kwargs):
+        raise AssertionError("network access attempted in cached-only mode")
+
+    monkeypatch.setattr(requests.Session, "get", boom)
+    monkeypatch.setattr(requests.Session, "head", boom)
+    monkeypatch.setattr(requests, "get", boom)
+
+
+def test_fetch_daily_prices_cached_only_missing_archive_is_unavailable(tmp_path, monkeypatch):
+    _forbid_network(monkeypatch)
+    with pytest.raises(ArchiveNotAvailableError):
+        fetch_daily_prices(dt.date(2024, 2, 8), {2809}, raw_dir=tmp_path, cached_only=True)
+
+
+def test_build_card_series_cached_only_records_missing_and_forward_fills(tmp_path, monkeypatch):
+    _forbid_network(monkeypatch)
+    day1, day2, day3 = dt.date(2024, 2, 8), dt.date(2024, 2, 9), dt.date(2024, 2, 10)
+    _write_archive(tmp_path, day1, 1, 2809, [{"productId": 239857, "marketPrice": 30.0}])
+    _write_archive(tmp_path, day3, 1, 2809, [{"productId": 239857, "marketPrice": 32.0}])
+    cdir = _write_catalog(tmp_path)
+    cards = (CardSpec("Ragavan [MH2]", "MH2", "Ragavan, Nimble Pilferer"),)
+    series, report = build_card_series(
+        cards, start=day1, end=day3, raw_dir=tmp_path, cached_only=True
+    )
+    assert report.cached_archives_only is True
+    assert report.missing_dates == [day2.isoformat()]
+    assert sorted(report.archive_hashes) == [day1.isoformat(), day3.isoformat()]
+    assert report.catalog["dir"] == str(cdir)
+    assert len(report.catalog["sha256"]) == 64
+    assert list(series[0].values) == [30.0, 30.0, 32.0]  # unchanged ffill
+    assert list(series[0].observed) == [True, False, True]
+
+
+def test_build_card_series_cached_only_without_catalog_fails_clearly(tmp_path, monkeypatch):
+    _forbid_network(monkeypatch)
+    cards = (CardSpec("Ragavan [MH2]", "MH2", "Ragavan, Nimble Pilferer"),)
+    with pytest.raises(FileNotFoundError, match="catalog"):
+        build_card_series(
+            cards,
+            start=dt.date(2024, 2, 8),
+            end=dt.date(2024, 2, 8),
+            raw_dir=tmp_path,
+            cached_only=True,
+        )
+
+
+def test_build_card_series_default_not_cached_only(tmp_path, monkeypatch):
+    import tfm3lab.data.mtg as mtg_module
+
+    date = dt.date(2024, 2, 8)
+    _write_archive(tmp_path, date, 1, 2809, [{"productId": 239857, "marketPrice": 30.0}])
+    resolved = pd.DataFrame(
+        [
+            {
+                "label": "R",
+                "group_id": 2809,
+                "product_id": 239857,
+                "group_abbreviation": "MH2",
+                "product_name": "x",
+            }
+        ]
+    )
+    monkeypatch.setattr(mtg_module, "resolve_card_specs", lambda cards, session=None: resolved)
+    _, report = build_card_series(start=date, end=date, raw_dir=tmp_path, session=object())
+    assert report.cached_archives_only is False
+    assert report.missing_dates == []
+    assert report.catalog is None
