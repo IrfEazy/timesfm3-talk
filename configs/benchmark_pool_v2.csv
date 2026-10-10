@@ -1,0 +1,41 @@
+label,group_abbreviation,product_name,product_id,rarity_group,price_tertile,stratum,is_showcase
+Oblivion Sower [DDP],DDP,Oblivion Sower,101888,mythic,1,mythic-t1,False
+"Breya, Etherium Shaper [C16]",C16,"Breya, Etherium Shaper",123987,mythic,1,mythic-t1,False
+Borborygmos and Fblthp [PRE],PRE,Borborygmos and Fblthp,492958,mythic,1,mythic-t1,False
+Abyssal Persecutor [WWK],WWK,Abyssal Persecutor,34323,mythic,2,mythic-t2,False
+Lightning Runner [PRE],PRE,Lightning Runner,126846,mythic,2,mythic-t2,False
+"Ashiok, Sculptor of Fears [THB]",THB,"Ashiok, Sculptor of Fears",206189,mythic,2,mythic-t2,False
+Balefire Dragon [ISD],ISD,Balefire Dragon,52208,mythic,3,mythic-t3,False
+"Korvold, Fae-Cursed King [ELD]",ELD,"Korvold, Fae-Cursed King",198424,mythic,3,mythic-t3,False
+Vexing Puzzlebox [CLB],CLB,Vexing Puzzlebox,273204,mythic,3,mythic-t3,False
+Autumn Willow [HML],HML,Autumn Willow,4454,rare,1,rare-t1,False
+"Circu, Dimir Lobotomist [RAV]",RAV,"Circu, Dimir Lobotomist",13226,rare,1,rare-t1,False
+Glen Elendra Liege [SHM],SHM,Glen Elendra Liege,18646,rare,1,rare-t1,False
+Tempt with Immortality [C13],C13,Tempt with Immortality,71853,rare,1,rare-t1,False
+Akoum Hellkite [PRE],PRE,Akoum Hellkite,93385,rare,1,rare-t1,False
+Palace Siege [C17],C17,Palace Siege,140008,rare,1,rare-t1,False
+Pir's Whim [BBD],BBD,Pir's Whim,167655,rare,1,rare-t1,False
+Epicenter [ODY],ODY,Epicenter,9467,rare,2,rare-t2,False
+Magus of the Vineyard [FUT],FUT,Magus of the Vineyard,14936,rare,2,rare-t2,False
+Leyline of Vitality [M11],M11,Leyline of Vitality,35578,rare,2,rare-t2,False
+Supreme Verdict [RTR],RTR,Supreme Verdict,66459,rare,2,rare-t2,False
+Supplant Form [PRE],PRE,Supplant Form,95629,rare,2,rare-t2,False
+Bonders' Enclave (Extended Art) [IKO],IKO,Bonders' Enclave (Extended Art),212686,rare,2,rare-t2,False
+Kodama of the East Tree [CMR],CMR,Kodama of the East Tree,226404,rare,2,rare-t2,False
+"Depala, Pilot Exemplar [SLD]",SLD,"Depala, Pilot Exemplar",278768,rare,2,rare-t2,False
+Balance of Power [PTK],PTK,Balance of Power,426,rare,3,rare-t3,False
+Bubble Matrix [WTH],WTH,Bubble Matrix,5997,rare,3,rare-t3,False
+"Barrin, Master Wizard [USG]",USG,"Barrin, Master Wizard",6792,rare,3,rare-t3,False
+Decree of Justice [SCG],SCG,Decree of Justice,10837,rare,3,rare-t3,False
+Selvala's Stampede [CN2],CN2,Selvala's Stampede,121902,rare,3,rare-t3,False
+Heroic Intervention [AER],AER,Heroic Intervention,126488,rare,3,rare-t3,False
+Don't Move (Borderless) [REX],REX,Don't Move (Borderless),524341,rare,3,rare-t3,False
+Plague Spitter [INV],INV,Plague Spitter,7588,other,1,other-t1,False
+Dawn Charm [PLC],PLC,Dawn Charm,14706,other,1,other-t1,False
+Talisman of Hierarchy [MH1],MH1,Talisman of Hierarchy,191058,other,1,other-t1,False
+Long-Term Plans [SCG],SCG,Long-Term Plans,10864,other,2,other-t2,False
+Spirit Mantle [M12],M12,Spirit Mantle,47188,other,2,other-t2,False
+"Kediss, Emberclaw Familiar [CMR]",CMR,"Kediss, Emberclaw Familiar",226634,other,2,other-t2,False
+Grizzly Bears [LEA],LEA,Grizzly Bears,1133,other,3,other-t3,False
+Veil of Summer [M20],M20,Veil of Summer,192543,other,3,other-t3,False
+Dregscape Sliver (Extended Art) [SLD],SLD,Dregscape Sliver (Extended Art),475899,other,3,other-t3,False

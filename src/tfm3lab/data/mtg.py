@@ -67,6 +67,10 @@ class CardSpec:
     label: str
     group_abbreviation: str
     product_name: str
+    # Optional exact TCGplayer productId. When set, resolve_card_specs picks
+    # that product (within a group matching the abbreviation) instead of the
+    # first name match, so a specific printing resolves unambiguously.
+    product_id: int | None = None
 
 
 class PriceSelectionPolicy(enum.Enum):
@@ -177,9 +181,19 @@ DEFAULT_CARDS = (
 )
 
 
+def _parse_product_id(value: object) -> int | None:
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return None
+    if isinstance(value, str) and not value.strip():
+        return None
+    return int(value)
+
+
 def load_card_manifest(path: str | Path) -> tuple[CardSpec, ...]:
     """Loads a wider card pool from CSV or JSON (extension-dispatched), same
-    shape as DEFAULT_CARDS: label, group_abbreviation, product_name.
+    shape as DEFAULT_CARDS: label, group_abbreviation, product_name, plus an
+    optional product_id column (exact productId; absent or blank -> None).
+    Extra columns (e.g. the pool manifest's stratum metadata) are ignored.
 
     Used for the optional benchmark card pool (as opposed to the fixed
     7-card showcase) -- see configs/benchmark_cards.example.csv for the
@@ -192,7 +206,9 @@ def load_card_manifest(path: str | Path) -> tuple[CardSpec, ...]:
         payload = json.loads(path.read_text(encoding="utf-8"))
         rows = payload["cards"] if isinstance(payload, dict) else payload
     elif path.suffix == ".csv":
-        df = pd.read_csv(path, comment="#")
+        # keep_default_na=False: a literal "NA"/"None" in a text column must
+        # stay a string; the optional product_id is parsed explicitly below.
+        df = pd.read_csv(path, comment="#", dtype=str, keep_default_na=False)
         rows = df.to_dict(orient="records")
     else:
         raise ValueError(
@@ -204,6 +220,7 @@ def load_card_manifest(path: str | Path) -> tuple[CardSpec, ...]:
             label=str(row["label"]),
             group_abbreviation=str(row["group_abbreviation"]),
             product_name=str(row["product_name"]),
+            product_id=_parse_product_id(row.get("product_id")),
         )
         for row in rows
     )
@@ -258,20 +275,38 @@ def resolve_card_specs(
                 f"no TCGCSV group with abbreviation '{card.group_abbreviation}' "
                 f"for card '{card.label}'. Closest matches: {suggestions}"
             )
-        group_id = int(matches.iloc[0]["groupId"])
-        if group_id not in products_cache:
-            products_cache[group_id] = fetch_products(group_id, category_id, session)
-        products = products_cache[group_id]
-        exact = products[products["name"].str.casefold() == card.product_name.casefold()]
-        if exact.empty:
-            suggestions = difflib.get_close_matches(
-                card.product_name, products["name"].dropna().tolist(), n=5, cutoff=0.4
-            )
-            raise ValueError(
-                f"'{card.product_name}' not found in group '{card.group_abbreviation}' "
-                f"(groupId={group_id}) for card '{card.label}'. Closest matches: {suggestions}"
-            )
-        product_id = int(exact.iloc[0]["productId"])
+        if card.product_id is not None:
+            # Exact printing: abbreviations are not guaranteed unique, so
+            # look for the productId in every matching group.
+            found = None
+            for gid in (int(g) for g in matches["groupId"]):
+                if gid not in products_cache:
+                    products_cache[gid] = fetch_products(gid, category_id, session)
+                hit = products_cache[gid][products_cache[gid]["productId"] == card.product_id]
+                if not hit.empty:
+                    found = (gid, int(card.product_id))
+                    break
+            if found is None:
+                raise ValueError(
+                    f"productId {card.product_id} not found in any group with abbreviation "
+                    f"'{card.group_abbreviation}' for card '{card.label}'"
+                )
+            group_id, product_id = found
+        else:
+            group_id = int(matches.iloc[0]["groupId"])
+            if group_id not in products_cache:
+                products_cache[group_id] = fetch_products(group_id, category_id, session)
+            products = products_cache[group_id]
+            exact = products[products["name"].str.casefold() == card.product_name.casefold()]
+            if exact.empty:
+                suggestions = difflib.get_close_matches(
+                    card.product_name, products["name"].dropna().tolist(), n=5, cutoff=0.4
+                )
+                raise ValueError(
+                    f"'{card.product_name}' not found in group '{card.group_abbreviation}' "
+                    f"(groupId={group_id}) for card '{card.label}'. Closest matches: {suggestions}"
+                )
+            product_id = int(exact.iloc[0]["productId"])
         rows.append(
             {
                 "label": card.label,

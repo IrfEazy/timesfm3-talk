@@ -325,9 +325,7 @@ def test_load_card_manifest_csv(tmp_path):
 def test_load_card_manifest_csv_multiple_rows_preserve_order(tmp_path):
     path = tmp_path / "cards.csv"
     path.write_text(
-        "label,group_abbreviation,product_name\n"
-        "First [A],A,First Card\n"
-        "Second [B],B,Second Card\n",
+        "label,group_abbreviation,product_name\nFirst [A],A,First Card\nSecond [B],B,Second Card\n",
         encoding="utf-8",
     )
     cards = load_card_manifest(path)
@@ -387,3 +385,40 @@ def test_load_card_manifest_rejects_empty_manifest(tmp_path):
     path.write_text("label,group_abbreviation,product_name\n", encoding="utf-8")
     with pytest.raises(ValueError, match="no cards found"):
         load_card_manifest(path)
+
+
+# --- optional product_id column -------------------------------------------
+
+
+def test_load_card_manifest_without_product_id_is_backward_compatible(tmp_path):
+    p = tmp_path / "m.csv"
+    p.write_text("label,group_abbreviation,product_name\nA [MH2],MH2,Card A\n", encoding="utf-8")
+    (spec,) = load_card_manifest(p)
+    assert spec.product_id is None
+    assert spec.product_name == "Card A"
+
+
+def test_load_card_manifest_reads_product_id_and_ignores_extra_columns(tmp_path):
+    p = tmp_path / "m.csv"
+    p.write_text(
+        "label,group_abbreviation,product_name,product_id,stratum\n"
+        '"X, Y [MH2]",MH2,"X, Y",240300,rare-t1\n'
+        "Z [DMU],DMU,Z,,other-t2\n",
+        encoding="utf-8",
+    )
+    a, b = load_card_manifest(p)
+    assert (a.label, a.product_id) == ("X, Y [MH2]", 240300)
+    assert b.product_id is None
+
+
+def test_resolve_card_specs_honors_product_id():
+    cards = (CardSpec("Ragavan BL [MH2]", "MH2", "ignored name", product_id=240300),)
+    df = resolve_card_specs(cards, session=_make_session())
+    assert df.iloc[0]["product_id"] == 240300
+    assert df.iloc[0]["group_id"] == 2809
+
+
+def test_resolve_card_specs_product_id_missing_raises():
+    cards = (CardSpec("Nope [MH2]", "MH2", "Nope", product_id=1),)
+    with pytest.raises(ValueError, match="productId 1 not found"):
+        resolve_card_specs(cards, session=_make_session())
