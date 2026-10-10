@@ -59,6 +59,7 @@ script.
   exposed a defect, not a result to tune against: a Student-t common factor inside `exp(gamma f)` has
   an infinite mean, so the truth was unstable. The fix made only the common factor Gaussian; no
   numeric constant changed.
+- The implementer's report does not state whether that discarded run's coverage output was inspected; treat it as seen.
 - No real data was used.
 
 ## Acceptance rule

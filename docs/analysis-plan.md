@@ -204,6 +204,30 @@ By rule, frozen and committed before any model run.
 
 Experiment B's primary forecaster mode is univariate, so that TimesFM-3, the naive and ETS baselines and TimesFM-2.5 (univariate only) are directly comparable. The multivariate mode is a sensitivity analysis. Nothing else in section 3 changes.
 
+## Amendments of 2026-10-10 (before any v2 model run)
+
+All items are dated 2026-10-10 and were made before any v2 model run; no v2 model output exists.
+
+- **A. Experiment A pool eligibility** (decision: PM-proxy Exchange 5, human-delegated)
+  - The first literal draw admitted non-game collectibles that carry a TCGplayer Rarity attribute (World Championship Deck decklist/biography cards, an oversize card, a serial-numbered card, a LARP promo). Only item types/names were inspected; no prices, forecasts or model outputs.
+  - Clarified eligibility: Rarity in {Mythic, Rare, Uncommon, Common} (rarity group "other" = Uncommon + Common); exclude the World Championship Deck group and products whose name contains (case-insensitive) Oversize, Oversized, Serial Numbered, Decklist, Biography, Checklist. No other change; same script, seed 20261010 and as_of 2026-09-04.
+  - First draw CSV sha256: ed0bdd0b32cbe7e92eb7b122fe94f7ee62a468d0e8f21d78c663c0814e85817e.
+  - Frozen pool: configs/benchmark_pool_v2.csv, sha256 e671a846417da9345c01d174a0b96135b4d65760c3935477f6c5397f0192d29d; manifest results/manifests/pool-v2-2026-09-04.json.
+  - Interpretation recorded: "one printing per card name" folds variants whose names differ only by a trailing parenthetical (e.g. "(Extended Art)", "(Borderless)"). The catalog was fetched on 2026-10-10, after as_of (limitation).
+  - No showcase card was drawn; showcase-only results therefore come from a separate primary-cell run (configs/benchmark_v2_showcase.json), descriptive only.
+- **B. Self-check disclosure**
+  - Baseline DGP constants were chosen after a 40-dataset preview that showed undercoverage (see docs/inference-selfcheck.md). A stress DGP was added as a sensitivity and is never used for acceptance; its coverage is reported next to each headline CI.
+  - A first stress run was discarded because a Student-t common factor inside exp() has no finite mean, so the target was undefined; the factor was made Gaussian with every numeric constant unchanged. The implementer's report does not state whether that discarded run's coverage output was inspected; treat it as seen.
+  - Recommendation pending a human decision (not adopted): require the primary cluster CI AND the calendar-block CI to agree for a "beats/loses" verdict.
+- **C. Error scaling of committed outputs**
+  - Committed absolute errors are divided by one constant per series (median of its observed values over the loaded window, never written). Per-card skill ratios are therefore exactly the raw-MAE ratios of §1; pooled skill computed from committed files is level-free and differs from raw pooled skill (secondary only).
+- **D. Experiment C regime definition**
+  - "|offset| <= 3 trading days from onset" is applied to the TARGET day of each forecast: target_offset = origin_offset + horizon_step - 1. When a CQR split lacks data the "fixes it" verdict is reported as not available, never as "no".
+- **E. Forward-fill sensitivity mechanics**
+  - For ffill k in {0, 1}: non-observed points are set to missing, re-filled forward with limit k; per card, origins whose context still contains a gap are dropped and counted (a card with no remaining origin is excluded and listed). Univariate primary cell only.
+- **F. Experiment B event list outcome** (rule output, not a model result)
+  - The frozen rule produced 15 events: 8 pre-cutoff, 7 post-cutoff (configs/shock_events_v2.csv). The promotion rule needs >= 8 per arm, so Experiment B is reported as an exploratory red-team appendix regardless of its results. Declustering chains from the previous shock day (gap <= 20 trading days on the union calendar).
+
 ---
 
 # v1 (historical, Italian) — SUPERSEDED by Preregistration v2 above

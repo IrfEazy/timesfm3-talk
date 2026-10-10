@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "TimesFM-3 experiments — Magic: The Gathering, market shocks, calibration, covariates"
 readme = "README.md"
 authors = [
-    { name = "Irfan Cela", email = "irfeazy@gmail.com" }
+    { name = "Irfan Cela", email = "50823808+IrfEazy@users.noreply.github.com" }
 ]
 requires-python = ">=3.12"
 dependencies = [
