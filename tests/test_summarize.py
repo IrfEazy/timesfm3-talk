@@ -16,8 +16,16 @@ from tfm3lab.summarize import (
 )
 
 
-def _row(mode="m", series="a", horizon_step=1, actual=0.0, observed=True, forecast=0.0,
-         baseline_naive=0.0, quantiles=None) -> dict:
+def _row(
+    mode="m",
+    series="a",
+    horizon_step=1,
+    actual=0.0,
+    observed=True,
+    forecast=0.0,
+    baseline_naive=0.0,
+    quantiles=None,
+) -> dict:
     quantiles = quantiles if quantiles is not None else [forecast] * config.N_QUANTILES
     row = {
         "mode": mode,
@@ -251,8 +259,12 @@ def _dm_frame(n=12, horizon_step=8):
     rng = np.random.default_rng(5)
     actual = rng.normal(100, 1, size=n)
     rows = [
-        _row(horizon_step=horizon_step, actual=a, forecast=a + rng.normal(scale=0.5),
-             baseline_naive=a + 1.0 + rng.normal(scale=0.5))
+        _row(
+            horizon_step=horizon_step,
+            actual=a,
+            forecast=a + rng.normal(scale=0.5),
+            baseline_naive=a + 1.0 + rng.normal(scale=0.5),
+        )
         for a in actual
     ]
     return pd.DataFrame(rows)
@@ -274,9 +286,7 @@ def test_summarize_accuracy_origin_stride_changes_dm_lags():
 def test_summarize_leaderboard_passes_origin_stride():
     df = _dm_frame()
     lb1 = summarize_leaderboard(df, {"a": 1.0}, baseline_cols=("baseline_naive",))
-    lb7 = summarize_leaderboard(
-        df, {"a": 1.0}, baseline_cols=("baseline_naive",), origin_stride=7
-    )
+    lb7 = summarize_leaderboard(df, {"a": 1.0}, baseline_cols=("baseline_naive",), origin_stride=7)
     assert np.isnan(lb1.iloc[0]["dm_pvalue"])
     assert not np.isnan(lb7.iloc[0]["dm_pvalue"])
 

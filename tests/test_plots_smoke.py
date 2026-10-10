@@ -156,9 +156,7 @@ def test_plot_quantile_bin_calibration_one_panel_per_horizon():
 
 
 def test_plot_pit_histogram_alias_still_works():
-    preds = pd.DataFrame(
-        {"horizon_step": [1] * 3, "actual": [1, 2, 9], "observed": [True] * 3}
-    )
+    preds = pd.DataFrame({"horizon_step": [1] * 3, "actual": [1, 2, 9], "observed": [True] * 3})
     for i, level in enumerate([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]):
         preds[f"q{round(level * 100):02d}"] = i + 1
     hist = figdata.pit_histogram(preds, horizon_steps=(1,))

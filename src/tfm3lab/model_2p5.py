@@ -86,9 +86,7 @@ def forecast_config_kwargs(
     }
 
 
-def compile_2p5(
-    model: Any, max_context: int = MAX_CONTEXT, max_horizon: int = MAX_HORIZON
-) -> None:
+def compile_2p5(model: Any, max_context: int = MAX_CONTEXT, max_horizon: int = MAX_HORIZON) -> None:
     """compile(ForecastConfig(...)) is mandatory before forecast(): without it
     forecast() raises 'Model is not compiled. Please call compile() first.'
     (timesfm_2p5_base.py:159-160)."""

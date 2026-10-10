@@ -214,7 +214,9 @@ def write_run_manifest(
     )
     payload = {"script": script, "outputs": entries, **(extra or {})}
     return write_manifest(
-        payload, target, as_of=as_of,
+        payload,
+        target,
+        as_of=as_of,
         live_end=live_end,
         checkpoint=checkpoint,
         seed=seed,

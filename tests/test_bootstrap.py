@@ -162,10 +162,12 @@ def test_reproducible_with_seed_and_row_order_invariant():
         np.testing.assert_allclose(a[k].replicates, b[k].replicates, rtol=1e-12, atol=1e-15)
     again = bs.paired_cluster_bootstrap(df["model"], df["naive"], df["card"], n_boot=200, seed=7)
     np.testing.assert_array_equal(a["median"].replicates, again["median"].replicates)
-    c = bs.calendar_block_bootstrap(df["model"], df["naive"], df["card"], df["date"], 28, seed=7,
-                                    n_boot=100)
-    d = bs.calendar_block_bootstrap(df["model"], df["naive"], df["card"], df["date"], 28, seed=7,
-                                    n_boot=100)
+    c = bs.calendar_block_bootstrap(
+        df["model"], df["naive"], df["card"], df["date"], 28, seed=7, n_boot=100
+    )
+    d = bs.calendar_block_bootstrap(
+        df["model"], df["naive"], df["card"], df["date"], 28, seed=7, n_boot=100
+    )
     np.testing.assert_array_equal(c["median"].replicates, d["median"].replicates)
     assert c["median"].block_days == 28
     e = bs.paired_cluster_bootstrap(df["model"], df["naive"], df["card"], n_boot=200, seed=8)
@@ -253,9 +255,12 @@ def test_calendar_gap_days_travel_with_the_calendar():
     assert res2["median"].n_excluded_card_reps == expected
     assert res2["pooled"].n_excluded_card_reps == expected
     # cluster designs never exclude cards
-    assert bs.paired_cluster_bootstrap_from_sums(
-        [1.0, 2.0], [2.0, 4.0], [3.0, 3.0], n_boot=50
-    )["median"].n_excluded_card_reps == 0
+    assert (
+        bs.paired_cluster_bootstrap_from_sums([1.0, 2.0], [2.0, 4.0], [3.0, 3.0], n_boot=50)[
+            "median"
+        ].n_excluded_card_reps
+        == 0
+    )
 
 
 # --- coverage ---------------------------------------------------------------------

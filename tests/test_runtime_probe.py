@@ -29,14 +29,19 @@ def probe():
 
 def m(adapter, context, batch, median_s, status="ok"):
     return {
-        "adapter": adapter, "context": context, "batch": batch, "median_s": median_s,
+        "adapter": adapter,
+        "context": context,
+        "batch": batch,
+        "median_s": median_s,
         "status": status,
     }
 
 
 MEAS = [
-    m("a", 128, 1, 0.5), m("a", 128, 32, 3.2),  # 0.1 s per forecast at the largest batch
-    m("a", 512, 1, 1.0), m("a", 512, 32, 6.4),  # 0.2 s per forecast
+    m("a", 128, 1, 0.5),
+    m("a", 128, 32, 3.2),  # 0.1 s per forecast at the largest batch
+    m("a", 512, 1, 1.0),
+    m("a", 512, 32, 6.4),  # 0.2 s per forecast
 ]
 
 
@@ -83,13 +88,19 @@ def test_projection_scales_with_measurement_not_constants():
 
 def test_work_sizes():
     report = {
-        "n_origins": 10, "card_pool_size": 4,
+        "n_origins": 10,
+        "card_pool_size": 4,
         "combos": [{"context_len": 64}, {"context_len": 512}],
     }
     w = kg.work_from_dry_run("x", "a", report)
     assert w.items == ((64, 40), (512, 40))
     s = kg.work_from_shock(
-        "y", "a", n_events=2, context_len=256, origins_per_event=3, n_perturbation_runs=10,
+        "y",
+        "a",
+        n_events=2,
+        context_len=256,
+        origins_per_event=3,
+        n_perturbation_runs=10,
         panel_series=5,
     )
     assert s.items == ((256, 2 * 3 * 16),)
@@ -137,8 +148,14 @@ def test_measure_points_with_fakes_warmup_and_sync():
     syncs = []
     fc = FakeForecaster()
     rows = kg.measure_points(
-        fc, series, "a", [(128, 64, 3), (512, 64, 5)], repeats=3, warmup=2,
-        sync=lambda: syncs.append(1), clock=Clock(),
+        fc,
+        series,
+        "a",
+        [(128, 64, 3), (512, 64, 5)],
+        repeats=3,
+        warmup=2,
+        sync=lambda: syncs.append(1),
+        clock=Clock(),
     )
     assert [r["status"] for r in rows] == ["ok", "ok"]
     assert rows[0]["median_s"] == pytest.approx(0.25) and rows[0]["warmup"] == 2
@@ -187,19 +204,33 @@ def test_to_frame_has_all_kinds(probe):
 
 
 def test_gather_work_for_shock_and_latency_is_offline(probe):
-    works = probe.gather_work(
-        ["03_timesfm3", "03_timesfm2p5", "09_latency_timesfm3"], 20, 3
-    )
+    works = probe.gather_work(["03_timesfm3", "03_timesfm2p5", "09_latency_timesfm3"], 20, 3)
     by = {w.step_id: w for w in works}
     assert by["03_timesfm3"].items[0][1] > by["03_timesfm2p5"].items[0][1] > 0  # panel only for 3
     assert len(by["09_latency_timesfm3"].cells) == 16  # 4 batches x 2 contexts x 2 horizons
 
 
 def test_failed_adapter_is_not_projected_instead_of_crashing():
-    ok = [{"adapter": "timesfm3", "context": 128, "horizon": 64, "batch": 1,
-           "status": "ok", "median_s": 0.1}]
-    bad = [{"adapter": "timesfm2.5", "context": 128, "horizon": 64, "batch": 1,
-            "status": "error", "message": "RuntimeError: Model is not compiled"}]
+    ok = [
+        {
+            "adapter": "timesfm3",
+            "context": 128,
+            "horizon": 64,
+            "batch": 1,
+            "status": "ok",
+            "median_s": 0.1,
+        }
+    ]
+    bad = [
+        {
+            "adapter": "timesfm2.5",
+            "context": 128,
+            "horizon": 64,
+            "batch": 1,
+            "status": "error",
+            "message": "RuntimeError: Model is not compiled",
+        }
+    ]
     works = [
         kg.StepWork("a", "timesfm3", ((128, 10),)),
         kg.StepWork("b", "timesfm2.5", ((128, 10),)),

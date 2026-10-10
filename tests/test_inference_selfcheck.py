@@ -38,10 +38,28 @@ def test_defaults_match_preregistration(selfcheck):
 
 def test_tiny_run_writes_parquet_manifest_and_verdict(selfcheck, tmp_path, capsys):
     out = tmp_path / "sc.parquet"
-    argv = ["--as-of", "2026-10-10", "--groups", "4,40", "--n-datasets", "3",
-            "--n-boot", "20", "--truth-panels", "20", "--truth-cards", "10",
-            "--days", "30", "--min-days", "10",
-            "--output", str(out), "--manifest-dir", str(tmp_path / "m")]
+    argv = [
+        "--as-of",
+        "2026-10-10",
+        "--groups",
+        "4,40",
+        "--n-datasets",
+        "3",
+        "--n-boot",
+        "20",
+        "--truth-panels",
+        "20",
+        "--truth-cards",
+        "10",
+        "--days",
+        "30",
+        "--min-days",
+        "10",
+        "--output",
+        str(out),
+        "--manifest-dir",
+        str(tmp_path / "m"),
+    ]
     assert selfcheck.main(argv) == 0
     line, stress = capsys.readouterr().out.strip().splitlines()[-2:]
     assert stress.startswith("STRESS (sensitivity, not acceptance): ")
@@ -74,7 +92,8 @@ def test_tiny_run_writes_parquet_manifest_and_verdict(selfcheck, tmp_path, capsy
 
 
 def test_verdict_not_evaluated_without_g40(selfcheck):
-    table = selfcheck.run_selfcheck(groups=(4,), n_datasets=2, n_boot=10, seed=1,
-                                    n_days=20, min_days=5)
+    table = selfcheck.run_selfcheck(
+        groups=(4,), n_datasets=2, n_boot=10, seed=1, n_days=20, min_days=5
+    )
     status, line = selfcheck.verdict(table)
     assert status == "NOT_EVALUATED"

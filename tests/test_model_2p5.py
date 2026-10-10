@@ -60,9 +60,7 @@ def test_predict_batch_generates_ts_ids_when_not_given():
 def test_predict_batch_rejects_covariates():
     adapter = TimesFM2p5Adapter(_FakeTimesFM25())
     with pytest.raises(NotImplementedError, match="covariates"):
-        adapter.predict_batch(
-            [np.array([1.0])], horizon=1, past_only_covariates=[np.array([0.0])]
-        )
+        adapter.predict_batch([np.array([1.0])], horizon=1, past_only_covariates=[np.array([0.0])])
 
 
 def test_predict_batch_rejects_multivariate_context():
@@ -78,9 +76,7 @@ def test_predict_batch_rejects_multivariate_context():
 def test_predict_batch_rejects_multivariate_context_among_valid_ones():
     adapter = TimesFM2p5Adapter(_FakeTimesFM25())
     with pytest.raises(NotImplementedError, match="multivariate"):
-        adapter.predict_batch(
-            [np.array([1.0, 2.0]), np.array([[1.0, 2.0], [3.0, 4.0]])], horizon=1
-        )
+        adapter.predict_batch([np.array([1.0, 2.0]), np.array([[1.0, 2.0], [3.0, 4.0]])], horizon=1)
 
 
 def test_adapter_with_matching_quantile_grid_works_through_model_forecast_batch():

@@ -63,7 +63,10 @@ def plot_forecast_slice(
         _, ax = plt.subplots(figsize=(10, 5.5))
 
     ax.plot(
-        sl.history_dates, sl.history_values, color=PALETTE["actual"], linewidth=1.8,
+        sl.history_dates,
+        sl.history_values,
+        color=PALETTE["actual"],
+        linewidth=1.8,
         label="storico reale",
     )
     history_observed = np.asarray(sl.history_observed, dtype=bool)
@@ -72,8 +75,13 @@ def plot_forecast_slice(
     if not history_observed.all():
         imputed = ~history_observed
         ax.scatter(
-            history_dates[imputed], history_values[imputed],
-            facecolors="none", edgecolors=PALETTE["baseline"], marker="o", s=30, zorder=3,
+            history_dates[imputed],
+            history_values[imputed],
+            facecolors="none",
+            edgecolors=PALETTE["baseline"],
+            marker="o",
+            s=30,
+            zorder=3,
             label="imputato (forward-fill)",
         )
     ax.axvline(
@@ -89,23 +97,40 @@ def plot_forecast_slice(
         if not observed_mask.all():
             imputed = ~observed_mask
             ax.scatter(
-                target_dates[imputed], actual_values[imputed],
-                facecolors="none", edgecolors=PALETTE["baseline"], marker="o", s=30, zorder=3,
+                target_dates[imputed],
+                actual_values[imputed],
+                facecolors="none",
+                edgecolors=PALETTE["baseline"],
+                marker="o",
+                s=30,
+                zorder=3,
                 label="imputato (forward-fill)",
             )
         ax.plot(
-            sl.target_dates, sl.forecast, color=PALETTE["model"], marker="o", markersize=4,
+            sl.target_dates,
+            sl.forecast,
+            color=PALETTE["model"],
+            marker="o",
+            markersize=4,
             label="mediana TimesFM-3",
         )
         if show_band:
             ax.fill_between(
-                sl.target_dates, sl.q10, sl.q90, color=PALETTE["model"], alpha=0.15,
+                sl.target_dates,
+                sl.q10,
+                sl.q90,
+                color=PALETTE["model"],
+                alpha=0.15,
                 label="P10-P90",
             )
         if show_naive:
             ax.hlines(
-                sl.naive, sl.target_dates.min(), sl.target_dates.max(),
-                color=PALETTE["baseline"], linestyle=":", linewidth=1.5,
+                sl.naive,
+                sl.target_dates.min(),
+                sl.target_dates.max(),
+                color=PALETTE["baseline"],
+                linestyle=":",
+                linewidth=1.5,
                 label="naive (ultimo prezzo)",
             )
         all_values += list(sl.actual) + list(sl.forecast) + list(sl.q10) + list(sl.q90)
@@ -125,7 +150,10 @@ def plot_forecast_slice(
     if reveal:
         ax.annotate(
             f"copertura P10-P90: {sl.coverage:.2f}   relative MAE: {sl.relative_mae:.3f}",
-            xy=(0.02, 0.02), xycoords="axes fraction", fontsize=9, color="#374151",
+            xy=(0.02, 0.02),
+            xycoords="axes fraction",
+            fontsize=9,
+            color="#374151",
         )
     return ax
 
@@ -149,18 +177,30 @@ def plot_shock_reaction(
 
     ax0.plot(sub["offset"], sub["actual"], color=PALETTE["actual"], linewidth=2, label="reale")
     ax0.plot(
-        sub["offset"], sub["forecast"], color=PALETTE["model"], marker="o", markersize=3,
+        sub["offset"],
+        sub["forecast"],
+        color=PALETTE["model"],
+        marker="o",
+        markersize=3,
         label="TimesFM-3 (one-step)",
     )
     if "q10" in sub.columns and "q90" in sub.columns:
         ax0.fill_between(
-            sub["offset"], sub["q10"], sub["q90"], color=PALETTE["model"], alpha=0.15,
+            sub["offset"],
+            sub["q10"],
+            sub["q90"],
+            color=PALETTE["model"],
+            alpha=0.15,
             label="P10-P90",
         )
     if show_naive and "baseline_naive" in sub.columns:
         ax0.plot(
-            sub["offset"], sub["baseline_naive"], color=PALETTE["baseline"], linestyle="--",
-            linewidth=1.5, label="naive",
+            sub["offset"],
+            sub["baseline_naive"],
+            color=PALETTE["baseline"],
+            linestyle="--",
+            linewidth=1.5,
+            label="naive",
         )
     ax0.axvline(0, color=PALETTE["alert"], linestyle="--", label="evento")
     ax0.set_title(title or (str(sub["event"].iloc[0]) if "event" in sub.columns else title))
@@ -200,8 +240,12 @@ def plot_horizon_profile(profile: pd.DataFrame, axes=None):
         profile["horizon_step"], profile["relative_mae_mean"], color=PALETTE["model"], marker="o"
     )
     ax0.fill_between(
-        profile["horizon_step"], profile["relative_mae_min"], profile["relative_mae_max"],
-        color=PALETTE["model"], alpha=0.12, label="min-max fra le carte",
+        profile["horizon_step"],
+        profile["relative_mae_min"],
+        profile["relative_mae_max"],
+        color=PALETTE["model"],
+        alpha=0.12,
+        label="min-max fra le carte",
     )
     ax0.axhline(1.0, color=PALETTE["baseline"], linestyle="--", label="= naive")
     ax0.set_ylabel("relative MAE")
@@ -252,7 +296,9 @@ def plot_calibration_curve(curve: pd.DataFrame, ax=None, *, group_col: str = "re
     if ax is None:
         _, ax = plt.subplots(figsize=(6.5, 6.5))
     colors = {
-        "market_calm": PALETTE["pre"], "market_shock": PALETTE["alert"], "mtg": PALETTE["post"]
+        "market_calm": PALETTE["pre"],
+        "market_shock": PALETTE["alert"],
+        "mtg": PALETTE["post"],
     }
     ax.plot(
         [0, 1], [0, 1], color=PALETTE["baseline"], linestyle="--", label="calibrazione perfetta"
@@ -260,8 +306,11 @@ def plot_calibration_curve(curve: pd.DataFrame, ax=None, *, group_col: str = "re
     for key, g in curve.sort_values("nominal_level").groupby(group_col):
         n = int(g["n"].iloc[0])
         ax.plot(
-            g["nominal_level"], g["empirical_coverage"], marker="o",
-            color=colors.get(key), label=f"{key} (n={n})",
+            g["nominal_level"],
+            g["empirical_coverage"],
+            marker="o",
+            color=colors.get(key),
+            label=f"{key} (n={n})",
         )
     ax.set_xlabel("livello nominale del quantile")
     ax.set_ylabel("copertura empirica")
@@ -285,7 +334,10 @@ def plot_adaptation_dots(detail: pd.DataFrame, axes=None):
     for arm, g in detail.groupby("arm"):
         n = int(g["n_events_in_arm"].iloc[0])
         ax0.scatter(
-            g["event"], g["adaptation_lag_days"], color=colors.get(arm), s=80,
+            g["event"],
+            g["adaptation_lag_days"],
+            color=colors.get(arm),
+            s=80,
             label=f"{arm} (n={n})",
         )
         ax0.axhline(

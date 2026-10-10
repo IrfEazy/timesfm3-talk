@@ -146,9 +146,7 @@ def dm_effective_horizon(horizon: int, origin_stride: int = 1) -> int:
     return -(-horizon // origin_stride)
 
 
-def diebold_mariano(
-    loss1, loss2, horizon: int = 1, origin_stride: int = 1
-) -> tuple[float, float]:
+def diebold_mariano(loss1, loss2, horizon: int = 1, origin_stride: int = 1) -> tuple[float, float]:
     """Diebold-Mariano test with the Harvey-Leybourne-Newbold small-sample
     correction, for whether model 1's average loss differs from model 2's.
 

@@ -25,8 +25,10 @@ def _pred_row(
     # Default origin_date derived from origin_index (one calendar day per
     # index) so a series of origins is chronologically consistent — a fixed
     # default date here would make every origin share the same date.
-    origin_dt = pd.Timestamp(origin_date) if origin_date is not None else (
-        pd.Timestamp("2024-01-01") + pd.Timedelta(days=origin_index)
+    origin_dt = (
+        pd.Timestamp(origin_date)
+        if origin_date is not None
+        else (pd.Timestamp("2024-01-01") + pd.Timedelta(days=origin_index))
     )
     target_dt = origin_dt + pd.Timedelta(days=horizon_step - 1)
     row = {
@@ -191,12 +193,39 @@ def test_build_forecast_slice_coverage_and_relative_mae_ignore_imputed_targets()
     # score, coverage would drop (2/3) and relative_mae would rise well
     # above 1.0.
     rows = [
-        _pred_row(series="A", origin_index=65, horizon_step=1, actual=51.0, forecast=50.0,
-                   baseline_naive=50.0, q10=45.0, q90=55.0, observed=True),
-        _pred_row(series="A", origin_index=65, horizon_step=2, actual=49.0, forecast=50.0,
-                   baseline_naive=50.0, q10=45.0, q90=55.0, observed=True),
-        _pred_row(series="A", origin_index=65, horizon_step=3, actual=5000.0, forecast=-1000.0,
-                   baseline_naive=50.0, q10=45.0, q90=55.0, observed=False),
+        _pred_row(
+            series="A",
+            origin_index=65,
+            horizon_step=1,
+            actual=51.0,
+            forecast=50.0,
+            baseline_naive=50.0,
+            q10=45.0,
+            q90=55.0,
+            observed=True,
+        ),
+        _pred_row(
+            series="A",
+            origin_index=65,
+            horizon_step=2,
+            actual=49.0,
+            forecast=50.0,
+            baseline_naive=50.0,
+            q10=45.0,
+            q90=55.0,
+            observed=True,
+        ),
+        _pred_row(
+            series="A",
+            origin_index=65,
+            horizon_step=3,
+            actual=5000.0,
+            forecast=-1000.0,
+            baseline_naive=50.0,
+            q10=45.0,
+            q90=55.0,
+            observed=False,
+        ),
     ]
     preds = pd.DataFrame(rows)
     truth = figdata.reconstruct_truth(preds)
@@ -405,8 +434,16 @@ def test_naive_gap_ratio_and_corr_for_a_near_naive_model():
     for i, (naive, n) in enumerate(zip(naive_vals, noise, strict=True)):
         actual = naive + n
         forecast = naive + 0.3 * n
-        rows.append(_pred_row(series="X", origin_index=i, horizon_step=1, actual=actual,
-                               forecast=forecast, baseline_naive=naive))
+        rows.append(
+            _pred_row(
+                series="X",
+                origin_index=i,
+                horizon_step=1,
+                actual=actual,
+                forecast=forecast,
+                baseline_naive=naive,
+            )
+        )
     df = pd.DataFrame(rows)
     gap = figdata.naive_gap(df, horizon_step=1)
     row = gap[gap["series"] == "X"].iloc[0]

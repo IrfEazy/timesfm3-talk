@@ -55,9 +55,16 @@ def test_leaked_covariate_is_real_past_plus_real_future(exp05):
     f = CapturingForecaster()
     origins = np.array([20, 27])
     exp05.run_arm(
-        f, s, origins, cv.LEAKED_ARM, cv.LEAKED_FUTURE,
+        f,
+        s,
+        origins,
+        cv.LEAKED_ARM,
+        cv.LEAKED_FUTURE,
         lambda ser, o: cv.teaching_only_leaked_covariate(ser.values, o, 16, 7),
-        context_len=16, horizon=7, domain="mtg", teaching_only=True,
+        context_len=16,
+        horizon=7,
+        domain="mtg",
+        teaching_only=True,
     )
     for origin, covar in zip(origins, f.calls[0]["past_future_covariates"], strict=True):
         np.testing.assert_allclose(covar[0, :16], s.values[origin - 16 : origin])
@@ -69,9 +76,16 @@ def test_leaked_rows_never_enter_summary_or_main_outputs(exp05, tmp_path):
     mtg = [_series(), _series()]
     mtg[1] = SeriesData("Card2", mtg[1].values * 1.1, mtg[1].dates, mtg[1].observed)
     paths = exp05.run_experiment(
-        CapturingForecaster(), market_series=[], mtg_series=mtg,
-        release_dates=np.array(["1970-01-30"], dtype="datetime64[D]"), excluded=[],
-        results_dir=tmp_path, context_len=16, horizon=7, stride=7, n_boot=50,
+        CapturingForecaster(),
+        market_series=[],
+        mtg_series=mtg,
+        release_dates=np.array(["1970-01-30"], dtype="datetime64[D]"),
+        excluded=[],
+        results_dir=tmp_path,
+        context_len=16,
+        horizon=7,
+        stride=7,
+        n_boot=50,
     )
     for key in ("predictions", "summary"):
         df = pd.read_parquet(paths[key])

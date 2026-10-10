@@ -49,9 +49,7 @@ class CovariateSpec:
     future_known: bool  # True iff values for future dates are known at the origin
 
 
-DAY_OF_WEEK = CovariateSpec(
-    "day_of_week_sincos", "calendar: any date is known in advance", True
-)
+DAY_OF_WEEK = CovariateSpec("day_of_week_sincos", "calendar: any date is known in advance", True)
 DAY_OF_WEEK_PLACEBO = CovariateSpec(
     "day_of_week_permuted", "calendar labels, seeded permutation (placebo)", True
 )
@@ -270,8 +268,10 @@ def paired_skill_summary(
                             else "",
                         }
                     )
-        verdict = verdict_from_cis(verdict_cis) if len(verdict_cis) == len(COMPARISONS) else (
-            "inconclusive"
+        verdict = (
+            verdict_from_cis(verdict_cis)
+            if len(verdict_cis) == len(COMPARISONS)
+            else ("inconclusive")
         )
         for r in domain_rows:
             r["verdict"] = verdict

@@ -102,7 +102,7 @@ def test_each_step_has_its_own_cell_in_table_order(nb):
     for cell in _code_cells(nb):
         src = _src(cell).strip()
         if src.startswith("session.run("):
-            calls.append(ast.literal_eval(src[len("session.run("):-1]))
+            calls.append(ast.literal_eval(src[len("session.run(") : -1]))
     assert calls == [s.step_id for s in kg.STEPS]
     assert calls[1] == "02b_preregistered_v2"  # primary claim right after the probe
 
@@ -351,8 +351,11 @@ def test_session_does_not_overwrite_commit_or_skip_other_commit_steps(tmp_path, 
     monkeypatch.setattr(kg, "run_command", lambda *a, **k: (0, 1.0))
     with pytest.raises(kg.ResumeCommitMismatch, match="abc"):
         kg.Session(
-            as_of="2026-09-04", repo_dir=tmp_path, data_root=tmp_path / "d",
-            experiments=["03_timesfm3"], commit_sha="def",
+            as_of="2026-09-04",
+            repo_dir=tmp_path,
+            data_root=tmp_path / "d",
+            experiments=["03_timesfm3"],
+            commit_sha="def",
         )
     status = json.loads(s.status_path.read_text())
     status["steps"]["03_timesfm3"]["commit_sha"] = "old"  # ok, but on another commit
@@ -375,8 +378,13 @@ def _session(tmp_path, monkeypatch, codes, experiments=kg.DEFAULT_EXPERIMENTS, r
 
     monkeypatch.setattr(kg, "run_command", fake_run)
     s = kg.Session(
-        as_of="2026-09-04", repo_dir=tmp_path, data_root=tmp_path / "d",
-        experiments=experiments, resume=resume, quota_hours=10.0, commit_sha="abc",
+        as_of="2026-09-04",
+        repo_dir=tmp_path,
+        data_root=tmp_path / "d",
+        experiments=experiments,
+        resume=resume,
+        quota_hours=10.0,
+        commit_sha="abc",
     )
     return s, calls
 
@@ -413,7 +421,9 @@ def test_run_command_streams_and_reports_exit(tmp_path):
     lines = []
     code, elapsed = kg.run_command(
         [sys.executable, "-c", "print('hi'); raise SystemExit(3)"],
-        cwd=tmp_path, log_path=tmp_path / "log" / "x.log", echo=lines.append,
+        cwd=tmp_path,
+        log_path=tmp_path / "log" / "x.log",
+        echo=lines.append,
     )
     assert code == 3 and elapsed >= 0 and "".join(lines).strip() == "hi"
     assert "hi" in (tmp_path / "log" / "x.log").read_text()

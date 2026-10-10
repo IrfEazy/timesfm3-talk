@@ -179,8 +179,14 @@ def simulate_panel(
 
 
 def population_truth(
-    sc: Scenario, seed: int, n_days: int, min_days: int, *, scenario_index: int = 0,
-    n_panels: int = TRUTH_PANELS, n_cards: int = TRUTH_CARDS,
+    sc: Scenario,
+    seed: int,
+    n_days: int,
+    min_days: int,
+    *,
+    scenario_index: int = 0,
+    n_panels: int = TRUTH_PANELS,
+    n_cards: int = TRUTH_CARDS,
 ) -> dict[str, float]:
     """Population value of the statistic each CI targets, by large Monte Carlo.
 
@@ -233,8 +239,13 @@ def run_selfcheck(
     rows = []
     for s_idx, sc in enumerate(scenarios):
         truth = population_truth(
-            sc, seed, n_days, min_days, scenario_index=s_idx,
-            n_panels=truth_panels, n_cards=truth_cards,
+            sc,
+            seed,
+            n_days,
+            min_days,
+            scenario_index=s_idx,
+            n_panels=truth_panels,
+            n_cards=truth_cards,
         )
         # baseline keeps the original seed tree so its results are unchanged
         root = np.random.SeedSequence(seed if s_idx == 0 else [seed, 1, s_idx])
@@ -250,7 +261,11 @@ def run_selfcheck(
                     np.random.default_rng(sim_seq), g, n_days, min_days, sc
                 )
                 res = paired_cluster_bootstrap_from_sums(
-                    m_sum, b_sum, n_obs, n_boot=n_boot, ci=ci,
+                    m_sum,
+                    b_sum,
+                    n_obs,
+                    n_boot=n_boot,
+                    ci=ci,
                     rng=np.random.default_rng(boot_seq),
                 )
                 for stat in SKILL_STATISTICS:
@@ -349,17 +364,29 @@ def _parse_groups(value: str) -> tuple[int, ...]:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    p.add_argument("--as-of", required=True, type=dt.date.fromisoformat,
-                   help="YYYY-MM-DD recorded in the manifest (required)")
-    p.add_argument("--groups", type=_parse_groups, default=(8, 20, 40),
-                   help="comma-separated cluster counts (default 8,20,40)")
+    p.add_argument(
+        "--as-of",
+        required=True,
+        type=dt.date.fromisoformat,
+        help="YYYY-MM-DD recorded in the manifest (required)",
+    )
+    p.add_argument(
+        "--groups",
+        type=_parse_groups,
+        default=(8, 20, 40),
+        help="comma-separated cluster counts (default 8,20,40)",
+    )
     p.add_argument("--n-datasets", type=int, default=400)
     p.add_argument("--n-boot", type=int, default=DEFAULT_N_BOOT)
     p.add_argument("--seed", type=int, default=DEFAULT_SEED)
     p.add_argument("--days", type=int, default=365, help="common calendar length")
     p.add_argument("--min-days", type=int, default=120, help="shortest card history")
-    p.add_argument("--truth-panels", type=int, default=TRUTH_PANELS,
-                   help="Monte Carlo panels for the population truth")
+    p.add_argument(
+        "--truth-panels",
+        type=int,
+        default=TRUTH_PANELS,
+        help="Monte Carlo panels for the population truth",
+    )
     p.add_argument("--truth-cards", type=int, default=TRUTH_CARDS)
     p.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     p.add_argument("--manifest-dir", type=Path, default=DEFAULT_MANIFEST_DIR)

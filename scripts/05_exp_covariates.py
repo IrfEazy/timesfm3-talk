@@ -173,9 +173,7 @@ def _arm_specs(domain, release_dates, perm, offset, span, lead, cl, hz):
             return covariates.day_of_week_covariate(_window_dates(s, o, cl, hz))
 
         def placebo(s, o):
-            return covariates.permuted_day_of_week_covariate(
-                _window_dates(s, o, cl, hz), perm
-            )
+            return covariates.permuted_day_of_week_covariate(_window_dates(s, o, cl, hz), perm)
 
         return {
             "legit": (covariates.DAY_OF_WEEK, legit),
@@ -185,13 +183,17 @@ def _arm_specs(domain, release_dates, perm, offset, span, lead, cl, hz):
 
     def legit(s, o):
         return covariates.days_to_next_release(
-            _window_dates(s, o, cl, hz), s.dates[o - 1], release_dates,
+            _window_dates(s, o, cl, hz),
+            s.dates[o - 1],
+            release_dates,
             announce_lead_days=lead,
         )
 
     def placebo(s, o):
         return covariates.days_to_next_release(
-            _window_dates(s, o, cl, hz), s.dates[o - 1], shifted,
+            _window_dates(s, o, cl, hz),
+            s.dates[o - 1],
+            shifted,
             announce_lead_days=lead,
         )
 
@@ -242,11 +244,16 @@ def run_experiment(
                 pred_frames.append(run_arm(forecaster, s, origins, arm, spec, fn, **kw))
             if domain == "mtg":
                 leak = run_arm(
-                    forecaster, s, origins, covariates.LEAKED_ARM, covariates.LEAKED_FUTURE,
+                    forecaster,
+                    s,
+                    origins,
+                    covariates.LEAKED_ARM,
+                    covariates.LEAKED_FUTURE,
                     lambda ser, o: covariates.teaching_only_leaked_covariate(
                         ser.values, o, context_len, horizon
                     ),
-                    teaching_only=True, **kw,
+                    teaching_only=True,
+                    **kw,
                 )
                 leak["watermark"] = covariates.LEAKED_WATERMARK
                 leak_frames.append(leak)
@@ -299,11 +306,7 @@ def build_mtg_inputs(pool_path: Path = POOL_PATH, cache_name: str = "mtg_prices.
             )
         else:
             series.append(cached[c.label])
-    used = {
-        c.group_abbreviation.upper()
-        for c in cards
-        if c.label in {s.name for s in series}
-    }
+    used = {c.group_abbreviation.upper() for c in cards if c.label in {s.name for s in series}}
     release_dates = np.array(sorted(release_map[a] for a in used), dtype="datetime64[D]")
     return series, release_dates, excluded
 
@@ -339,8 +342,10 @@ def main() -> None:
 
     market = [s for s in _load_series("market_prices.parquet") if s.name in MARKET_SERIES]
     mtg, release_dates, excluded = build_mtg_inputs()
-    print(f"market series: {[s.name for s in market]}; MTG cards: {len(mtg)}; "
-          f"excluded: {len(excluded)}")
+    print(
+        f"market series: {[s.name for s in market]}; MTG cards: {len(mtg)}; "
+        f"excluded: {len(excluded)}"
+    )
     for e in excluded:
         print(f"  excluded {e['series']}: {e['reason']}")
     paths = run_experiment(
@@ -354,8 +359,11 @@ def main() -> None:
     )
     summary = pd.read_parquet(paths["summary"])
     primary = summary[summary["is_primary"]]
-    print(primary[["domain", "comparison", "skill_delta", "ci_low", "ci_high", "n_clusters",
-                   "verdict"]].to_string(index=False))
+    print(
+        primary[
+            ["domain", "comparison", "skill_delta", "ci_low", "ci_high", "n_clusters", "verdict"]
+        ].to_string(index=False)
+    )
     print("Leakage demo is watermarked and excluded from every summary.")
     manifest_path = write_run_manifest(
         "exp_covariates_v2",

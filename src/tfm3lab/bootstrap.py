@@ -142,18 +142,14 @@ def percentile_interval(replicates, ci: float = DEFAULT_CI) -> tuple[float, floa
 # --- resampling weights -----------------------------------------------------
 
 
-def cluster_multiplicities(
-    n_clusters: int, n_boot: int, rng: np.random.Generator
-) -> np.ndarray:
+def cluster_multiplicities(n_clusters: int, n_boot: int, rng: np.random.Generator) -> np.ndarray:
     """(n_boot x n_clusters) integer matrix: how many times each cluster is
     drawn in each replicate (uniform draws with replacement, row sums = G)."""
     if n_clusters < 1:
         raise ValueError("need at least one cluster")
     draws = rng.integers(0, n_clusters, size=(n_boot, n_clusters))
     flat = draws + n_clusters * np.arange(n_boot)[:, None]
-    return np.bincount(flat.ravel(), minlength=n_boot * n_clusters).reshape(
-        n_boot, n_clusters
-    )
+    return np.bincount(flat.ravel(), minlength=n_boot * n_clusters).reshape(n_boot, n_clusters)
 
 
 def calendar_block_multiplicities(
@@ -238,9 +234,7 @@ def _skill_from_components(
     }
 
 
-def skill_from_multiplicities(
-    model_sum, base_sum, n_obs, multiplicities
-) -> dict[str, np.ndarray]:
+def skill_from_multiplicities(model_sum, base_sum, n_obs, multiplicities) -> dict[str, np.ndarray]:
     """Median, n-weighted mean and pooled skill for each row of a
     (B x G) cluster multiplicity matrix, from per-card loss sums and observed
     row counts. A multiplicity of k is exactly equivalent to the card
@@ -422,9 +416,7 @@ def _skill_from_resampled(m: np.ndarray, b: np.ndarray, n: np.ndarray) -> dict[s
     # mean (weight 0), exactly as summarize would produce no row for it.
     present = n > 0
     ratio = np.where(present, _relative_mae(m, b), np.nan)
-    return _skill_from_components(
-        ratio, present.astype(np.int64), n, m.sum(axis=1), b.sum(axis=1)
-    )
+    return _skill_from_components(ratio, present.astype(np.int64), n, m.sum(axis=1), b.sum(axis=1))
 
 
 def calendar_block_bootstrap(
@@ -723,4 +715,3 @@ def coverage_wilson_design_adjusted(
         float(n_adj),
         policy,
     )
-

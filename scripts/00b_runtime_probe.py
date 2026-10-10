@@ -43,9 +43,7 @@ OUT_NAME = "runtime_probe.parquet"
 # latency grid (latency.grid()), measured at its longest horizon, so each
 # latency cell is priced per call from a measurement with the same batch.
 # 02b/03/05 are priced per forecast from the largest measured batch.
-DEFAULT_POINTS = tuple(
-    sorted({(c, max(latency.HORIZONS), b) for b, c, _h in latency.grid()})
-)
+DEFAULT_POINTS = tuple(sorted({(c, max(latency.HORIZONS), b) for b, c, _h in latency.grid()}))
 
 
 def grid_contexts_missing(points) -> list[int]:
@@ -113,9 +111,19 @@ def _dry_run(config_path: str) -> dict:
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "dry.json"
         subprocess.run(
-            [sys.executable, str(SCRIPTS / "02b_exp_mtg_benchmark.py"), "--config", config_path,
-             "--dry-run", "--dry-run-out", str(out)],
-            check=True, cwd=kg.REPO_ROOT, capture_output=True, text=True,
+            [
+                sys.executable,
+                str(SCRIPTS / "02b_exp_mtg_benchmark.py"),
+                "--config",
+                config_path,
+                "--dry-run",
+                "--dry-run-out",
+                str(out),
+            ],
+            check=True,
+            cwd=kg.REPO_ROOT,
+            capture_output=True,
+            text=True,
         )
         return json.loads(out.read_text(encoding="utf-8"))
 
@@ -146,7 +154,10 @@ def gather_work(step_ids: list[str], repeats_09: int, warmup_09: int) -> list[kg
             panel = 5 if adapter == "timesfm3" else 0  # multivariate panel: timesfm3 only
             works.append(
                 kg.work_from_shock(
-                    sid, adapter, n_events=len(specs), context_len=shock.CONTEXT_LEN,
+                    sid,
+                    adapter,
+                    n_events=len(specs),
+                    context_len=shock.CONTEXT_LEN,
                     origins_per_event=shock.WINDOW_BEFORE + shock.WINDOW_AFTER,
                     n_perturbation_runs=len(shock_script.PERTURBATIONS) * shock.N_PERTURB_SEEDS,
                     panel_series=panel,
@@ -156,23 +167,24 @@ def gather_work(step_ids: list[str], repeats_09: int, warmup_09: int) -> list[kg
             cov_script = cov_script or _load_script("05_exp_covariates.py")
             cl, hz, st = cov_script.CONTEXT_LEN, cov_script.HORIZON, cov_script.ORIGIN_STRIDE
             market = [
-                s for s in cov_script._load_series("market_prices.parquet")
+                s
+                for s in cov_script._load_series("market_prices.parquet")
                 if s.name in cov_script.MARKET_SERIES
             ]
             pool = {c.label for c in cov_script.load_card_manifest(cov_script.POOL_PATH)}
             mtg = [s for s in cov_script._load_series("mtg_prices.parquet") if s.name in pool]
             works.append(
                 kg.work_from_covariates(
-                    sid, adapter, context_len=cl,
+                    sid,
+                    adapter,
+                    context_len=cl,
                     market_origins=_origin_counts(cov_script, market, cl, hz, st),
                     mtg_origins=_origin_counts(cov_script, mtg, cl, hz, st),
                 )
             )
         elif step.script.startswith("scripts/09"):
             p9 = _load_script("09_latency.py").build_parser().parse_args(["--as-of", "2000-01-01"])
-            works.append(
-                kg.work_from_latency(sid, adapter, latency.grid(), p9.repeats, p9.warmup)
-            )
+            works.append(kg.work_from_latency(sid, adapter, latency.grid(), p9.repeats, p9.warmup))
     return works
 
 
@@ -217,8 +229,10 @@ def main() -> int:
     args = build_parser().parse_args()
     missing = grid_contexts_missing(args.points)
     if missing:
-        print(f"warning: --points does not measure latency-grid contexts {missing}; "
-              "step 09 projections for them are extrapolated")
+        print(
+            f"warning: --points does not measure latency-grid contexts {missing}; "
+            "step 09 projections for them are extrapolated"
+        )
     git_dirty = capture_git_state()
     adapters = sorted({kg.STEP_BY_ID[s].adapter for s in args.steps if kg.STEP_BY_ID[s].adapter})
     if not adapters:
@@ -247,17 +261,25 @@ def main() -> int:
             forecaster = _load_forecaster(adapter, checkpoints[adapter])
         except Exception as exc:  # noqa: BLE001 - one adapter failing must not end the probe
             print(f"[{adapter}] load failed: {type(exc).__name__}: {exc}")
-            measurements.append({
-                "adapter": adapter, "status": "error",
-                "message": f"load failed: {type(exc).__name__}: {exc}",
-            })
+            measurements.append(
+                {
+                    "adapter": adapter,
+                    "status": "error",
+                    "message": f"load failed: {type(exc).__name__}: {exc}",
+                }
+            )
             continue
         sync()
         load_s[adapter] = time.perf_counter() - t0
         print(f"[{adapter}] model load {load_s[adapter]:.1f} s")
         rows = kg.measure_points(
-            forecaster, series, adapter, args.points,
-            repeats=args.repeats, warmup=args.warmup, sync=sync,
+            forecaster,
+            series,
+            adapter,
+            args.points,
+            repeats=args.repeats,
+            warmup=args.warmup,
+            sync=sync,
         )
         for r in rows:
             detail = f"{r['median_s']:.4f} s/call" if r["status"] == "ok" else r.get("message")
@@ -278,7 +300,11 @@ def main() -> int:
     out = config.RESULTS_DIR / OUT_NAME
     to_frame(measurements, plan, load_s).to_parquet(out, index=False)
     manifest = write_run_manifest(
-        "runtime_probe", [out], as_of=args.as_of, checkpoint=checkpoints, seed=None,
+        "runtime_probe",
+        [out],
+        as_of=args.as_of,
+        checkpoint=checkpoints,
+        seed=None,
         git_dirty=git_dirty,
         extra={
             "args": {k: str(v) for k, v in vars(args).items()},

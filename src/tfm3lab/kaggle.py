@@ -532,7 +532,9 @@ class Session:
         print(f"[{step_id}] {' '.join(argv)}")
         started = _utcnow()
         code, elapsed = run_command(
-            argv, cwd=self.repo_dir, log_path=self.results_dir / "logs" / f"{step_id}.log",
+            argv,
+            cwd=self.repo_dir,
+            log_path=self.results_dir / "logs" / f"{step_id}.log",
             echo=echo,
         )
         rec = {
@@ -715,7 +717,8 @@ def per_forecast_seconds(measurements: Sequence[dict], adapter: str, context: in
             by_ctx[c] = (b, float(m["median_s"]) / b)
     if not by_ctx:
         msgs = [
-            str(m["message"]) for m in measurements
+            str(m["message"])
+            for m in measurements
             if m.get("adapter") == adapter and m.get("message")
         ]
         why = f": {msgs[0]}" if msgs else ""
@@ -893,8 +896,12 @@ def measure_points(
     rows: list[dict] = []
     for context, horizon, batch in points:
         row = {
-            "adapter": adapter, "context": context, "horizon": horizon, "batch": batch,
-            "repeats": repeats, "warmup": warmup,
+            "adapter": adapter,
+            "context": context,
+            "horizon": horizon,
+            "batch": batch,
+            "repeats": repeats,
+            "warmup": warmup,
         }
         try:
             ctxs, source = latency.make_contexts(series, batch, context, allow_synthetic=False)
@@ -903,7 +910,11 @@ def measure_points(
                 lambda ctxs=ctxs, ids=ids, horizon=horizon: forecast_batch(
                     forecaster, ctxs, horizon, ts_ids=ids
                 ),
-                n_forecasts=batch, repeats=repeats, warmup=warmup, sync=sync, clock=clock,
+                n_forecasts=batch,
+                repeats=repeats,
+                warmup=warmup,
+                sync=sync,
+                clock=clock,
             )
             rows.append({**row, **stats, "status": "ok", "data_source": source})
         except Exception as exc:  # noqa: BLE001 - a failed point must not end the probe

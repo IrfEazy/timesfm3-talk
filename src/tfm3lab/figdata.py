@@ -116,8 +116,10 @@ def find_glitches(
         g = g.sort_values("index")
         ret = g["value"].pct_change()
         nxt = ret.shift(-1)
-        mask = (ret.abs() > return_threshold) & (nxt.abs() > revert_threshold) & (
-            np.sign(ret) != np.sign(nxt)
+        mask = (
+            (ret.abs() > return_threshold)
+            & (nxt.abs() > revert_threshold)
+            & (np.sign(ret) != np.sign(nxt))
         )
         mask = mask.fillna(False)
         for _, row in g[mask].iterrows():
@@ -158,12 +160,14 @@ def data_quality_table(series_list: list) -> pd.DataFrame:
     restricted to observed points.
     """
     frames = [
-        pd.DataFrame({
-            "series": s.name,
-            "index": np.arange(len(s.values)),
-            "date": s.dates,
-            "value": s.values,
-        })
+        pd.DataFrame(
+            {
+                "series": s.name,
+                "index": np.arange(len(s.values)),
+                "date": s.dates,
+                "value": s.values,
+            }
+        )
         for s in series_list
     ]
     raw = pd.concat(frames, ignore_index=True)
