@@ -104,15 +104,31 @@ class TimesFM2p5Adapter:
         ]
 
 
-def load_forecaster_2p5(repo_id: str = DEFAULT_REPO_ID, **kwargs: Any) -> TimesFM2p5Adapter:
+def load_forecaster_2p5(
+    repo_id: str = DEFAULT_REPO_ID, revision: str | None = None, **kwargs: Any
+) -> TimesFM2p5Adapter:
     """Loads the real TimesFM-2.5 checkpoint via the bundled legacy API.
     `timesfm` is imported inside this function, not at module load, so
     importing tfm3lab.model_2p5 (and running its unit tests against a fake
     model) never requires torch -- mirrors model.py's load_forecaster.
     Not called by this branch (no GPU/live-checkpoint run performed).
+
+    `revision` (default config.CHECKPOINT_REVISION_2P5) pins the exact hub
+    commit. The legacy load_checkpoint(path) takes only a local path, so a
+    pinned revision is fetched with huggingface_hub.snapshot_download(repo_id,
+    revision) and the resulting local directory is loaded; without a revision
+    the behavior is unchanged (load_checkpoint(repo_id)).
     """
     import timesfm
 
+    from tfm3lab import config
+
+    revision = revision or config.CHECKPOINT_REVISION_2P5
     model = timesfm.TimesFM_2p5_200M_torch(**kwargs)
-    model.load_checkpoint(repo_id)
+    if revision:
+        from huggingface_hub import snapshot_download
+
+        model.load_checkpoint(snapshot_download(repo_id, revision=revision))
+    else:
+        model.load_checkpoint(repo_id)
     return TimesFM2p5Adapter(model)

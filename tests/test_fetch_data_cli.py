@@ -57,3 +57,19 @@ def test_resolve_as_of_allow_live_end_uses_today_and_warns(fetch01, capsys):
     assert as_of == dt.date.today()
     assert live_end is True
     assert "WARNING" in capsys.readouterr().err
+
+
+def test_skip_mtg_manifest_records_skip_and_outputs(fetch01, tmp_path):
+    import json
+
+    market = tmp_path / "market_prices.parquet"
+    cpi = tmp_path / "cpi_yoy.parquet"
+    market.write_bytes(b"m")
+    cpi.write_bytes(b"c")
+    path = fetch01.write_skip_mtg_manifest(
+        dt.date(2026, 9, 1), False, [market, cpi], manifest_dir=tmp_path / "man"
+    )
+    data = json.loads(path.read_text())
+    assert data["mtg"] == "skipped"
+    assert [o["path"] for o in data["outputs"]] == [str(market), str(cpi)]
+    assert data["_meta"]["as_of"] == "2026-09-01"

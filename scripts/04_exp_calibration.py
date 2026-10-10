@@ -28,7 +28,10 @@ di più)? Verificare, non assumere.
 
 Requires: scripts/02_exp_mtg.py and scripts/03_exp_shock.py already run.
 
-Usage: uv run scripts/04_exp_calibration.py [--calm-offset-threshold 3]
+Usage: uv run scripts/04_exp_calibration.py --as-of 2026-09-01 [--calm-offset-threshold 3]
+Exactly one of --as-of or --allow-live-end is required (no silent default to
+today()); --allow-live-end (dev only) uses today() and records live_end=true.
+A manifest is written to results/manifests/.
 
 Writes to results/:
     exp_calibration_curve.parquet    (nominal vs empirical coverage, per regime x quantile level)
@@ -38,10 +41,13 @@ Writes to results/:
 from __future__ import annotations
 
 import argparse
+import datetime as dt
+import sys
 
 import pandas as pd
 
 from tfm3lab import config
+from tfm3lab.manifest import capture_git_state, write_run_manifest
 from tfm3lab.summarize import QUANTILE_COLUMNS, summarize_calibration
 
 HORIZON_STEP = 1  # every regime is compared at this one horizon step only
@@ -102,9 +108,22 @@ def load_market_by_regime(calm_offset_threshold: int) -> pd.DataFrame:
     return df
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    end_group = parser.add_mutually_exclusive_group()
+    end_group.add_argument(
+        "--as-of",
+        default=None,
+        type=dt.date.fromisoformat,
+        metavar="YYYY-MM-DD",
+        help="data freeze date recorded in the manifest; required unless --allow-live-end",
+    )
+    end_group.add_argument(
+        "--allow-live-end",
+        action="store_true",
+        help="use today() as the as-of date (dev only); records live_end=true",
     )
     parser.add_argument(
         "--calm-offset-threshold",
@@ -112,7 +131,27 @@ def main() -> None:
         default=3,
         help="market rows within this many days of a known event count as 'market_shock'",
     )
-    args = parser.parse_args()
+    return parser
+
+
+def resolve_as_of(args: argparse.Namespace) -> tuple[dt.date, bool]:
+    """Returns (as_of, live_end); exits if neither --as-of nor --allow-live-end."""
+    if args.allow_live_end:
+        print(
+            "WARNING: --allow-live-end — using today() as as_of; not reproducible, "
+            "do not use for a final run.",
+            file=sys.stderr,
+        )
+        return dt.date.today(), True
+    if args.as_of is not None:
+        return args.as_of, False
+    raise SystemExit("error: one of --as-of YYYY-MM-DD or --allow-live-end is required")
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    as_of, live_end = resolve_as_of(args)
+    git_dirty = capture_git_state()
 
     mtg = load_mtg_h1()
     market = load_market_by_regime(args.calm_offset_threshold)
@@ -138,6 +177,20 @@ def main() -> None:
     print(summary.to_string(index=False))
 
     print(f"\nWrote calibration curve + summary to {config.RESULTS_DIR}")
+
+    manifest_path = write_run_manifest(
+        "exp_calibration",
+        [
+            config.RESULTS_DIR / "exp_calibration_curve.parquet",
+            config.RESULTS_DIR / "exp_calibration_summary.parquet",
+        ],
+        as_of=as_of,
+        live_end=live_end,
+        seed=None,
+        git_dirty=git_dirty,
+        extra={"args": {k: str(v) for k, v in vars(args).items()}},
+    )
+    print(f"Manifest written to {manifest_path}")
 
 
 if __name__ == "__main__":

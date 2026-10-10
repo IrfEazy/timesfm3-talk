@@ -107,3 +107,27 @@ def test_forecast_batch_preserves_reversed_output_order_in_ts_ids():
     # and BatchForecast.forecast must stay in lockstep with whatever order the forecaster used.
     np.testing.assert_allclose(result.forecast[0], 20.0)
     np.testing.assert_allclose(result.forecast[1], 2.0)
+
+
+def test_load_forecaster_passes_revision_to_timesfm3(monkeypatch):
+    import sys
+    import types
+
+    seen = {}
+
+    class FakeConfig:
+        def __init__(self, **kw):
+            seen.update(kw)
+
+    fake = types.SimpleNamespace(ModelConfig=FakeConfig, TimesFM3Evaluator=lambda cfg: "model")
+    monkeypatch.setitem(sys.modules, "timesfm3", fake)
+    monkeypatch.setattr(config, "CHECKPOINT_REVISION", None)
+    from tfm3lab.model import load_forecaster
+
+    assert load_forecaster(revision="abc123") == "model"
+    assert seen["revision"] == "abc123"
+    load_forecaster()
+    assert seen["revision"] is None
+    monkeypatch.setattr(config, "CHECKPOINT_REVISION", "pinned")
+    load_forecaster()
+    assert seen["revision"] == "pinned"

@@ -63,6 +63,18 @@ PRETRAIN_CUTOFF = date(2023, 11, 30)
 # see README.md.
 CHECKPOINT_ID = "google/timesfm-3.0-pytorch"
 
+# Checkpoint commit pin (Preregistration v2 s7). None = "latest on the hub",
+# which is NOT reproducible; it is pinned to the resolved commit sha (from the
+# first Kaggle run's manifest) after that run. Override without editing code via
+# the TFM3LAB_CHECKPOINT_REVISION / TFM3LAB_CHECKPOINT_REVISION_2P5 env vars.
+CHECKPOINT_REVISION: str | None = os.environ.get("TFM3LAB_CHECKPOINT_REVISION") or None
+
+# TimesFM-2.5 comparison checkpoint (same pinning policy as above).
+CHECKPOINT_ID_2P5 = "google/timesfm-2.5-200m-pytorch"
+CHECKPOINT_REVISION_2P5: str | None = (
+    os.environ.get("TFM3LAB_CHECKPOINT_REVISION_2P5") or None
+)
+
 # From timesfm3._ModelConfig / TimesFM3Forecaster.global_context: the true
 # context cap is 15360 (a round "16k" in marketing copy is ceil(15360/32)*32
 # rounded loosely) — cite the exact number in the talk, it's more convincing.

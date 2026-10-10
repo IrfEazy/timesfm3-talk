@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import sys
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -38,7 +39,7 @@ from tfm3lab.backtest import SeriesData
 from tfm3lab.data.macro import build_cpi_series
 from tfm3lab.data.market import build_market_series
 from tfm3lab.data.mtg import TCGCSV_ARCHIVE_START, PriceSelectionPolicy, build_card_series
-from tfm3lab.manifest import build_fetch_manifest, write_manifest
+from tfm3lab.manifest import build_fetch_manifest, write_manifest, write_run_manifest
 
 plots.apply_style()
 
@@ -94,6 +95,24 @@ def resolve_as_of(args: argparse.Namespace) -> tuple[dt.date, bool]:
         return dt.date.fromisoformat(args.as_of), False
     raise SystemExit(
         "error: one of --as-of YYYY-MM-DD or --allow-live-end is required for a full fetch run"
+    )
+
+
+def write_skip_mtg_manifest(
+    as_of: dt.date,
+    live_end: bool,
+    outputs: list[Path],
+    manifest_dir: Path | None = None,
+) -> Path:
+    """Manifest for a --skip-mtg run: says MTG was skipped and records the
+    market/CPI cache outputs (name, size, sha256)."""
+    return write_run_manifest(
+        "fetch",
+        outputs,
+        as_of=as_of,
+        live_end=live_end,
+        extra={"mtg": "skipped"},
+        manifest_dir=manifest_dir,
     )
 
 
@@ -157,6 +176,17 @@ def main() -> None:
     cpi_df = _series_list_to_frame([cpi])
     cpi_df.to_parquet(config.CACHE_DIR / "cpi_yoy.parquet", index=False)
     print(f"  {len(cpi.values)} months, {cpi_df['date'].min()} .. {cpi_df['date'].max()}")
+
+    if args.skip_mtg:
+        manifest_path = write_skip_mtg_manifest(
+            as_of,
+            live_end,
+            [
+                config.CACHE_DIR / "market_prices.parquet",
+                config.CACHE_DIR / "cpi_yoy.parquet",
+            ],
+        )
+        print(f"  manifest written to {manifest_path}")
 
     print(f"\nAll caches written to {config.CACHE_DIR}")
 

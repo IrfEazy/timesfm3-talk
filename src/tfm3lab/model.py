@@ -65,8 +65,13 @@ def load_forecaster(
     checkpoint_id: str = config.CHECKPOINT_ID,
     per_core_batch_size: int = 16,
     device: str | None = None,
+    revision: str | None = None,
 ) -> Forecaster:
     """Loads the real TimesFM3Evaluator.
+
+    `revision` pins the checkpoint to an exact hub commit via timesfm3's
+    native ModelConfig.revision (forwarded to TimesFM3Torch.from_pretrained);
+    None falls back to config.CHECKPOINT_REVISION, then to the hub default.
 
     Requires accepting the gated checkpoint's license on Hugging Face and
     either `hf auth login` once, or an HF_TOKEN env var — see README.md.
@@ -77,11 +82,13 @@ def load_forecaster(
     from timesfm3 import ModelConfig, TimesFM3Evaluator
 
     token = os.environ.get("HF_TOKEN") or True
+    revision = revision or config.CHECKPOINT_REVISION
     cfg = ModelConfig(
         checkpoint_path=checkpoint_id,
         per_core_batch_size=per_core_batch_size,
         device=device,
         token=token,
+        revision=revision,
     )
     return TimesFM3Evaluator(cfg)
 

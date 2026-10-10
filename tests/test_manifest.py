@@ -21,7 +21,7 @@ def test_write_manifest_includes_common_meta_fields(tmp_path):
     assert data["_meta"]["live_end"] is False
     assert "git_sha" in data["_meta"]
     assert "written_at_utc" in data["_meta"]
-    assert set(data["_meta"]["package_versions"]) == {
+    assert set(data["_meta"]["package_versions"]) >= {
         "requests",
         "py7zr",
         "pandas",
@@ -86,3 +86,88 @@ def test_write_manifest_handles_git_timeout_gracefully(tmp_path, monkeypatch):
     path = write_manifest({}, tmp_path / "m.json", as_of=dt.date(2026, 9, 1))
     data = json.loads(path.read_text())
     assert data["_meta"]["git_sha"] == "unknown"
+
+
+def test_write_manifest_records_reproducibility_fields(tmp_path):
+    import datetime as dt
+    import json
+
+    from tfm3lab.manifest import write_manifest
+
+    ckpt = {"repo_id": "google/x", "revision_requested": None, "revision_resolved": "abc"}
+    path = write_manifest(
+        {"k": 1}, tmp_path / "m.json", as_of=dt.date(2026, 9, 1), checkpoint=ckpt, seed=7
+    )
+    meta = json.loads(path.read_text())["_meta"]
+    assert isinstance(meta["git_dirty"], bool) or meta["git_dirty"] is None
+    assert "prereg_commit" in meta
+    assert {"gpu_name", "cuda_version", "torch_version", "device_count"} <= set(meta["environment"])
+    assert meta["checkpoint"] == ckpt
+    assert meta["seed"] == 7
+    for pkg in ("numpy", "scipy", "huggingface_hub", "timesfm3"):
+        assert pkg in meta["package_versions"]
+
+
+def test_write_manifest_defaults_checkpoint_and_seed_to_none(tmp_path):
+    import datetime as dt
+    import json
+
+    from tfm3lab.manifest import write_manifest
+
+    path = write_manifest({}, tmp_path / "m.json", as_of=dt.date(2026, 9, 1))
+    meta = json.loads(path.read_text())["_meta"]
+    assert meta["checkpoint"] is None
+    assert meta["seed"] is None
+
+
+def test_write_run_manifest_lists_outputs(tmp_path):
+    import datetime as dt
+    import json
+
+    from tfm3lab.manifest import write_run_manifest
+
+    out = tmp_path / "a.parquet"
+    out.write_bytes(b"abc")
+    path = write_run_manifest(
+        "exp_x",
+        [out, tmp_path / "gone.parquet"],
+        as_of=dt.date(2026, 9, 1),
+        manifest_dir=tmp_path / "man",
+    )
+    data = json.loads(path.read_text())
+    assert data["script"] == "exp_x"
+    assert data["outputs"][0]["bytes"] == 3
+    assert len(data["outputs"][0]["sha256"]) == 64
+    assert data["outputs"][1]["missing"] is True
+
+
+def test_git_dirty_ignores_results_and_data_outputs(tmp_path, monkeypatch):
+    import shutil
+
+    from tfm3lab import manifest
+
+    if shutil.which("git") is None:
+        import pytest
+
+        pytest.skip("git not available")
+    run = lambda *a: subprocess.run(a, cwd=tmp_path, check=True, capture_output=True)  # noqa: E731
+    run("git", "init", "-q")
+    run("git", "config", "user.email", "t@example.com")
+    run("git", "config", "user.name", "t")
+    (tmp_path / "code.py").write_text("x = 1\n")
+    run("git", "add", "code.py")
+    run("git", "commit", "-qm", "init")
+    monkeypatch.setattr(manifest, "_REPO_ROOT", tmp_path)
+    assert manifest._git_dirty() is False
+    (tmp_path / "results").mkdir()
+    (tmp_path / "results" / "out.parquet").write_text("o")
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "c.parquet").write_text("o")
+    assert manifest._git_dirty() is False
+    (tmp_path / "code.py").write_text("x = 2\n")
+    assert manifest._git_dirty() is True
+
+
+def test_write_manifest_uses_supplied_git_dirty(tmp_path):
+    path = write_manifest({}, tmp_path / "m.json", as_of=dt.date(2026, 9, 1), git_dirty=True)
+    assert json.loads(path.read_text())["_meta"]["git_dirty"] is True

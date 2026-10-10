@@ -12,9 +12,14 @@ Requires:
   - scripts/01_fetch_data.py already run (reads data/cache/market_prices.parquet)
   - a loaded TimesFM-3 forecaster (see README.md / scripts/02_exp_mtg.py's header)
 
-Usage:
-    uv run scripts/03_exp_shock.py
-    uv run scripts/03_exp_shock.py --context-len 256 --window-before 12 --window-after 25
+Usage (--as-of is REQUIRED: the data freeze date, recorded in the manifest;
+--allow-cpu skips the GPU preflight for smoke runs):
+    uv run scripts/03_exp_shock.py --as-of 2026-09-01
+    uv run scripts/03_exp_shock.py --as-of 2026-09-01 --context-len 256 \\
+        --window-before 12 --window-after 25
+
+Preflight (GPU, HF token, gated-checkpoint access, resolved commit sha) runs
+before anything else; results/manifests/ gets one manifest per run.
 
 Writes to results/:
     exp_shock_raw_predictions.parquet   (every event x origin row, one-step-ahead)
@@ -25,6 +30,7 @@ Writes to results/:
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 
 import numpy as np
 import pandas as pd
@@ -32,7 +38,9 @@ import pandas as pd
 from tfm3lab import config
 from tfm3lab.backtest import SeriesData, run_multivariate_backtest, run_univariate_backtest
 from tfm3lab.data.market import detect_shock_days
+from tfm3lab.manifest import capture_git_state, write_run_manifest
 from tfm3lab.model import load_forecaster
+from tfm3lab.preflight import preflight_model
 from tfm3lab.summarize import compute_mase_scales, summarize_accuracy
 from tfm3lab.windows import nearest_origin
 
@@ -133,14 +141,37 @@ def run_event_backtest(
     return combined
 
 
-def main() -> None:
+def add_run_args(parser: argparse.ArgumentParser) -> None:
+    """Flags shared by the model scripts (preregistration v2 s7)."""
+    parser.add_argument(
+        "--as-of",
+        required=True,
+        type=dt.date.fromisoformat,
+        metavar="YYYY-MM-DD",
+        help="the data freeze date used for the fetch; recorded in the run manifest (required)",
+    )
+    parser.add_argument(
+        "--allow-cpu",
+        action="store_true",
+        help="skip the GPU requirement (slow smoke runs only)",
+    )
+
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
+    add_run_args(parser)
     parser.add_argument("--context-len", type=int, default=256)
     parser.add_argument("--window-before", type=int, default=12)
     parser.add_argument("--window-after", type=int, default=25)
-    args = parser.parse_args()
+    return parser
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    git_dirty = capture_git_state()
+    checkpoint = preflight_model(allow_cpu=args.allow_cpu)
 
     series_list = load_cached_market_series()
     sp500 = next(s for s in series_list if s.name == "SP500")
@@ -153,7 +184,7 @@ def main() -> None:
     print("\nValidating known events against the data-driven shock detector:")
     validate_known_events(sp500)
 
-    forecaster = load_forecaster()
+    forecaster = load_forecaster(revision=checkpoint["revision_resolved"])
 
     event_dfs = []
     for event in config.KNOWN_EVENTS:
@@ -215,6 +246,21 @@ def main() -> None:
         f"\nWrote {len(raw_df)} rows, {len(accuracy)} accuracy rows, "
         f"{len(lag_df)} lag rows to {config.RESULTS_DIR}"
     )
+
+    manifest_path = write_run_manifest(
+        "exp_shock",
+        [
+            config.RESULTS_DIR / "exp_shock_raw_predictions.parquet",
+            config.RESULTS_DIR / "exp_shock_accuracy.parquet",
+            config.RESULTS_DIR / "exp_shock_adaptation_lag.parquet",
+        ],
+        as_of=args.as_of,
+        checkpoint=checkpoint,
+        seed=None,
+        git_dirty=git_dirty,
+        extra={"args": {k: str(v) for k, v in vars(args).items()}},
+    )
+    print(f"Manifest written to {manifest_path}")
 
 
 if __name__ == "__main__":

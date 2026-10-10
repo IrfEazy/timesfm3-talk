@@ -96,3 +96,48 @@ def test_adapter_with_mismatched_quantile_grid_raises_loudly_through_model_forec
     adapter = TimesFM2p5Adapter(_FakeTimesFM25(n_levels=5))
     with pytest.raises(AssertionError, match="expected 9 quantiles"):
         forecast_batch(adapter, [np.array([1.0])], max_horizon=2, ts_ids=["only"])
+
+
+def _fake_timesfm(monkeypatch, loaded):
+    import sys
+    import types
+
+    class FakeModel:
+        def __init__(self, **kw):
+            pass
+
+        def load_checkpoint(self, path):
+            loaded.append(path)
+
+    monkeypatch.setitem(
+        sys.modules, "timesfm", types.SimpleNamespace(TimesFM_2p5_200M_torch=FakeModel)
+    )
+
+
+def test_load_forecaster_2p5_without_revision_loads_repo_id(monkeypatch):
+    from tfm3lab import config
+    from tfm3lab.model_2p5 import load_forecaster_2p5
+
+    loaded = []
+    _fake_timesfm(monkeypatch, loaded)
+    monkeypatch.setattr(config, "CHECKPOINT_REVISION_2P5", None)
+    load_forecaster_2p5("google/x")
+    assert loaded == ["google/x"]
+
+
+def test_load_forecaster_2p5_with_revision_uses_snapshot_download(monkeypatch):
+    import huggingface_hub
+
+    from tfm3lab.model_2p5 import load_forecaster_2p5
+
+    loaded, calls = [], []
+    _fake_timesfm(monkeypatch, loaded)
+
+    def fake_snapshot(repo_id, revision=None, **kw):
+        calls.append((repo_id, revision))
+        return "/local/snap"
+
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", fake_snapshot)
+    load_forecaster_2p5("google/x", revision="abc")
+    assert calls == [("google/x", "abc")]
+    assert loaded == ["/local/snap"]

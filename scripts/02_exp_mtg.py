@@ -12,9 +12,14 @@ Requires:
     checkpoint accepted + `hf auth login` or HF_TOKEN — see README.md.
     Runs on CPU for a handful of short series, slowly.
 
-Usage:
-    uv run scripts/02_exp_mtg.py
-    uv run scripts/02_exp_mtg.py --context-len 128 --max-horizon 28 --max-origins 50
+Usage (--as-of is REQUIRED: the data freeze date, recorded in the manifest;
+--allow-cpu skips the GPU preflight for smoke runs):
+    uv run scripts/02_exp_mtg.py --as-of 2026-09-01
+    uv run scripts/02_exp_mtg.py --as-of 2026-09-01 --context-len 128 --max-horizon 28 \\
+        --max-origins 50 --allow-cpu
+
+Preflight (GPU, HF token, gated-checkpoint access, resolved commit sha) runs
+before anything else; results/manifests/ gets one manifest per run.
 
 Writes to results/:
     exp_mtg_raw_predictions.parquet  (every origin x horizon-step row, all mode/transform combos)
@@ -25,6 +30,7 @@ Writes to results/:
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 
 import pandas as pd
 
@@ -36,7 +42,9 @@ from tfm3lab.backtest import (
     run_multivariate_backtest,
     run_univariate_backtest,
 )
+from tfm3lab.manifest import capture_git_state, write_run_manifest
 from tfm3lab.model import load_forecaster
+from tfm3lab.preflight import preflight_model
 from tfm3lab.summarize import compute_mase_scales, summarize_accuracy, summarize_calibration
 from tfm3lab.windows import valid_origins
 
@@ -70,16 +78,39 @@ def load_cached_series() -> list[SeriesData]:
     return [SeriesData(s.name, s.values[-n:], s.dates[-n:], s.observed[-n:]) for s in series_list]
 
 
-def main() -> None:
+def add_run_args(parser: argparse.ArgumentParser) -> None:
+    """Flags shared by the model scripts (preregistration v2 s7)."""
+    parser.add_argument(
+        "--as-of",
+        required=True,
+        type=dt.date.fromisoformat,
+        metavar="YYYY-MM-DD",
+        help="the data freeze date used for the fetch; recorded in the run manifest (required)",
+    )
+    parser.add_argument(
+        "--allow-cpu",
+        action="store_true",
+        help="skip the GPU requirement (slow smoke runs only)",
+    )
+
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
+    add_run_args(parser)
     parser.add_argument("--context-len", type=int, default=64)
     parser.add_argument("--max-horizon", type=int, default=28)
     parser.add_argument(
         "--max-origins", type=int, default=None, help="cap origins per series (debug/quick runs)"
     )
-    args = parser.parse_args()
+    return parser
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    git_dirty = capture_git_state()
+    checkpoint = preflight_model(allow_cpu=args.allow_cpu)
 
     series_list = load_cached_series()
     n = len(series_list[0].values)
@@ -98,7 +129,7 @@ def main() -> None:
         f"(context_len={args.context_len}, max_horizon={args.max_horizon})"
     )
 
-    forecaster = load_forecaster()
+    forecaster = load_forecaster(revision=checkpoint["revision_resolved"])
 
     all_results = []
     for transform, transform_name in ((IDENTITY_TRANSFORM, "raw"), (LOG1P_TRANSFORM, "log1p")):
@@ -165,6 +196,22 @@ def main() -> None:
         f"{len(accuracy)} accuracy rows, {len(calibration)} calibration rows "
         f"to {config.RESULTS_DIR}"
     )
+
+    manifest_path = write_run_manifest(
+        "exp_mtg",
+        [
+            config.RESULTS_DIR / "exp_mtg_raw_predictions.parquet",
+            config.RESULTS_DIR / "exp_mtg_demo_slice.parquet",
+            config.RESULTS_DIR / "exp_mtg_accuracy.parquet",
+            config.RESULTS_DIR / "exp_mtg_calibration.parquet",
+        ],
+        as_of=args.as_of,
+        checkpoint=checkpoint,
+        seed=None,
+        git_dirty=git_dirty,
+        extra={"args": {k: str(v) for k, v in vars(args).items()}},
+    )
+    print(f"Manifest written to {manifest_path}")
 
 
 if __name__ == "__main__":

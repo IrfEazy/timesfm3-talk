@@ -10,6 +10,7 @@ describes, not queried at scale.
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 import subprocess
 from importlib.metadata import PackageNotFoundError, version
@@ -22,7 +23,21 @@ import pandas as pd
 # the checkpoint-loading stack's versions are recorded alongside it. Any
 # package not installed in the current environment records "unknown" rather
 # than failing the run.
-_TRACKED_PACKAGES = ("requests", "py7zr", "pandas", "timesfm", "torch")
+_TRACKED_PACKAGES = (
+    "requests",
+    "py7zr",
+    "pandas",
+    "numpy",
+    "scipy",
+    "huggingface_hub",
+    "timesfm",
+    "timesfm3",
+    "torch",
+)
+
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_UNSET = object()
 
 
 def _git_sha() -> str:
@@ -33,6 +48,7 @@ def _git_sha() -> str:
             text=True,
             check=True,
             timeout=5,
+            cwd=_REPO_ROOT,
         )
         return result.stdout.strip()
     except (
@@ -41,6 +57,45 @@ def _git_sha() -> str:
         FileNotFoundError,
         OSError,
     ):
+        return "unknown"
+
+
+def _git_dirty() -> bool | None:
+    """True if the work tree has uncommitted changes; None if git is unavailable."""
+    try:
+        result = subprocess.run(
+            # results/ and data/ hold the run's own outputs; they must not
+            # make the code state look dirty.
+            ["git", "status", "--porcelain", "--", ".", ":(exclude)results", ":(exclude)data"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
+            cwd=_REPO_ROOT,
+        )
+        return bool(result.stdout.strip())
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
+        return None
+
+
+def capture_git_state() -> bool | None:
+    """Code-state dirtiness; call at script start and pass to write_manifest(git_dirty=...)."""
+    return _git_dirty()
+
+
+def _prereg_commit() -> str:
+    """Last commit touching docs/analysis-plan.md (the preregistration)."""
+    try:
+        result = subprocess.run(
+            ["git", "log", "-n", "1", "--format=%H", "--", "docs/analysis-plan.md"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=5,
+            cwd=_REPO_ROOT,
+        )
+        return result.stdout.strip() or "unknown"
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
         return "unknown"
 
 
@@ -55,23 +110,89 @@ def _package_versions() -> dict[str, str]:
 
 
 def write_manifest(
-    payload: dict, path: Path, *, as_of: dt.date, live_end: bool = False
+    payload: dict,
+    path: Path,
+    *,
+    as_of: dt.date,
+    live_end: bool = False,
+    checkpoint: dict | None = None,
+    seed: int | None = None,
+    git_dirty: bool | None | object = _UNSET,
 ) -> Path:
     """Merges `payload` under a common `_meta` block and writes indented
-    JSON to `path` (parent directories created as needed)."""
-    manifest = {
+    JSON to `path` (parent directories created as needed).
+
+    `checkpoint` is {repo_id, revision_requested, revision_resolved} for model
+    runs; `git_dirty` is a value captured by capture_git_state() at script
+    start (default: computed now); `seed` is the run's RNG seed (None when the
+    run uses no randomness).
+    """
+    from .preflight import run_environment
+
+    meta = {
         "_meta": {
             "git_sha": _git_sha(),
+            "git_dirty": _git_dirty() if git_dirty is _UNSET else git_dirty,
+            "prereg_commit": _prereg_commit(),
+            "environment": run_environment(),
+            "checkpoint": checkpoint,
+            "seed": seed,
             "as_of": as_of.isoformat(),
             "live_end": live_end,
             "written_at_utc": dt.datetime.now(dt.UTC).isoformat(),
             "package_versions": _package_versions(),
         },
-        **payload,
     }
+    manifest = {**meta, **payload}
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(manifest, indent=2, default=str), encoding="utf-8")
     return path
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def write_run_manifest(
+    script: str,
+    outputs: list[Path],
+    *,
+    as_of: dt.date,
+    live_end: bool = False,
+    checkpoint: dict | None = None,
+    seed: int | None = None,
+    extra: dict | None = None,
+    git_dirty: bool | None | object = _UNSET,
+    manifest_dir: Path | None = None,
+) -> Path:
+    """Per-run manifest for scripts 02-05: lists the output files (name, size,
+    sha256) next to the common `_meta` block. Missing outputs are recorded as
+    such rather than failing the run."""
+    from . import config
+
+    entries = []
+    for out in outputs:
+        out = Path(out)
+        if out.exists():
+            entries.append({"path": str(out), "bytes": out.stat().st_size, "sha256": _sha256(out)})
+        else:
+            entries.append({"path": str(out), "missing": True})
+    ts = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
+    target = (manifest_dir or config.RESULTS_DIR / "manifests") / (
+        f"{script}-{as_of.isoformat()}-{ts}.json"
+    )
+    payload = {"script": script, "outputs": entries, **(extra or {})}
+    return write_manifest(
+        payload, target, as_of=as_of,
+        live_end=live_end,
+        checkpoint=checkpoint,
+        seed=seed,
+        git_dirty=git_dirty,
+    )
 
 
 def build_fetch_manifest(

@@ -25,7 +25,12 @@ Requires:
   - scripts/01_fetch_data.py already run
   - a loaded TimesFM-3 forecaster (see scripts/02_exp_mtg.py's header)
 
-Usage: uv run scripts/05_exp_covariates.py
+Usage (--as-of is REQUIRED: the data freeze date, recorded in the manifest;
+--allow-cpu skips the GPU preflight for smoke runs):
+    uv run scripts/05_exp_covariates.py --as-of 2026-09-01 [--allow-cpu]
+
+Preflight (GPU, HF token, gated-checkpoint access, resolved commit sha) runs
+before anything else; results/manifests/ gets one manifest per run.
 
 Writes to results/:
     exp_covariates_market_dow.parquet
@@ -35,6 +40,9 @@ Writes to results/:
 
 from __future__ import annotations
 
+import argparse
+import datetime as dt
+
 import numpy as np
 import pandas as pd
 import requests
@@ -42,8 +50,10 @@ import requests
 from tfm3lab import config
 from tfm3lab.backtest import SeriesData
 from tfm3lab.data.mtg import DEFAULT_CARDS, MAGIC_CATEGORY_ID, fetch_groups
+from tfm3lab.manifest import capture_git_state, write_run_manifest
 from tfm3lab.metrics import mae, relative_mae
 from tfm3lab.model import forecast_batch, load_forecaster
+from tfm3lab.preflight import preflight_model
 from tfm3lab.windows import context_slice, target_indices, valid_origins
 
 CONTEXT_LEN = 32
@@ -234,8 +244,30 @@ def _print_ablation_summary(df: pd.DataFrame, group_col: str, label_col: str) ->
         print(f"  {key}: MAE without={mae_without:.4f}, with={mae_with:.4f}, relative={rel:.3f}")
 
 
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--as-of",
+        required=True,
+        type=dt.date.fromisoformat,
+        metavar="YYYY-MM-DD",
+        help="the data freeze date used for the fetch; recorded in the run manifest (required)",
+    )
+    parser.add_argument(
+        "--allow-cpu",
+        action="store_true",
+        help="skip the GPU requirement (slow smoke runs only)",
+    )
+    return parser
+
+
 def main() -> None:
-    forecaster = load_forecaster()
+    args = build_parser().parse_args()
+    git_dirty = capture_git_state()
+    checkpoint = preflight_model(allow_cpu=args.allow_cpu)
+    forecaster = load_forecaster(revision=checkpoint["revision_resolved"])
 
     print("=== Legitimate covariate 1: market day-of-week ===")
     market_series = _load_series("market_prices.parquet")
@@ -296,6 +328,20 @@ def main() -> None:
     )
 
     print(f"\nWrote covariate experiment results to {config.RESULTS_DIR}")
+
+    manifest_path = write_run_manifest(
+        "exp_covariates",
+        [
+            config.RESULTS_DIR / "exp_covariates_market_dow.parquet",
+            config.RESULTS_DIR / "exp_covariates_mtg_release.parquet",
+            config.RESULTS_DIR / "exp_covariates_leakage_demo.parquet",
+        ],
+        as_of=args.as_of,
+        checkpoint=checkpoint,
+        seed=None,
+        git_dirty=git_dirty,
+    )
+    print(f"Manifest written to {manifest_path}")
 
 
 if __name__ == "__main__":
