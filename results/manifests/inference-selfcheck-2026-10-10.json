@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "git_sha": "588e6671e5e0297e3108cb094cd5510a46cd4dec",
-    "git_dirty": true,
-    "prereg_commit": "5ed53db54e6a2dea37c0d5cb8dbf7ea518b5b503",
+    "git_sha": "44b0d0af52b37354b9617d4e417cf31aacc9b7ab",
+    "git_dirty": false,
+    "prereg_commit": "09e4a7faa4383ef9319a96776fa53d6a1cfabeb2",
     "environment": {
       "gpu_name": "cpu",
       "cuda_version": null,
@@ -13,7 +13,7 @@
     "seed": 20261010,
     "as_of": "2026-10-10",
     "live_end": false,
-    "written_at_utc": "2026-10-10T11:26:57.360267+00:00",
+    "written_at_utc": "2026-10-10T16:41:51.156205+00:00",
     "package_versions": {
       "requests": "2.34.2",
       "py7zr": "1.1.3",
@@ -107,7 +107,7 @@
       "weighted_mean"
     ]
   },
-  "elapsed_seconds": 40.27,
+  "elapsed_seconds": 15.03,
   "results": [
     {
       "scenario": "baseline",
