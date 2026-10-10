@@ -17,8 +17,11 @@ import pandas as pd
 
 from . import config
 from .metrics import (
+    bh_adjust,
+    by_adjust,
     coverage,
     diebold_mariano,
+    dm_effective_horizon,
     in_sample_scale,
     mae,
     mase,
@@ -61,12 +64,18 @@ def summarize_accuracy(
     mase_scales: dict[str, float],
     baseline_col: str = "baseline_naive",
     group_cols: tuple[str, ...] = ("mode", "series", "horizon_step"),
+    origin_stride: int = 1,
 ) -> pd.DataFrame:
     """One row per group: MAE/RMSE/sMAPE/MASE for the model and the chosen
     baseline, relative MAE (below 1 = model beats baseline), and a
     Diebold-Mariano test of the model's absolute error against the
     baseline's (negative statistic + small p-value = model significantly
     better).
+
+    `origin_stride` is the spacing of consecutive forecast origins in days;
+    it is passed to metrics.diebold_mariano so HAC lags are counted in origin
+    units (max_lag = ceil(h / origin_stride) - 1). The default 1 reproduces
+    the historical behavior exactly.
     """
     if "series" not in group_cols:
         raise ValueError("group_cols must include 'series' to look up its MASE scale")
@@ -124,8 +133,14 @@ def summarize_accuracy(
             dm_horizon = int(keys[group_cols.index("horizon_step")])
         else:
             dm_horizon = 1
-        if len(group) >= max(MIN_OBSERVATIONS_FOR_DM_TEST, 2 * dm_horizon):
-            dm_stat, dm_p = diebold_mariano(model_abs_err, baseline_abs_err, horizon=dm_horizon)
+        h_eff = dm_effective_horizon(dm_horizon, origin_stride)
+        if len(group) >= max(MIN_OBSERVATIONS_FOR_DM_TEST, 2 * h_eff):
+            dm_stat, dm_p = diebold_mariano(
+                model_abs_err,
+                baseline_abs_err,
+                horizon=dm_horizon,
+                origin_stride=origin_stride,
+            )
         else:
             dm_stat, dm_p = np.nan, np.nan
         row["dm_stat"] = dm_stat
@@ -168,6 +183,7 @@ def summarize_leaderboard(
     mase_scales: dict[str, float],
     group_cols: tuple[str, ...] = ("mode", "series", "horizon_step"),
     baseline_cols: tuple[str, ...] = DEFAULT_BASELINE_COLUMNS,
+    origin_stride: int = 1,
 ) -> pd.DataFrame:
     """Runs summarize_accuracy once per baseline column present in `df`,
     stacking the results with a `baseline_method` column -- the
@@ -180,6 +196,9 @@ def summarize_leaderboard(
     before computing THAT baseline's metrics -- its `n` may differ from
     another baseline's `n` in the same group; that's expected (see
     docstring on backtest._baseline_forecasts), not a bug.
+
+    `origin_stride` is forwarded to summarize_accuracy (DM lags in origin
+    units); the default 1 preserves the historical behavior.
     """
     present = [c for c in baseline_cols if c in df.columns]
     if not present:
@@ -190,7 +209,11 @@ def summarize_leaderboard(
         method = col.removeprefix("baseline_")
         rows_for_col = df[df[col].notna()] if df[col].isna().any() else df
         summary = summarize_accuracy(
-            rows_for_col, mase_scales, baseline_col=col, group_cols=group_cols
+            rows_for_col,
+            mase_scales,
+            baseline_col=col,
+            group_cols=group_cols,
+            origin_stride=origin_stride,
         )
         summary = summary.rename(
             columns={f"mae_{col}": "mae_baseline", f"mase_{col}": "mase_baseline"}
@@ -246,3 +269,61 @@ def aggregate_leaderboard(leaderboard_df: pd.DataFrame, weight_col: str = "n") -
         row["skill_mean_weighted"] = 1.0 - row["relative_mae_mean_weighted"]
         rows.append(row)
     return pd.DataFrame(rows)
+
+
+def significance_table(
+    df: pd.DataFrame,
+    family_cols: tuple[str, ...] = ("mode", "baseline_method"),
+    pvalue_col: str = "dm_pvalue",
+    q: float = 0.05,
+) -> pd.DataFrame:
+    """Adds multiple-testing adjusted DM p-values per comparison family.
+
+    One family = all card x horizon tests of ONE model-vs-baseline comparison
+    (Preregistration v2 section 1), so `family_cols` names the columns that
+    identify a comparison; every row sharing those values is adjusted
+    together. Never include "series" or "horizon_step": both vary WITHIN a
+    family. Add any further columns that distinguish comparisons in your
+    table (e.g. transform, context length). Columns absent from `df` are
+    ignored, and an empty tuple treats the whole table as one family.
+
+    Adds `family_size` (number of non-NaN p-values in the row's family),
+    `family_n_nan` (number of NaN p-values excluded from that family),
+    `{prefix}_qvalue_bh` (Benjamini-Hochberg, PRIMARY), `{prefix}_qvalue_by`
+    (Benjamini-Yekutieli, SENSITIVITY) and nullable-boolean
+    `{prefix}_reject_bh` / `{prefix}_reject_by` at level `q`, where prefix
+    is `pvalue_col` without its "_pvalue" suffix. NaN p-values are excluded
+    from the family and reported as NaN q-values with <NA> reject flags.
+    DM/BH results are secondary to the aggregate-skill CIs and never
+    override them.
+    """
+    if not 0 < q < 1:
+        raise ValueError(f"q must be in (0, 1), got {q}")
+    prefix = pvalue_col.removesuffix("_pvalue")
+    out = df.copy()
+    present = [c for c in family_cols if c in out.columns]
+    q_bh = np.full(len(out), np.nan)
+    q_by = np.full(len(out), np.nan)
+    fam_size = np.zeros(len(out), dtype=int)
+    fam_nan = np.zeros(len(out), dtype=int)
+    pvals = out[pvalue_col].to_numpy(dtype=float)
+    if present:
+        groups = out.groupby(present, dropna=False, sort=True).indices.values()
+    else:
+        groups = [np.arange(len(out))]
+    for idx in groups:
+        idx = np.asarray(idx)
+        fam_p = pvals[idx]
+        q_bh[idx] = bh_adjust(fam_p)
+        q_by[idx] = by_adjust(fam_p)
+        fam_size[idx] = int(np.sum(~np.isnan(fam_p)))
+        fam_nan[idx] = int(np.sum(np.isnan(fam_p)))
+    out["family_size"] = fam_size
+    out["family_n_nan"] = fam_nan
+    out[f"{prefix}_qvalue_bh"] = q_bh
+    out[f"{prefix}_qvalue_by"] = q_by
+    for name, qv in (("bh", q_bh), ("by", q_by)):
+        reject = pd.array(qv <= q, dtype="boolean")
+        reject[np.isnan(qv)] = pd.NA
+        out[f"{prefix}_reject_{name}"] = reject
+    return out

@@ -242,3 +242,70 @@ def test_aggregate_leaderboard_weighted_mean_documents_the_weighting():
     assert row["skill_mean_weighted"] == pytest.approx(1.0 - expected_weighted)
     assert row["skill_median"] == pytest.approx(0.0)
     assert row["n_cards"] == 2
+
+
+# --- origin stride pass-through and significance table ---------------------------
+
+
+def _dm_frame(n=12, horizon_step=8):
+    rng = np.random.default_rng(5)
+    actual = rng.normal(100, 1, size=n)
+    rows = [
+        _row(horizon_step=horizon_step, actual=a, forecast=a + rng.normal(scale=0.5),
+             baseline_naive=a + 1.0 + rng.normal(scale=0.5))
+        for a in actual
+    ]
+    return pd.DataFrame(rows)
+
+
+def test_summarize_accuracy_origin_stride_changes_dm_lags():
+    from tfm3lab.metrics import diebold_mariano
+
+    df = _dm_frame()
+    # h=8 with stride 1 needs 16 rows -> NaN; with stride 7, h_eff=2 -> runs
+    assert np.isnan(summarize_accuracy(df, {"a": 1.0}).iloc[0]["dm_pvalue"])
+    row = summarize_accuracy(df, {"a": 1.0}, origin_stride=7).iloc[0]
+    m = np.abs(df["actual"] - df["forecast"]).to_numpy()
+    b = np.abs(df["actual"] - df["baseline_naive"]).to_numpy()
+    want = diebold_mariano(m, b, horizon=8, origin_stride=7)
+    assert (row["dm_stat"], row["dm_pvalue"]) == pytest.approx(want)
+
+
+def test_summarize_leaderboard_passes_origin_stride():
+    df = _dm_frame()
+    lb1 = summarize_leaderboard(df, {"a": 1.0}, baseline_cols=("baseline_naive",))
+    lb7 = summarize_leaderboard(
+        df, {"a": 1.0}, baseline_cols=("baseline_naive",), origin_stride=7
+    )
+    assert np.isnan(lb1.iloc[0]["dm_pvalue"])
+    assert not np.isnan(lb7.iloc[0]["dm_pvalue"])
+
+
+def test_significance_table_families_and_nan_policy():
+    from tfm3lab.metrics import bh_adjust, by_adjust
+    from tfm3lab.summarize import significance_table
+
+    df = pd.DataFrame(
+        {
+            "mode": ["u"] * 5 + ["v"] * 2,
+            "baseline_method": ["naive"] * 7,
+            "series": list("abcde") + list("ab"),
+            "horizon_step": [1, 1, 28, 28, 56, 1, 1],
+            "dm_pvalue": [0.01, 0.04, 0.03, 0.20, np.nan, 0.01, 0.5],
+        }
+    )
+    out = significance_table(df)
+    u = out[out["mode"] == "u"]
+    np.testing.assert_allclose(u["dm_qvalue_bh"], bh_adjust(df["dm_pvalue"][:5]))
+    np.testing.assert_allclose(u["dm_qvalue_by"], by_adjust(df["dm_pvalue"][:5]))
+    assert list(u["family_size"]) == [4] * 5
+    assert list(u["family_n_nan"]) == [1] * 5
+    assert list(out[out["mode"] == "v"]["family_n_nan"]) == [0, 0]
+    v = out[out["mode"] == "v"]
+    np.testing.assert_allclose(v["dm_qvalue_bh"], [0.02, 0.5])
+    assert bool(u["dm_reject_bh"].iloc[0])
+    assert pd.isna(u["dm_reject_bh"].iloc[4]) and np.isnan(u["dm_qvalue_bh"].iloc[4])
+    assert list(out.columns[:5]) == list(df.columns)  # input columns preserved
+    whole = significance_table(df, family_cols=())
+    assert (whole["family_size"] == 6).all()
+    assert (whole["family_n_nan"] == 1).all()

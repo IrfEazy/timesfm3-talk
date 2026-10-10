@@ -187,3 +187,69 @@ def test_block_bootstrap_ci_rejects_bad_block_size():
         block_bootstrap_ci([1.0, 2.0, 3.0], block_size=0)
     with pytest.raises(ValueError):
         block_bootstrap_ci([1.0, 2.0, 3.0], block_size=10)
+
+
+# --- Diebold-Mariano origin stride -----------------------------------------------
+
+
+def test_dm_effective_horizon_in_origin_units():
+    from tfm3lab.metrics import dm_effective_horizon
+
+    assert dm_effective_horizon(1, 1) == 1
+    assert dm_effective_horizon(28, 1) == 28
+    assert dm_effective_horizon(28, 7) == 4  # max_lag 3
+    assert dm_effective_horizon(56, 7) == 8
+    assert dm_effective_horizon(1, 7) == 1  # max_lag 0
+    assert dm_effective_horizon(8, 7) == 2
+    with pytest.raises(ValueError):
+        dm_effective_horizon(1, 0)
+
+
+@pytest.mark.parametrize(("horizon", "stride", "h_eff"), [(28, 7, 4), (8, 7, 2), (1, 7, 1)])
+def test_dm_origin_stride_equals_reference_with_effective_horizon(horizon, stride, h_eff):
+    rng = np.random.default_rng(11)
+    d = np.cumsum(rng.normal(size=50)) * 0.1 + rng.normal(scale=0.05, size=50)
+    got = diebold_mariano(d + 5.0, np.full(50, 5.0), horizon=horizon, origin_stride=stride)
+    want = _reference_dm(d, horizon=h_eff)
+    assert got[0] == pytest.approx(want[0], rel=1e-9)
+    assert got[1] == pytest.approx(want[1], rel=1e-9)
+
+
+def test_dm_origin_stride_default_preserves_behavior():
+    rng = np.random.default_rng(2)
+    a, b = rng.normal(size=30), rng.normal(size=30)
+    assert diebold_mariano(a, b, horizon=3) == diebold_mariano(a, b, horizon=3, origin_stride=1)
+
+
+def test_dm_origin_stride_minimum_observations():
+    # h=28, stride=7 -> effective horizon 4 -> need >= 8 observations
+    with pytest.raises(ValueError, match="at least 8"):
+        diebold_mariano(np.arange(7.0), np.zeros(7), horizon=28, origin_stride=7)
+    stat, p = diebold_mariano(np.arange(8.0) % 3, np.zeros(8), horizon=28, origin_stride=7)
+    assert np.isfinite(stat) and 0 <= p <= 1
+
+
+# --- BH / BY ------------------------------------------------------------------------
+
+
+def test_bh_adjust_hand_computed():
+    from tfm3lab.metrics import bh_adjust
+
+    p = np.array([0.01, 0.04, 0.03, 0.20])
+    # sorted 0.01,0.03,0.04,0.20 -> *4/i = 0.04,0.06,0.0533..,0.20
+    # step-up min from top -> 0.04, 0.0533.., 0.0533.., 0.20
+    want = np.array([0.04, 0.16 / 3, 0.16 / 3, 0.20])
+    np.testing.assert_allclose(bh_adjust(p), want)
+
+
+def test_by_adjust_hand_computed_and_nan_excluded():
+    from tfm3lab.metrics import bh_adjust, by_adjust
+
+    p = np.array([0.01, np.nan, 0.04, 0.03, 0.20])
+    c = 1 + 1 / 2 + 1 / 3 + 1 / 4  # m = 4 (NaN excluded)
+    want_bh = np.array([0.04, np.nan, 0.16 / 3, 0.16 / 3, 0.20])
+    np.testing.assert_allclose(bh_adjust(p), want_bh)
+    np.testing.assert_allclose(by_adjust(p), np.minimum(want_bh * c, 1.0))
+    assert np.isnan(bh_adjust([np.nan, np.nan])).all()
+    with pytest.raises(ValueError):
+        bh_adjust([1.5])

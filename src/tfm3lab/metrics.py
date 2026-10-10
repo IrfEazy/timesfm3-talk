@@ -128,35 +128,61 @@ def pit_values(actual, quantile_forecasts, levels) -> np.ndarray:
     return np.clip(out, levels.min(), levels.max())
 
 
-def diebold_mariano(loss1, loss2, horizon: int = 1) -> tuple[float, float]:
+def dm_effective_horizon(horizon: int, origin_stride: int = 1) -> int:
+    """Effective DM horizon in ORIGIN units: ceil(horizon / origin_stride).
+
+    Consecutive origins `origin_stride` days apart forecasting `horizon` days
+    ahead overlap through lag ceil(h / stride) - 1 (in origins), so the loss
+    differential is (at least) MA(ceil(h / stride) - 1). The HAC long-run
+    variance uses max_lag = effective_horizon - 1 and the
+    Harvey-Leybourne-Newbold correction uses effective_horizon (Preregistration
+    v2 section 1). With origin_stride=1 this is just `horizon`.
+    """
+    horizon, origin_stride = int(horizon), int(origin_stride)
+    if horizon < 1:
+        raise ValueError(f"horizon must be >= 1, got {horizon}")
+    if origin_stride < 1:
+        raise ValueError(f"origin_stride must be >= 1, got {origin_stride}")
+    return -(-horizon // origin_stride)
+
+
+def diebold_mariano(
+    loss1, loss2, horizon: int = 1, origin_stride: int = 1
+) -> tuple[float, float]:
     """Diebold-Mariano test with the Harvey-Leybourne-Newbold small-sample
     correction, for whether model 1's average loss differs from model 2's.
 
     `loss1`/`loss2` are one loss value per forecast ORIGIN at a fixed
     horizon step (e.g. absolute error) — not averaged across horizon steps
     within an origin, and not per-individual-step across mixed horizons.
-    `horizon` is that fixed horizon step h: h-step-ahead rolling forecasts
-    have MA(h-1) autocorrelation in the loss differential, which the test's
-    long-run variance estimate must account for.
+    `horizon` is that fixed horizon step h in days and `origin_stride` the
+    spacing of consecutive origins in days. Lags are counted in ORIGIN units:
+    max_lag = ceil(h / origin_stride) - 1, and the HLN correction uses the
+    effective horizon max_lag + 1 (see `dm_effective_horizon`). With the
+    default origin_stride=1 this is the classic MA(h-1) treatment.
 
     Returns (statistic, two_sided_p_value). A negative statistic with a
-    small p-value means model 1 has significantly lower average loss.
-    Raises ValueError with fewer than 2*horizon observations — below that
-    the long-run variance estimate is not meaningful.
+    small p-value means model 1 has significantly lower average loss. A
+    non-positive long-run variance (e.g. a constant loss differential)
+    returns the explicit sentinel (0.0, 1.0).
+    Raises ValueError with fewer than 2 * effective_horizon observations —
+    below that the long-run variance estimate is not meaningful (callers
+    such as summarize.summarize_accuracy report NaN instead of calling).
     """
     loss1 = np.asarray(loss1, dtype=float)
     loss2 = np.asarray(loss2, dtype=float)
     if loss1.shape != loss2.shape:
         raise ValueError(f"shape mismatch: {loss1.shape} vs {loss2.shape}")
+    h_eff = dm_effective_horizon(horizon, origin_stride)
     d = loss1 - loss2
     t = len(d)
-    if t < 2 * horizon:
-        raise ValueError(f"need at least {2 * horizon} observations, got {t}")
+    if t < 2 * h_eff:
+        raise ValueError(f"need at least {2 * h_eff} observations, got {t}")
     dbar = float(np.mean(d))
-    max_lag = horizon - 1
-    # Long-run variance: gamma_0 + 2 * sum_{k=1}^{h-1} gamma_k, each gamma_k
-    # normalized by T (not T-k) — matches Diebold & Mariano (1995) and the
-    # widely-used R `forecast::dm.test` reference implementation.
+    max_lag = h_eff - 1
+    # Long-run variance: gamma_0 + 2 * sum_{k=1}^{max_lag} gamma_k, each
+    # gamma_k normalized by T (not T-k) — matches Diebold & Mariano (1995)
+    # and the widely-used R `forecast::dm.test` reference implementation.
     gamma0 = float(np.sum((d - dbar) ** 2) / t)
     lrv = gamma0
     for lag in range(1, max_lag + 1):
@@ -166,10 +192,50 @@ def diebold_mariano(loss1, loss2, horizon: int = 1) -> tuple[float, float]:
     if var_dbar <= 0:
         return 0.0, 1.0  # no variation in the loss differential: nothing to test
     dm_stat = dbar / np.sqrt(var_dbar)
-    correction = np.sqrt((t + 1 - 2 * horizon + horizon * (horizon - 1) / t) / t)
+    correction = np.sqrt((t + 1 - 2 * h_eff + h_eff * (h_eff - 1) / t) / t)
     dm_adj = dm_stat * correction
     p_value = float(2 * (1 - stats.t.cdf(np.abs(dm_adj), df=t - 1)))
     return float(dm_adj), p_value
+
+
+def _step_up_adjust(pvalues, by_correction: bool) -> np.ndarray:
+    p = np.asarray(pvalues, dtype=float)
+    if p.ndim != 1:
+        raise ValueError(f"pvalues must be 1-D, got shape {p.shape}")
+    out = np.full(p.shape, np.nan)
+    valid = ~np.isnan(p)
+    m = int(valid.sum())
+    if m == 0:
+        return out
+    pv = p[valid]
+    if np.any((pv < 0) | (pv > 1)):
+        raise ValueError("p-values must lie in [0, 1]")
+    c_m = float(np.sum(1.0 / np.arange(1, m + 1))) if by_correction else 1.0
+    order = np.argsort(pv, kind="mergesort")
+    ranked = pv[order] * m * c_m / np.arange(1, m + 1)
+    # step-up: q_(i) = min_{j >= i} p_(j) * m * c(m) / j, capped at 1
+    adjusted_sorted = np.minimum(np.minimum.accumulate(ranked[::-1])[::-1], 1.0)
+    adjusted = np.empty(m)
+    adjusted[order] = adjusted_sorted
+    out[valid] = adjusted
+    return out
+
+
+def bh_adjust(pvalues) -> np.ndarray:
+    """Benjamini-Hochberg adjusted p-values (q-values) for ONE family.
+
+    NaN p-values (tests that could not be run) are excluded from the family
+    — they neither count toward m nor receive a q-value — and come back as
+    NaN at their original positions. Reject at level q iff adjusted <= q.
+    """
+    return _step_up_adjust(pvalues, by_correction=False)
+
+
+def by_adjust(pvalues) -> np.ndarray:
+    """Benjamini-Yekutieli adjusted p-values for ONE family: BH multiplied by
+    c(m) = sum_{i=1}^m 1/i, valid under arbitrary dependence. Same NaN
+    policy as `bh_adjust`."""
+    return _step_up_adjust(pvalues, by_correction=True)
 
 
 def block_bootstrap_ci(
