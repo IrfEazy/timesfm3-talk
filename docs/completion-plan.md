@@ -1,6 +1,6 @@
 # Completion plan — tfm3lab / timesfm3-talk
 
-Status: **Phase 0 audit, awaiting approval.** Nothing in `src/`, `scripts/`, `results/` or the
+Status: **Phase 0 audit, approved on 2026-10-10** (the human adopted the PM proxy's suggestions). Nothing in `src/`, `scripts/`, `results/` or the
 public docs has been changed. Audit base: `main` @ `3dfd604`; this file lives on branch
 `feat/completion-plan`.
 
@@ -142,10 +142,10 @@ Order: things that change **what the GPU computes** first, because they must be 
 | # | Package | Key content | Kaggle-blocking? |
 |---|---|---|---|
 | 1.0 | **Preregistration v2** (`docs/analysis-plan.md`) | Operational rules, see §4. Committed **before** any new run; the commit hash is cited in every manifest | yes |
-| 1.1 | Inference layer (Prompt 4 T1–T4, T9) | `bootstrap.py`: two-stage cluster bootstrap (resample cards, then moving blocks of origins with block length ≥ h); paired deltas; median and n-weighted skill CIs. BH over card × horizon DM tests. Coverage CIs by the same bootstrap (Wilson is shown only as a lower bound on width, because it ignores autocorrelation). `08_exp_inference.py` | no (analysis), but rules frozen in 1.0 |
-| 1.2 | 30+ card pool | Rule-based selection script run **locally** from the cached TCGCSV archives (no GPU needed). Criteria (proposal): observed-day share ≥ threshold over the window, median price ≥ floor, at least N observations, stratified by rarity and set-release year, then a seeded random draw of 40. The frozen manifest (CSV plus sha256) is committed before the run | yes |
+| 1.1 | Inference layer (Prompt 4 T1–T4, T9), Preregistration v2 §1 | `bootstrap.py`. **Primary:** paired whole-card cluster bootstrap (resample cards with replacement, each card keeps its full history, model and baseline share draws; statistic recomputed from per-card loss sums with bootstrap multiplicities). **Sensitivity:** synchronized calendar-block bootstrap (same blocks for all cards, block length in days = max(h, 7), circular), labelled "time uncertainty, conditional on this panel". **Diagnostic only:** two-stage (cards, then within-card blocks), never a headline. Median and n-weighted skill CIs; paired deltas. DM lags in origin units: max_lag = ceil(h / origin_stride) − 1. BH at q = 0.05 primary and BY at q = 0.05 sensitivity over the card × horizon DM family per comparison. Coverage CIs primary by calendar-block bootstrap; design-adjusted Wilson as diagnostic. Synthetic coverage self-check `scripts/08_inference_selfcheck.py` (G = 8, 20, 40; acceptance at G = 40). `08_exp_inference.py` | no (analysis), but rules frozen in 1.0 |
+| 1.2 | 30+ card pool (Preregistration v2 §2 pool rules) | Rule-based selection script run **locally** from the cached TCGCSV archives (no GPU needed). Eligible: single-card products of the MTG category with a Rarity attribute (no sealed product, token or art card); present in the first archive (2024-02-08); observed-day share ≥ 0.90 over the window; median market price ≥ 1.00 USD; one printing per card name (most observed days, ties by lowest productId). Strata: rarity group {mythic, rare, other} × median-price tertile (tertiles over the eligible set). 40 cards allocated proportionally, minimum 3 per non-empty stratum (largest-remainder rounding); seeded draw with seed 20261010. The 7 showcase cards are neither forced in nor out. The frozen manifest (CSV plus sha256) is committed before any model run | yes |
 | 1.3 | 02b streaming and resume | Per-combo partitioned parquet (`results/benchmark/<config_id>/combo=…/part.parquet`); a done marker per combo; `--resume`. The summary is computed by streaming over the partitions. The dry-run reports projected partition sizes. **Primary cell** stays committed (small); the full grid goes to the Kaggle archive only | yes |
-| 1.4 | Experiment B redesign | (a) Event list from a rule: |z|-detector on several indices (e.g. SP500, Nasdaq-100, Euro Stoxx 50, Nikkei 225, gold), declustered by a minimum gap, with a guard band around the uncertain cutoff. The list is committed before the run. (b) Baseline-relative lag (model minus naive/ETS) with censoring. (c) Anticipation probe from pre-onset origins: direction hit rate, pre vs post. (d) Perturbations: noise and context splicing. (e) TimesFM-2.5 on the same events. B is **demoted to a red-team appendix now**; it is promoted only if the preregistered rule in §4 is met | yes |
+| 1.4 | Experiment B redesign | (a) Event list from a rule: |z|-detector on five indices (SP500, Nasdaq-100, Euro Stoxx 50, Nikkei 225, Gold; decided 2026-10-10), declustered by a minimum gap, with a guard band around the uncertain cutoff. The list is committed before the run. (b) Baseline-relative lag (model minus naive/ETS) with censoring. (c) Anticipation probe from pre-onset origins: direction hit rate, pre vs post. (d) Perturbations: noise and context splicing. (e) TimesFM-2.5 on the same events. B is **demoted to a red-team appendix now**; it is promoted only if the preregistered rule in §4 is met | yes |
 | 1.5 | Experiment C fix | Calibration at all horizons from 02b/03 predictions. Causal split-conformal / CQR on q10/q90, fit on an earlier period and evaluated on a later one. Coverage before and after with CIs, plus width and interval-score cost, by regime × horizon | no (uses 1.3 outputs) |
 | 1.6 | Covariates (Prompt 5) | Availability contract; a placebo arm (circular-shifted or shuffled release dates); the legit claim requires its CI to beat both no-covariate and placebo. The leaked arm is watermarked `LEAKED — teaching contrast`, and a test enforces its exclusion from summaries | yes (new arm) |
 | 1.7 | Latency benchmark | `09_latency.py`: warmup, `cuda.synchronize`, batch {1,8,32,128} × context {128,512} × h {28,64}, repeated, median and p95. Records GPU name, CUDA and torch versions. CPU baselines (naive, ETS) timed on the same series | yes |
@@ -176,23 +176,33 @@ Planned routing: scouts and drafters on `haiku`. Developers on `sonnet`, with `o
 ### Phase 4: presentation polish
 
 - README rewrite, recruiter-first and in English, as you specified. The Italian talk material stays.
-- LICENSE: proposal **Apache-2.0** (the patent grant and the same family as TimesFM's code). It states that the checkpoint and data stay under their own terms.
+- LICENSE: **Apache-2.0**, decided 2026-10-10 (the patent grant and the same family as TimesFM's code). It states that the checkpoint and data stay under their own terms.
 - CI: GitHub Actions running `uv sync --extra cpu`, `ruff check`, `ruff format --check` and `pytest`, with badges.
-- GitHub Pages for `slides/talk.html` (proposed as the homepage).
+- GitHub Pages for `slides/talk.html` (homepage role not yet decided).
 - Agent artifacts: proposal **move, don't delete**. `openai.review.md` and `docs/superpowers/**` go to `docs/dev-notes/` behind a one-line README, plus a short `docs/methodology-review-log.md` (what the external review found and what changed). Nothing is deleted without your OK.
 - Suggested description and topics for you to set in the GitHub UI.
 - Prompt 8 hostile review, findings fixed or documented in `docs/reviewer-report.md`.
 
 ---
 
-## 4. Preregistration v2: draft rules for your approval (go into `analysis-plan.md` in 1.0)
+## 4. Preregistration v2: summary rules
 
-These are proposals. Thresholds are design choices, not results.
+Approved 2026-10-10; Preregistration v2 in `docs/analysis-plan.md` governs where they differ. Thresholds are design choices, not results.
 
 **General**
 - 95 % CIs; B = 2000 bootstrap resamples; a fixed seed recorded in the manifest.
-- Two-stage bootstrap: cards are clusters, resampled with replacement; within each card, moving blocks over origins with block length = max(h, 7).
+- *Original draft, superseded by the refinement below (now a diagnostic only):* two-stage bootstrap: cards are clusters, resampled with replacement; within each card, moving blocks over origins with block length = max(h, 7).
 - BH at q = 0.05 over the card × horizon DM family, per comparison.
+
+*Refinement adopted 2026-10-10 (PM Q14, consult arch-bootstrap); the v2 text in `analysis-plan.md` governs.*
+- Primary: whole-card cluster bootstrap (cards resampled with replacement, full history kept, model and baseline paired).
+- Sensitivity: synchronized calendar-block bootstrap, block length in days = max(h, 7).
+- The two-stage bootstrap above is a labelled diagnostic only.
+- DM lags are counted in origin units: max_lag = ceil(h / origin_stride) - 1.
+- Benjamini–Yekutieli at q = 0.05 as sensitivity next to BH.
+- Synthetic coverage check at G = 8, 20, 40 before real data.
+- Reason: the two-stage bootstrap double-counts within-card noise, and "max(h, 7)" was ambiguous between days and origins.
+- Decision thresholds are unchanged.
 
 **Experiment A (primary)**
 - Primary cell: univariate, raw, `make_positive=True`, context 512. The other cells are ablations.
@@ -220,10 +230,27 @@ These are proposals. Thresholds are design choices, not results.
 
 ---
 
-## 5. Open questions for you
+## 5. Open questions for you (answered 2026-10-10, see §6)
 
 1. Approve this plan and the §4 thresholds, or edit them. Specifically: the pool size of 40, q = 0.05, B promotion at 8 events per arm, and context 512 as primary.
 2. Committed actual prices (§2.6): option (a) or (b)?
 3. Index list for the Experiment B detector. Do you have a source for TimesFM-2.5's cutoff? Without one, 2.5 is presented as a model comparison only.
 4. LICENSE: Apache-2.0 or MIT?
 5. Is a ~2-session Kaggle budget acceptable? The calibration cell will give real numbers before the long steps run.
+
+---
+
+## 6. Decisions (2026-10-10)
+
+The human adopted the PM proxy's suggestions (record: pipeline run 20261010T104754Z-7b42a4f8, `plan.md` "PM decisions"). This answers §5.
+
+- Pool size 40.
+- BH q = 0.05.
+- Experiment B promotion at >= 8 events per arm.
+- Primary context 512.
+- Five detector indices: SP500, Nasdaq-100, Euro Stoxx 50, Nikkei 225, gold.
+- TimesFM-2.5 is a model comparison only (no sourced cutoff).
+- About 2 Kaggle sessions, no paid resources.
+- LICENSE: Apache-2.0.
+- `pyproject` author email: the GitHub no-reply address.
+- Committed prices: option (b) for new outputs (errors and normalized values only). Already-committed price files are left untouched until Phase 3; older commits still hold actual prices.
