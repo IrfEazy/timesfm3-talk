@@ -12,7 +12,8 @@ non-commercial). Run on the GPU host, not locally: CPU runs are smoke only.
     uv run scripts/09_latency.py --as-of 2026-09-04 --adapter timesfm2.5
     uv run scripts/09_latency.py --as-of 2026-09-04 --allow-cpu --repeats 2 --warmup 1
 
-Writes results/latency_v2.parquet and a run manifest.
+Writes results/latency_v2.parquet (timesfm3) or results/latency_v2_2p5.parquet
+(timesfm2.5) and a run manifest.
 """
 
 from __future__ import annotations
@@ -39,7 +40,11 @@ from tfm3lab.latency import (
 from tfm3lab.manifest import capture_git_state, write_run_manifest
 from tfm3lab.preflight import preflight_model, run_environment
 
-OUT = config.RESULTS_DIR / "latency_v2.parquet"
+
+def output_path(adapter: str):
+    """Per-adapter output so the TimesFM-3 and 2.5 runs do not overwrite each other."""
+    suffix = "" if adapter == "timesfm3" else "_2p5"
+    return config.RESULTS_DIR / f"latency_v2{suffix}.parquet"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -86,6 +91,7 @@ PER_CORE_BATCH_SIZE = 16  # tfm3lab.model.load_forecaster default
 
 def main() -> None:
     args = build_parser().parse_args()
+    out = output_path(args.adapter)
     git_dirty = capture_git_state()
     if args.adapter == "timesfm2.5":
         repo, rev = config.CHECKPOINT_ID_2P5, config.CHECKPOINT_REVISION_2P5
@@ -133,7 +139,7 @@ def main() -> None:
     outcome = "complete"
 
     def on_row(row, all_rows):
-        write_rows_atomic(all_rows, OUT)
+        write_rows_atomic(all_rows, out)
         print(
             f"{row['method']} b={row['batch']} c={row['context']} h={row['horizon']}: "
             f"{row['status']}"
@@ -159,7 +165,7 @@ def main() -> None:
     finally:
         path = write_run_manifest(
             "latency",
-            [OUT],
+            [out],
             as_of=args.as_of,
             checkpoint=checkpoint,
             seed=None,
@@ -191,7 +197,7 @@ def main() -> None:
                 "data_sources": sorted({r["data_source"] for r in rows}),
             },
         )
-        print(f"Wrote {OUT}; manifest {path}")
+        print(f"Wrote {out}; manifest {path}")
 
 
 if __name__ == "__main__":

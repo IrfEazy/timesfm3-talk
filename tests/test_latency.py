@@ -194,3 +194,19 @@ def test_context_stats_synthetic():
         "n_distinct_series": 4,
         "series_repeated": False,
     }
+
+
+def test_output_path_is_per_adapter():
+    import importlib.util
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "latency_script", Path(__file__).resolve().parents[1] / "scripts" / "09_latency.py"
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    p3 = mod.output_path("timesfm3")
+    p25 = mod.output_path("timesfm2.5")
+    assert p3.name == "latency_v2.parquet"
+    assert p25.name == "latency_v2_2p5.parquet"
+    assert p3 != p25
