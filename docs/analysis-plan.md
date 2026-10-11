@@ -240,6 +240,13 @@ All items are dated 2026-10-10 and were made before any v2 model run; no v2 mode
 - **F. Experiment B event list outcome** (rule output, not a model result)
   - The frozen rule produced 15 events: 8 pre-cutoff, 7 post-cutoff (configs/shock_events_v2.csv). The promotion rule needs >= 8 per arm, so Experiment B is reported as an exploratory red-team appendix regardless of its results. Declustering chains from the previous shock day (gap <= 20 trading days on the union calendar).
 
+## Amendment of 2026-10-11 (before any TimesFM-2.5 output existed)
+
+- Kaggle session 1 showed that per-card CPU baselines dominate cell cost: 40-card cells took 4.3-7.9 min versus 0.8-1.3 min for 7-card cells.
+- TimesFM-2.5 vs TimesFM-3 is a model-comparison-only descriptive secondary, so the 2.5 config (configs/benchmark_v2_timesfm2p5.json) computes only the naive baseline. ETS, seasonal naive and drift for 2.5 were never preregistered comparisons.
+- The 2.5 grid runs primary-slice cells first; any cells not run are listed as not run.
+- Decision: PM proxy (Exchange 7) under the human's delegation. Nothing else changes.
+
 ---
 
 # v1 (historical, Italian) — SUPERSEDED by Preregistration v2 above

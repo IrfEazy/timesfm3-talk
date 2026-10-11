@@ -1,6 +1,6 @@
 {
   "config_id": "preregistered_v2_timesfm2p5",
-  "description": "TimesFM-2.5 comparison grid FROZEN by Preregistration v2 (docs/analysis-plan.md, commit 5ed53db); run with --adapter timesfm2.5. Identical to preregistered_v2 except modes: univariate only, because TimesFM-2.5 is univariate. Model comparison only, never a cutoff control. Do not edit without a dated amendment.",
+  "description": "TimesFM-2.5 comparison grid FROZEN by Preregistration v2 (docs/analysis-plan.md, commit 5ed53db); run with --adapter timesfm2.5. Identical to preregistered_v2 except modes: univariate only, because TimesFM-2.5 is univariate. Model comparison only, never a cutoff control. Amended 2026-10-11 (before any TimesFM-2.5 output existed): baselines reduced to naive only (docs/analysis-plan.md). Do not edit without a dated amendment.",
   "context_lengths": [
     64,
     128,
@@ -36,9 +36,6 @@
   "placebo_seed": 42,
   "season_length": 7,
   "baselines": [
-    "naive",
-    "seasonal_naive",
-    "drift",
-    "ets"
+    "naive"
   ]
 }

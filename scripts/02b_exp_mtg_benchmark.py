@@ -114,6 +114,7 @@ from tfm3lab.benchmark import (
     iter_ablation_combos,
     keep_origins_per_card,
     primary_export_frame,
+    primary_first_order,
     refill_series,
     select_placebo_panel,
 )
@@ -297,8 +298,9 @@ def _load_forecaster(adapter: str, revision: str | None):
 
 
 def _execution_order(combos: list[AblationCombo]) -> list[AblationCombo]:
-    """Order in which pending cells are computed (enumeration order). The
-    summary never depends on it -- tests reverse it to prove that."""
+    """Base order of pending cells (enumeration order); primary_first_order
+    then moves the primary slice first. The summary never depends on it;
+    tests reverse it to prove that."""
     return list(combos)
 
 
@@ -603,7 +605,7 @@ def main(argv: list[str] | None = None) -> None:
         if checkpoint is None:
             checkpoint = preflight_model(repo_id, revision, allow_cpu=args.allow_cpu)
         forecaster, use_sym = _load_forecaster(args.adapter, checkpoint["revision_resolved"])
-        for combo in _execution_order(combos):
+        for combo in primary_first_order(_execution_order(combos), cfg):
             if combo.cell_id not in pending:
                 continue
             cell_series = series_for(combo)

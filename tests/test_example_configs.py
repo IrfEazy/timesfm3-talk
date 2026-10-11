@@ -57,7 +57,9 @@ def test_v2_timesfm2p5_config_is_univariate_twin():
     assert cfg.config_id == "preregistered_v2_timesfm2p5"
     assert cfg.modes == ("univariate",)
     for key, value in _v2_expected_fields().items():
-        assert getattr(cfg, key) == value, key
+        if key != "baselines":
+            assert getattr(cfg, key) == value, key
+    assert cfg.baselines == ("naive",)
     assert "Preregistration v2" in cfg.description and "5ed53db" in cfg.description
 
 

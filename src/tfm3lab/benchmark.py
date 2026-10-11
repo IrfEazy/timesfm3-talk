@@ -189,6 +189,26 @@ def iter_ablation_combos(cfg: BenchmarkConfig, card_pool_size: int) -> list[Abla
     return combos
 
 
+def primary_first_order(combos: list[AblationCombo], cfg: BenchmarkConfig) -> list[AblationCombo]:
+    """Stable reorder that puts the primary slice (raw, make_positive, univariate,
+    largest context -- 512 if in the grid) first, primary horizons before the
+    other horizons. Execution order only: cell ids, cell content and summaries
+    (sorted by cell id) do not depend on it."""
+    ctx = 512 if 512 in cfg.context_lengths else max(cfg.context_lengths)
+    primary_h = set(cfg.primary_horizons)
+
+    def key(c: AblationCombo) -> tuple[int, int]:
+        in_slice = (
+            c.mode == PRIMARY_CELL["mode"]
+            and c.transform == PRIMARY_CELL["transform"]
+            and c.make_positive == PRIMARY_CELL["make_positive"]
+            and c.context_len == ctx
+        )
+        return (0 if in_slice else 1, 0 if c.horizon in primary_h else 1)
+
+    return sorted(combos, key=key)
+
+
 def select_placebo_panel(pool: tuple, panel_size: int, seed: int) -> tuple:
     """Deterministic random sample of `panel_size` items from `pool`
     (typically CardSpec instances), seeded so the same config always

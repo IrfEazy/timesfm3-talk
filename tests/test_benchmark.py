@@ -11,6 +11,7 @@ from tfm3lab.benchmark import (
     common_origin_set,
     dry_run_report,
     iter_ablation_combos,
+    primary_first_order,
     select_placebo_panel,
 )
 from tfm3lab.benchmark_config import BenchmarkConfig
@@ -363,3 +364,23 @@ def test_refill_series_limits_fill_and_marks_gaps():
     assert gap_drop_summary(origins, allgap)["excluded_cards"] == ["c"]
     df = pd.DataFrame({"series": ["a", "a", "b", "c"], "origin": [4, 6, 6, 4]})
     assert filter_kept_rows(df, kept).index.tolist() == [0, 2]
+
+
+def test_primary_first_order_puts_primary_slice_first_and_is_deterministic():
+    cfg = _cfg(
+        context_lengths=(4, 512),
+        horizons=(1, 2, 3),
+        primary_horizons=(2, 3),
+        transforms=("raw", "log1p"),
+        make_positive=(True, False),
+        modes=("univariate",),
+    )
+    combos = iter_ablation_combos(cfg, card_pool_size=10)
+    ordered = primary_first_order(list(reversed(combos)), cfg)
+    assert primary_first_order(list(reversed(combos)), cfg) == ordered
+    assert sorted(c.cell_id for c in ordered) == sorted(c.cell_id for c in combos)
+    n_slice = 3
+    assert all(c.is_primary for c in ordered[:n_slice])
+    assert not any(c.is_primary for c in ordered[n_slice:])
+    assert {c.horizon for c in ordered[:2]} == {2, 3}
+    assert ordered[2].horizon == 1
