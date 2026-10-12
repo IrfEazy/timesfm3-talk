@@ -1,0 +1,684 @@
+{
+  "_meta": {
+    "git_sha": "a39683d18d35ab7ff904f7fe7f3ab0397ca81bae",
+    "git_dirty": false,
+    "prereg_commit": "unknown",
+    "environment": {
+      "gpu_name": "Tesla T4",
+      "cuda_version": "12.4",
+      "torch_version": "2.6.0+cu124",
+      "device_count": 2
+    },
+    "checkpoint": {
+      "repo_id": "google/timesfm-3.0-pytorch",
+      "revision_requested": "43046b85ec22d584a13f8098c2ed39c889e129c2",
+      "revision_resolved": "43046b85ec22d584a13f8098c2ed39c889e129c2"
+    },
+    "seed": 42,
+    "as_of": "2026-09-04",
+    "live_end": false,
+    "written_at_utc": "2026-10-11T17:45:31.542835+00:00",
+    "package_versions": {
+      "requests": "2.34.2",
+      "py7zr": "1.1.3",
+      "pandas": "3.0.5",
+      "numpy": "2.5.2",
+      "scipy": "1.18.1",
+      "huggingface_hub": "1.29.0",
+      "timesfm": "3.0.0",
+      "timesfm3": "unknown",
+      "torch": "2.6.0+cu124"
+    }
+  },
+  "dependency_versions": {
+    "torch": "2.6.0+cu124",
+    "timesfm": "3.0.0",
+    "timesfm3": "unknown",
+    "numpy": "2.5.2",
+    "pandas": "3.0.5",
+    "pyarrow": "25.0.1",
+    "statsmodels": "0.15.0"
+  },
+  "config_id": "preregistered_v2_ffill0",
+  "run_id": "d1e6e5b3f40e",
+  "fingerprint": "d1e6e5b3f40ece53029394fcba6153d7aa372b7364da4cf6c28b1feb4332a3d2",
+  "fingerprint_payload": {
+    "canonicalization_version": 1,
+    "card_manifest_sha256": "e671a846417da9345c01d174a0b96135b4d65760c3935477f6c5397f0192d29d",
+    "checkpoint": {
+      "repo_id": "google/timesfm-3.0-pytorch",
+      "revision": "43046b85ec22d584a13f8098c2ed39c889e129c2"
+    },
+    "extra": {
+      "adapter": "timesfm3",
+      "cards_spec": "configs/benchmark_pool_v2.csv",
+      "cell_ids": [
+        "ctx00512-h0001-raw-mp1-univariate",
+        "ctx00512-h0007-raw-mp1-univariate",
+        "ctx00512-h0028-raw-mp1-univariate",
+        "ctx00512-h0056-raw-mp1-univariate",
+        "ctx00512-h0064-raw-mp1-univariate"
+      ],
+      "ffill_gap_drop": {
+        "dropped_per_card": {
+          "Abyssal Persecutor [WWK]": 0,
+          "Akoum Hellkite [PRE]": 0,
+          "Ashiok, Sculptor of Fears [THB]": 0,
+          "Autumn Willow [HML]": 0,
+          "Balance of Power [PTK]": 0,
+          "Balefire Dragon [ISD]": 0,
+          "Barrin, Master Wizard [USG]": 0,
+          "Bonders' Enclave (Extended Art) [IKO]": 0,
+          "Borborygmos and Fblthp [PRE]": 0,
+          "Breya, Etherium Shaper [C16]": 0,
+          "Bubble Matrix [WTH]": 0,
+          "Circu, Dimir Lobotomist [RAV]": 0,
+          "Dawn Charm [PLC]": 0,
+          "Decree of Justice [SCG]": 0,
+          "Depala, Pilot Exemplar [SLD]": 0,
+          "Don't Move (Borderless) [REX]": 0,
+          "Dregscape Sliver (Extended Art) [SLD]": 0,
+          "Epicenter [ODY]": 0,
+          "Glen Elendra Liege [SHM]": 0,
+          "Grizzly Bears [LEA]": 0,
+          "Heroic Intervention [AER]": 0,
+          "Kediss, Emberclaw Familiar [CMR]": 0,
+          "Kodama of the East Tree [CMR]": 0,
+          "Korvold, Fae-Cursed King [ELD]": 0,
+          "Leyline of Vitality [M11]": 0,
+          "Lightning Runner [PRE]": 0,
+          "Long-Term Plans [SCG]": 0,
+          "Magus of the Vineyard [FUT]": 0,
+          "Oblivion Sower [DDP]": 0,
+          "Palace Siege [C17]": 0,
+          "Pir's Whim [BBD]": 0,
+          "Plague Spitter [INV]": 0,
+          "Selvala's Stampede [CN2]": 0,
+          "Spirit Mantle [M12]": 0,
+          "Supplant Form [PRE]": 0,
+          "Supreme Verdict [RTR]": 0,
+          "Talisman of Hierarchy [MH1]": 0,
+          "Tempt with Immortality [C13]": 0,
+          "Veil of Summer [M20]": 0,
+          "Vexing Puzzlebox [CLB]": 0
+        },
+        "excluded_cards": [],
+        "kept_fraction_overall": 1.0,
+        "kept_fraction_per_card": {
+          "Abyssal Persecutor [WWK]": 1.0,
+          "Akoum Hellkite [PRE]": 1.0,
+          "Ashiok, Sculptor of Fears [THB]": 1.0,
+          "Autumn Willow [HML]": 1.0,
+          "Balance of Power [PTK]": 1.0,
+          "Balefire Dragon [ISD]": 1.0,
+          "Barrin, Master Wizard [USG]": 1.0,
+          "Bonders' Enclave (Extended Art) [IKO]": 1.0,
+          "Borborygmos and Fblthp [PRE]": 1.0,
+          "Breya, Etherium Shaper [C16]": 1.0,
+          "Bubble Matrix [WTH]": 1.0,
+          "Circu, Dimir Lobotomist [RAV]": 1.0,
+          "Dawn Charm [PLC]": 1.0,
+          "Decree of Justice [SCG]": 1.0,
+          "Depala, Pilot Exemplar [SLD]": 1.0,
+          "Don't Move (Borderless) [REX]": 1.0,
+          "Dregscape Sliver (Extended Art) [SLD]": 1.0,
+          "Epicenter [ODY]": 1.0,
+          "Glen Elendra Liege [SHM]": 1.0,
+          "Grizzly Bears [LEA]": 1.0,
+          "Heroic Intervention [AER]": 1.0,
+          "Kediss, Emberclaw Familiar [CMR]": 1.0,
+          "Kodama of the East Tree [CMR]": 1.0,
+          "Korvold, Fae-Cursed King [ELD]": 1.0,
+          "Leyline of Vitality [M11]": 1.0,
+          "Lightning Runner [PRE]": 1.0,
+          "Long-Term Plans [SCG]": 1.0,
+          "Magus of the Vineyard [FUT]": 1.0,
+          "Oblivion Sower [DDP]": 1.0,
+          "Palace Siege [C17]": 1.0,
+          "Pir's Whim [BBD]": 1.0,
+          "Plague Spitter [INV]": 1.0,
+          "Selvala's Stampede [CN2]": 1.0,
+          "Spirit Mantle [M12]": 1.0,
+          "Supplant Form [PRE]": 1.0,
+          "Supreme Verdict [RTR]": 1.0,
+          "Talisman of Hierarchy [MH1]": 1.0,
+          "Tempt with Immortality [C13]": 1.0,
+          "Veil of Summer [M20]": 1.0,
+          "Vexing Puzzlebox [CLB]": 1.0
+        },
+        "n_candidate_origins": 53
+      },
+      "n_days": 940,
+      "origins_sha256": "da08aa6b9c2849eee48f8f376413b1d797f7e9429f3b01c103f2e322284bdb8c",
+      "resolved_cards": [
+        {
+          "group_abbreviation": "DDP",
+          "label": "Oblivion Sower [DDP]",
+          "product_id": 101888,
+          "product_name": "Oblivion Sower"
+        },
+        {
+          "group_abbreviation": "C16",
+          "label": "Breya, Etherium Shaper [C16]",
+          "product_id": 123987,
+          "product_name": "Breya, Etherium Shaper"
+        },
+        {
+          "group_abbreviation": "PRE",
+          "label": "Borborygmos and Fblthp [PRE]",
+          "product_id": 492958,
+          "product_name": "Borborygmos and Fblthp"
+        },
+        {
+          "group_abbreviation": "WWK",
+          "label": "Abyssal Persecutor [WWK]",
+          "product_id": 34323,
+          "product_name": "Abyssal Persecutor"
+        },
+        {
+          "group_abbreviation": "PRE",
+          "label": "Lightning Runner [PRE]",
+          "product_id": 126846,
+          "product_name": "Lightning Runner"
+        },
+        {
+          "group_abbreviation": "THB",
+          "label": "Ashiok, Sculptor of Fears [THB]",
+          "product_id": 206189,
+          "product_name": "Ashiok, Sculptor of Fears"
+        },
+        {
+          "group_abbreviation": "ISD",
+          "label": "Balefire Dragon [ISD]",
+          "product_id": 52208,
+          "product_name": "Balefire Dragon"
+        },
+        {
+          "group_abbreviation": "ELD",
+          "label": "Korvold, Fae-Cursed King [ELD]",
+          "product_id": 198424,
+          "product_name": "Korvold, Fae-Cursed King"
+        },
+        {
+          "group_abbreviation": "CLB",
+          "label": "Vexing Puzzlebox [CLB]",
+          "product_id": 273204,
+          "product_name": "Vexing Puzzlebox"
+        },
+        {
+          "group_abbreviation": "HML",
+          "label": "Autumn Willow [HML]",
+          "product_id": 4454,
+          "product_name": "Autumn Willow"
+        },
+        {
+          "group_abbreviation": "RAV",
+          "label": "Circu, Dimir Lobotomist [RAV]",
+          "product_id": 13226,
+          "product_name": "Circu, Dimir Lobotomist"
+        },
+        {
+          "group_abbreviation": "SHM",
+          "label": "Glen Elendra Liege [SHM]",
+          "product_id": 18646,
+          "product_name": "Glen Elendra Liege"
+        },
+        {
+          "group_abbreviation": "C13",
+          "label": "Tempt with Immortality [C13]",
+          "product_id": 71853,
+          "product_name": "Tempt with Immortality"
+        },
+        {
+          "group_abbreviation": "PRE",
+          "label": "Akoum Hellkite [PRE]",
+          "product_id": 93385,
+          "product_name": "Akoum Hellkite"
+        },
+        {
+          "group_abbreviation": "C17",
+          "label": "Palace Siege [C17]",
+          "product_id": 140008,
+          "product_name": "Palace Siege"
+        },
+        {
+          "group_abbreviation": "BBD",
+          "label": "Pir's Whim [BBD]",
+          "product_id": 167655,
+          "product_name": "Pir's Whim"
+        },
+        {
+          "group_abbreviation": "ODY",
+          "label": "Epicenter [ODY]",
+          "product_id": 9467,
+          "product_name": "Epicenter"
+        },
+        {
+          "group_abbreviation": "FUT",
+          "label": "Magus of the Vineyard [FUT]",
+          "product_id": 14936,
+          "product_name": "Magus of the Vineyard"
+        },
+        {
+          "group_abbreviation": "M11",
+          "label": "Leyline of Vitality [M11]",
+          "product_id": 35578,
+          "product_name": "Leyline of Vitality"
+        },
+        {
+          "group_abbreviation": "RTR",
+          "label": "Supreme Verdict [RTR]",
+          "product_id": 66459,
+          "product_name": "Supreme Verdict"
+        },
+        {
+          "group_abbreviation": "PRE",
+          "label": "Supplant Form [PRE]",
+          "product_id": 95629,
+          "product_name": "Supplant Form"
+        },
+        {
+          "group_abbreviation": "IKO",
+          "label": "Bonders' Enclave (Extended Art) [IKO]",
+          "product_id": 212686,
+          "product_name": "Bonders' Enclave (Extended Art)"
+        },
+        {
+          "group_abbreviation": "CMR",
+          "label": "Kodama of the East Tree [CMR]",
+          "product_id": 226404,
+          "product_name": "Kodama of the East Tree"
+        },
+        {
+          "group_abbreviation": "SLD",
+          "label": "Depala, Pilot Exemplar [SLD]",
+          "product_id": 278768,
+          "product_name": "Depala, Pilot Exemplar"
+        },
+        {
+          "group_abbreviation": "PTK",
+          "label": "Balance of Power [PTK]",
+          "product_id": 426,
+          "product_name": "Balance of Power"
+        },
+        {
+          "group_abbreviation": "WTH",
+          "label": "Bubble Matrix [WTH]",
+          "product_id": 5997,
+          "product_name": "Bubble Matrix"
+        },
+        {
+          "group_abbreviation": "USG",
+          "label": "Barrin, Master Wizard [USG]",
+          "product_id": 6792,
+          "product_name": "Barrin, Master Wizard"
+        },
+        {
+          "group_abbreviation": "SCG",
+          "label": "Decree of Justice [SCG]",
+          "product_id": 10837,
+          "product_name": "Decree of Justice"
+        },
+        {
+          "group_abbreviation": "CN2",
+          "label": "Selvala's Stampede [CN2]",
+          "product_id": 121902,
+          "product_name": "Selvala's Stampede"
+        },
+        {
+          "group_abbreviation": "AER",
+          "label": "Heroic Intervention [AER]",
+          "product_id": 126488,
+          "product_name": "Heroic Intervention"
+        },
+        {
+          "group_abbreviation": "REX",
+          "label": "Don't Move (Borderless) [REX]",
+          "product_id": 524341,
+          "product_name": "Don't Move (Borderless)"
+        },
+        {
+          "group_abbreviation": "INV",
+          "label": "Plague Spitter [INV]",
+          "product_id": 7588,
+          "product_name": "Plague Spitter"
+        },
+        {
+          "group_abbreviation": "PLC",
+          "label": "Dawn Charm [PLC]",
+          "product_id": 14706,
+          "product_name": "Dawn Charm"
+        },
+        {
+          "group_abbreviation": "MH1",
+          "label": "Talisman of Hierarchy [MH1]",
+          "product_id": 191058,
+          "product_name": "Talisman of Hierarchy"
+        },
+        {
+          "group_abbreviation": "SCG",
+          "label": "Long-Term Plans [SCG]",
+          "product_id": 10864,
+          "product_name": "Long-Term Plans"
+        },
+        {
+          "group_abbreviation": "M12",
+          "label": "Spirit Mantle [M12]",
+          "product_id": 47188,
+          "product_name": "Spirit Mantle"
+        },
+        {
+          "group_abbreviation": "CMR",
+          "label": "Kediss, Emberclaw Familiar [CMR]",
+          "product_id": 226634,
+          "product_name": "Kediss, Emberclaw Familiar"
+        },
+        {
+          "group_abbreviation": "LEA",
+          "label": "Grizzly Bears [LEA]",
+          "product_id": 1133,
+          "product_name": "Grizzly Bears"
+        },
+        {
+          "group_abbreviation": "M20",
+          "label": "Veil of Summer [M20]",
+          "product_id": 192543,
+          "product_name": "Veil of Summer"
+        },
+        {
+          "group_abbreviation": "SLD",
+          "label": "Dregscape Sliver (Extended Art) [SLD]",
+          "product_id": 475899,
+          "product_name": "Dregscape Sliver (Extended Art)"
+        }
+      ]
+    },
+    "git": {
+      "dirty": false,
+      "dirty_digest": "2f9e0ee867c88cc3860e1c26064e4f22e8561f3dd53f21e5097dc4bcc743f395",
+      "sha": "a39683d18d35ab7ff904f7fe7f3ab0397ca81bae"
+    },
+    "input_cache_sha256": "a434ee32c4800ffad56cf253679bb60b0576fb9a03e1d7bc0e6dbe10aae18d83",
+    "metric_version": 1,
+    "protocol_version": 1,
+    "resolved_config": {
+      "baselines": [
+        "naive",
+        "seasonal_naive",
+        "drift",
+        "ets"
+      ],
+      "cards": "configs/benchmark_pool_v2.csv",
+      "config_id": "preregistered_v2_ffill0",
+      "context_lengths": [
+        512
+      ],
+      "ffill_days": 0,
+      "horizons": [
+        1,
+        7,
+        28,
+        56,
+        64
+      ],
+      "make_positive": [
+        true
+      ],
+      "max_origins": null,
+      "modes": [
+        "univariate"
+      ],
+      "origin_stride": 7,
+      "placebo_panel_size": 7,
+      "placebo_seed": 42,
+      "primary_horizons": [
+        28,
+        56
+      ],
+      "season_length": 7,
+      "transforms": [
+        "raw"
+      ]
+    },
+    "schema_version": 1,
+    "seed": 42
+  },
+  "run_dir": "/kaggle/tmp/tfm3lab-data/results/benchmark/preregistered_v2_ffill0/d1e6e5b3f40e",
+  "adapter": "timesfm3",
+  "resolved_cards": [
+    "Oblivion Sower [DDP]",
+    "Breya, Etherium Shaper [C16]",
+    "Borborygmos and Fblthp [PRE]",
+    "Abyssal Persecutor [WWK]",
+    "Lightning Runner [PRE]",
+    "Ashiok, Sculptor of Fears [THB]",
+    "Balefire Dragon [ISD]",
+    "Korvold, Fae-Cursed King [ELD]",
+    "Vexing Puzzlebox [CLB]",
+    "Autumn Willow [HML]",
+    "Circu, Dimir Lobotomist [RAV]",
+    "Glen Elendra Liege [SHM]",
+    "Tempt with Immortality [C13]",
+    "Akoum Hellkite [PRE]",
+    "Palace Siege [C17]",
+    "Pir's Whim [BBD]",
+    "Epicenter [ODY]",
+    "Magus of the Vineyard [FUT]",
+    "Leyline of Vitality [M11]",
+    "Supreme Verdict [RTR]",
+    "Supplant Form [PRE]",
+    "Bonders' Enclave (Extended Art) [IKO]",
+    "Kodama of the East Tree [CMR]",
+    "Depala, Pilot Exemplar [SLD]",
+    "Balance of Power [PTK]",
+    "Bubble Matrix [WTH]",
+    "Barrin, Master Wizard [USG]",
+    "Decree of Justice [SCG]",
+    "Selvala's Stampede [CN2]",
+    "Heroic Intervention [AER]",
+    "Don't Move (Borderless) [REX]",
+    "Plague Spitter [INV]",
+    "Dawn Charm [PLC]",
+    "Talisman of Hierarchy [MH1]",
+    "Long-Term Plans [SCG]",
+    "Spirit Mantle [M12]",
+    "Kediss, Emberclaw Familiar [CMR]",
+    "Grizzly Bears [LEA]",
+    "Veil of Summer [M20]",
+    "Dregscape Sliver (Extended Art) [SLD]"
+  ],
+  "grid": {
+    "context_lengths": [
+      512
+    ],
+    "horizons": [
+      1,
+      7,
+      28,
+      56,
+      64
+    ],
+    "primary_horizons": [
+      28,
+      56
+    ],
+    "transforms": [
+      "raw"
+    ],
+    "make_positive": [
+      true
+    ],
+    "modes": [
+      "univariate"
+    ],
+    "origin_stride": 7,
+    "max_origins": null,
+    "placebo_seed": 42,
+    "season_length": 7,
+    "n_combos": 5,
+    "n_origins": 53,
+    "ffill_days": 0,
+    "ffill_gap_drop": {
+      "n_candidate_origins": 53,
+      "dropped_per_card": {
+        "Abyssal Persecutor [WWK]": 0,
+        "Akoum Hellkite [PRE]": 0,
+        "Ashiok, Sculptor of Fears [THB]": 0,
+        "Autumn Willow [HML]": 0,
+        "Balance of Power [PTK]": 0,
+        "Balefire Dragon [ISD]": 0,
+        "Barrin, Master Wizard [USG]": 0,
+        "Bonders' Enclave (Extended Art) [IKO]": 0,
+        "Borborygmos and Fblthp [PRE]": 0,
+        "Breya, Etherium Shaper [C16]": 0,
+        "Bubble Matrix [WTH]": 0,
+        "Circu, Dimir Lobotomist [RAV]": 0,
+        "Dawn Charm [PLC]": 0,
+        "Decree of Justice [SCG]": 0,
+        "Depala, Pilot Exemplar [SLD]": 0,
+        "Don't Move (Borderless) [REX]": 0,
+        "Dregscape Sliver (Extended Art) [SLD]": 0,
+        "Epicenter [ODY]": 0,
+        "Glen Elendra Liege [SHM]": 0,
+        "Grizzly Bears [LEA]": 0,
+        "Heroic Intervention [AER]": 0,
+        "Kediss, Emberclaw Familiar [CMR]": 0,
+        "Kodama of the East Tree [CMR]": 0,
+        "Korvold, Fae-Cursed King [ELD]": 0,
+        "Leyline of Vitality [M11]": 0,
+        "Lightning Runner [PRE]": 0,
+        "Long-Term Plans [SCG]": 0,
+        "Magus of the Vineyard [FUT]": 0,
+        "Oblivion Sower [DDP]": 0,
+        "Palace Siege [C17]": 0,
+        "Pir's Whim [BBD]": 0,
+        "Plague Spitter [INV]": 0,
+        "Selvala's Stampede [CN2]": 0,
+        "Spirit Mantle [M12]": 0,
+        "Supplant Form [PRE]": 0,
+        "Supreme Verdict [RTR]": 0,
+        "Talisman of Hierarchy [MH1]": 0,
+        "Tempt with Immortality [C13]": 0,
+        "Veil of Summer [M20]": 0,
+        "Vexing Puzzlebox [CLB]": 0
+      },
+      "kept_fraction_per_card": {
+        "Abyssal Persecutor [WWK]": 1.0,
+        "Akoum Hellkite [PRE]": 1.0,
+        "Ashiok, Sculptor of Fears [THB]": 1.0,
+        "Autumn Willow [HML]": 1.0,
+        "Balance of Power [PTK]": 1.0,
+        "Balefire Dragon [ISD]": 1.0,
+        "Barrin, Master Wizard [USG]": 1.0,
+        "Bonders' Enclave (Extended Art) [IKO]": 1.0,
+        "Borborygmos and Fblthp [PRE]": 1.0,
+        "Breya, Etherium Shaper [C16]": 1.0,
+        "Bubble Matrix [WTH]": 1.0,
+        "Circu, Dimir Lobotomist [RAV]": 1.0,
+        "Dawn Charm [PLC]": 1.0,
+        "Decree of Justice [SCG]": 1.0,
+        "Depala, Pilot Exemplar [SLD]": 1.0,
+        "Don't Move (Borderless) [REX]": 1.0,
+        "Dregscape Sliver (Extended Art) [SLD]": 1.0,
+        "Epicenter [ODY]": 1.0,
+        "Glen Elendra Liege [SHM]": 1.0,
+        "Grizzly Bears [LEA]": 1.0,
+        "Heroic Intervention [AER]": 1.0,
+        "Kediss, Emberclaw Familiar [CMR]": 1.0,
+        "Kodama of the East Tree [CMR]": 1.0,
+        "Korvold, Fae-Cursed King [ELD]": 1.0,
+        "Leyline of Vitality [M11]": 1.0,
+        "Lightning Runner [PRE]": 1.0,
+        "Long-Term Plans [SCG]": 1.0,
+        "Magus of the Vineyard [FUT]": 1.0,
+        "Oblivion Sower [DDP]": 1.0,
+        "Palace Siege [C17]": 1.0,
+        "Pir's Whim [BBD]": 1.0,
+        "Plague Spitter [INV]": 1.0,
+        "Selvala's Stampede [CN2]": 1.0,
+        "Spirit Mantle [M12]": 1.0,
+        "Supplant Form [PRE]": 1.0,
+        "Supreme Verdict [RTR]": 1.0,
+        "Talisman of Hierarchy [MH1]": 1.0,
+        "Tempt with Immortality [C13]": 1.0,
+        "Veil of Summer [M20]": 1.0,
+        "Vexing Puzzlebox [CLB]": 1.0
+      },
+      "kept_fraction_overall": 1.0,
+      "excluded_cards": []
+    }
+  },
+  "baselines": [
+    "naive",
+    "seasonal_naive",
+    "drift",
+    "ets"
+  ],
+  "use_symmetric_averaging": true,
+  "summarize_origin_stride_passed": true,
+  "cells": [
+    "ctx00512-h0001-raw-mp1-univariate",
+    "ctx00512-h0007-raw-mp1-univariate",
+    "ctx00512-h0028-raw-mp1-univariate",
+    "ctx00512-h0056-raw-mp1-univariate",
+    "ctx00512-h0064-raw-mp1-univariate"
+  ],
+  "committed_cells": {
+    "ctx00512-h0001-raw-mp1-univariate": {
+      "sha256": "36172a34e716d0aee4006f5ddbef1e15031dcc615e93f85f0804bd99a78d5081",
+      "row_count": 2120,
+      "byte_size": 189583
+    },
+    "ctx00512-h0007-raw-mp1-univariate": {
+      "sha256": "bf9396c4821401e73075146a478dcd54defa549eb5faaefd460d726f44267e69",
+      "row_count": 14840,
+      "byte_size": 1087090
+    },
+    "ctx00512-h0028-raw-mp1-univariate": {
+      "sha256": "11cadb7f28c8c6ffa02e9b919ec6d490076ae665a2f088af70d3bfe6f93f6ac1",
+      "row_count": 59360,
+      "byte_size": 4423698
+    },
+    "ctx00512-h0056-raw-mp1-univariate": {
+      "sha256": "cc8577f20c397bbede7fa20e0c24c547ab90fac056cb812cb396759f9f8dad31",
+      "row_count": 118720,
+      "byte_size": 8812690
+    },
+    "ctx00512-h0064-raw-mp1-univariate": {
+      "sha256": "aeae54c9fed13ecc08b0fcebecd1e72ec12ee18fb7bb7c45e58c44bb45ba26fd",
+      "row_count": 135680,
+      "byte_size": 9941732
+    }
+  },
+  "session": {
+    "computed": [
+      "ctx00512-h0001-raw-mp1-univariate",
+      "ctx00512-h0007-raw-mp1-univariate",
+      "ctx00512-h0028-raw-mp1-univariate",
+      "ctx00512-h0056-raw-mp1-univariate",
+      "ctx00512-h0064-raw-mp1-univariate"
+    ],
+    "skipped_committed": [],
+    "quarantined": [],
+    "summary_complete": true,
+    "n_cells_committed": 5,
+    "n_cells_expected": 5
+  },
+  "outputs": [
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_mtg_benchmark_leaderboard__preregistered_v2_ffill0.parquet",
+      "bytes": 706691,
+      "sha256": "3869fc7934d47f76d32347cd18992725f9958e241d1a3c9874a1f75e6b4f5f31"
+    },
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_mtg_benchmark_leaderboard_aggregate__preregistered_v2_ffill0.parquet",
+      "bytes": 19937,
+      "sha256": "0ab3bc33c224084bea59cad1a0f7eafb635c0531d834ec9263e2494288e12133"
+    },
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_mtg_benchmark_primary__preregistered_v2_ffill0.parquet",
+      "bytes": 706784,
+      "sha256": "95f8d9f8a36f54552cf68e9a5eb17ffa4d8e73b9644647d7d0310f9710bfd2f9"
+    }
+  ]
+}

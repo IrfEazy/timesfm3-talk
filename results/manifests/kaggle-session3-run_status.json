@@ -1,0 +1,127 @@
+{
+  "steps": {
+    "probe": {
+      "status": "skipped",
+      "reason": "not in EXPERIMENTS"
+    },
+    "02b_preregistered_v2": {
+      "status": "skipped",
+      "reason": "not in EXPERIMENTS"
+    },
+    "02b_timesfm2p5": {
+      "status": "ok",
+      "exit_code": 0,
+      "elapsed_s": 22708.8,
+      "started_utc": "2026-10-11T20:30:27+00:00",
+      "commit_sha": "c50493cd609ecaf4d4f1f65e2798b2e41643d54b",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "uv",
+        "run",
+        "--no-sync",
+        "scripts/02b_exp_mtg_benchmark.py",
+        "--config",
+        "configs/benchmark_v2_timesfm2p5.json",
+        "--adapter",
+        "timesfm2.5",
+        "--resume",
+        "--as-of",
+        "2026-09-04"
+      ]
+    },
+    "02b_showcase": {
+      "status": "skipped",
+      "reason": "not in EXPERIMENTS"
+    },
+    "02b_ffill0": {
+      "status": "skipped",
+      "reason": "not in EXPERIMENTS"
+    },
+    "02b_ffill1": {
+      "status": "skipped",
+      "reason": "not in EXPERIMENTS"
+    },
+    "03_timesfm3": {
+      "status": "skipped",
+      "reason": "not in EXPERIMENTS"
+    },
+    "03_timesfm2p5": {
+      "status": "skipped",
+      "reason": "not in EXPERIMENTS"
+    },
+    "05_covariates": {
+      "status": "skipped",
+      "reason": "not in EXPERIMENTS"
+    },
+    "09_latency_timesfm3": {
+      "status": "ok",
+      "exit_code": 0,
+      "elapsed_s": 674.9,
+      "started_utc": "2026-10-12T02:48:57+00:00",
+      "commit_sha": "c50493cd609ecaf4d4f1f65e2798b2e41643d54b",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "uv",
+        "run",
+        "--no-sync",
+        "scripts/09_latency.py",
+        "--as-of",
+        "2026-09-04"
+      ]
+    },
+    "09_latency_timesfm2p5": {
+      "status": "ok",
+      "exit_code": 0,
+      "elapsed_s": 883.1,
+      "started_utc": "2026-10-12T03:00:12+00:00",
+      "commit_sha": "c50493cd609ecaf4d4f1f65e2798b2e41643d54b",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "uv",
+        "run",
+        "--no-sync",
+        "scripts/09_latency.py",
+        "--adapter",
+        "timesfm2.5",
+        "--as-of",
+        "2026-09-04"
+      ]
+    }
+  },
+  "as_of": "2026-09-04",
+  "commit_sha": "c50493cd609ecaf4d4f1f65e2798b2e41643d54b",
+  "git_ref": "dataset:tfm3lab-code-c50493cd609e",
+  "cache_sha256": {
+    "cpi_yoy.parquet": "a0ebe137cc73f3a14434e36066c2918d354a060bbaddc9188b65109fcaeaba6e",
+    "market_prices.parquet": "4558dd68b99ef59682a349531790ea923a2a5af3f4c55f0e325cfc6575339a70",
+    "mtg_prices.parquet": "a434ee32c4800ffad56cf253679bb60b0576fb9a03e1d7bc0e6dbe10aae18d83",
+    "shock_v2_EuroStoxx50_2026-09-04.parquet": "2172818ed6f4b15137e1af365015c51a7d902b11c48dad8b0edd21674cdead8f",
+    "shock_v2_Gold_2026-09-04.parquet": "00949b609e7d8072d9e5e0803181d3e18f9c58b7e68401590e3b4b9a9a455408",
+    "shock_v2_Nasdaq100_2026-09-04.parquet": "9c972534666138a3c666552f62e8386a86933cd6c4729b154ebb499be49de44e",
+    "shock_v2_Nikkei225_2026-09-04.parquet": "3ebbe0cd85211db980dd65a5afeaee448377224d3af56d544b7a862cc6ef83dc",
+    "shock_v2_SP500_2026-09-04.parquet": "6f49008dc58e1e6caa38251a007a343f3a48a59444c18c7c2c7decfbc358162d"
+  },
+  "updated_utc": "2026-10-12T03:14:55+00:00",
+  "checkpoints": {
+    "timesfm3": {
+      "repo_id": "google/timesfm-3.0-pytorch",
+      "revision_requested": "43046b85ec22d584a13f8098c2ed39c889e129c2",
+      "revision_resolved": "43046b85ec22d584a13f8098c2ed39c889e129c2"
+    },
+    "timesfm2.5": {
+      "repo_id": "google/timesfm-2.5-200m-pytorch",
+      "revision_requested": "1d952420fba87f3c6dee4f240de0f1a0fbc790e3",
+      "revision_resolved": "1d952420fba87f3c6dee4f240de0f1a0fbc790e3"
+    }
+  },
+  "environment": {
+    "gpu_name": "Tesla T4",
+    "cuda_version": "12.4",
+    "torch_version": "2.6.0+cu124",
+    "device_count": 2
+  },
+  "steps_summary": "step                    status    exit  elapsed_min\nprobe                   skipped                    \n02b_preregistered_v2    skipped                    \n02b_timesfm2p5          ok           0        378.5\n02b_showcase            skipped                    \n02b_ffill0              skipped                    \n02b_ffill1              skipped                    \n03_timesfm3             skipped                    \n03_timesfm2p5           skipped                    \n05_covariates           skipped                    \n09_latency_timesfm3     ok           0         11.2\n09_latency_timesfm2p5   ok           0         14.7"
+}

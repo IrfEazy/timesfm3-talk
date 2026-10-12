@@ -1,0 +1,69 @@
+{
+  "_meta": {
+    "git_sha": "a39683d18d35ab7ff904f7fe7f3ab0397ca81bae",
+    "git_dirty": false,
+    "prereg_commit": "unknown",
+    "environment": {
+      "gpu_name": "Tesla T4",
+      "cuda_version": "12.4",
+      "torch_version": "2.6.0+cu124",
+      "device_count": 2
+    },
+    "checkpoint": {
+      "repo_id": "google/timesfm-3.0-pytorch",
+      "revision_requested": "43046b85ec22d584a13f8098c2ed39c889e129c2",
+      "revision_resolved": "43046b85ec22d584a13f8098c2ed39c889e129c2"
+    },
+    "seed": 20261010,
+    "as_of": "2026-09-04",
+    "live_end": false,
+    "written_at_utc": "2026-10-11T18:23:21.688202+00:00",
+    "package_versions": {
+      "requests": "2.34.2",
+      "py7zr": "1.1.3",
+      "pandas": "3.0.5",
+      "numpy": "2.5.2",
+      "scipy": "1.18.1",
+      "huggingface_hub": "1.29.0",
+      "timesfm": "3.0.0",
+      "timesfm3": "unknown",
+      "torch": "2.6.0+cu124"
+    }
+  },
+  "script": "exp_shock_v2",
+  "outputs": [
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_shock_v2_predictions.parquet",
+      "bytes": 3903315,
+      "sha256": "8870dea684463fdfdbe232268a05e3eb5a45ea56588a82f299e4c1d028ffbd0d"
+    },
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_shock_v2_lags.parquet",
+      "bytes": 9550,
+      "sha256": "43a36185bdda7899f2334a27de782a75547dd1873c1eb0633b2e6f7a25a9a0aa"
+    },
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_shock_v2_summary.parquet",
+      "bytes": 14065,
+      "sha256": "bb7295abbfa54219e29470d28643fd158c5a0c24749de4853a3add31644c259c"
+    }
+  ],
+  "args": {
+    "as_of": "2026-09-04",
+    "allow_cpu": "False",
+    "adapter": "timesfm3",
+    "legacy_events": "False",
+    "events": "/kaggle/tmp/timesfm3-talk/configs/shock_events_v2.csv",
+    "context_len": "256",
+    "window_before": "12",
+    "window_after": "25"
+  },
+  "notes": [
+    "ev-2019-06-20: splice seed 1 skipped (short history)",
+    "ev-2019-06-20: splice seed 2 skipped (short history)",
+    "ev-2019-06-20: splice seed 3 skipped (short history)",
+    "ev-2019-06-20: splice seed 4 skipped (short history)",
+    "ev-2019-06-20: splice seed 5 skipped (short history)",
+    "ev-2020-02-24: multivariate skipped (onset/window not in panel)"
+  ]
+}

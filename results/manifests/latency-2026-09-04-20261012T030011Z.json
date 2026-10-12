@@ -1,0 +1,167 @@
+{
+  "_meta": {
+    "git_sha": "c50493cd609ecaf4d4f1f65e2798b2e41643d54b",
+    "git_dirty": false,
+    "prereg_commit": "unknown",
+    "environment": {
+      "gpu_name": "Tesla T4",
+      "cuda_version": "12.4",
+      "torch_version": "2.6.0+cu124",
+      "device_count": 2
+    },
+    "checkpoint": {
+      "repo_id": "google/timesfm-3.0-pytorch",
+      "revision_requested": "43046b85ec22d584a13f8098c2ed39c889e129c2",
+      "revision_resolved": "43046b85ec22d584a13f8098c2ed39c889e129c2"
+    },
+    "seed": null,
+    "as_of": "2026-09-04",
+    "live_end": false,
+    "written_at_utc": "2026-10-12T03:00:11.102396+00:00",
+    "package_versions": {
+      "requests": "2.34.2",
+      "py7zr": "1.1.3",
+      "pandas": "3.0.5",
+      "numpy": "2.5.2",
+      "scipy": "1.18.1",
+      "huggingface_hub": "1.29.0",
+      "timesfm": "3.0.0",
+      "timesfm3": "unknown",
+      "torch": "2.6.0+cu124"
+    }
+  },
+  "script": "latency",
+  "outputs": [
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/latency_v2.parquet",
+      "bytes": 15390,
+      "sha256": "e45e35c53ec750e5a16bfdf0169dceb97b4e0a0b6c6035687555f6717fac06b7"
+    }
+  ],
+  "args": {
+    "as_of": "2026-09-04",
+    "adapter": "timesfm3",
+    "allow_cpu": "False",
+    "repeats": "20",
+    "warmup": "3"
+  },
+  "environment": {
+    "gpu_name": "Tesla T4",
+    "cuda_version": "12.4",
+    "torch_version": "2.6.0+cu124",
+    "device_count": 2
+  },
+  "run_outcome": "complete",
+  "grid": {
+    "batch_sizes": [
+      1,
+      8,
+      32,
+      128
+    ],
+    "contexts": [
+      128,
+      512
+    ],
+    "horizons": [
+      28,
+      64
+    ],
+    "cells": [
+      [
+        1,
+        128,
+        28
+      ],
+      [
+        1,
+        128,
+        64
+      ],
+      [
+        1,
+        512,
+        28
+      ],
+      [
+        1,
+        512,
+        64
+      ],
+      [
+        8,
+        128,
+        28
+      ],
+      [
+        8,
+        128,
+        64
+      ],
+      [
+        8,
+        512,
+        28
+      ],
+      [
+        8,
+        512,
+        64
+      ],
+      [
+        32,
+        128,
+        28
+      ],
+      [
+        32,
+        128,
+        64
+      ],
+      [
+        32,
+        512,
+        28
+      ],
+      [
+        32,
+        512,
+        64
+      ],
+      [
+        128,
+        128,
+        28
+      ],
+      [
+        128,
+        128,
+        64
+      ],
+      [
+        128,
+        512,
+        28
+      ],
+      [
+        128,
+        512,
+        64
+      ]
+    ]
+  },
+  "repeats": 20,
+  "warmup": 3,
+  "p95_method": "numpy.percentile(q=95, method='linear')",
+  "n_usable_series_max_context": 47,
+  "cell_status_counts": {
+    "ok": 48,
+    "oom": 0,
+    "error": 0
+  },
+  "per_core_batch_size": 16,
+  "batching_note": "timesfm3 TimesFM3Evaluator.predict_batch iterates queries in chunks of per_core_batch_size (timesfm3_forecaster.py); a batch > 16 is run as sequential forward passes inside one call, so batch 32/128 time several chunks, not one large forward pass.",
+  "data_sources": [
+    "real"
+  ]
+}

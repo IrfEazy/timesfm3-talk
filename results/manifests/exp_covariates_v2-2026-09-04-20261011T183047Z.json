@@ -1,0 +1,62 @@
+{
+  "_meta": {
+    "git_sha": "a39683d18d35ab7ff904f7fe7f3ab0397ca81bae",
+    "git_dirty": false,
+    "prereg_commit": "unknown",
+    "environment": {
+      "gpu_name": "Tesla T4",
+      "cuda_version": "12.4",
+      "torch_version": "2.6.0+cu124",
+      "device_count": 2
+    },
+    "checkpoint": {
+      "repo_id": "google/timesfm-3.0-pytorch",
+      "revision_requested": "43046b85ec22d584a13f8098c2ed39c889e129c2",
+      "revision_resolved": "43046b85ec22d584a13f8098c2ed39c889e129c2"
+    },
+    "seed": 20261010,
+    "as_of": "2026-09-04",
+    "live_end": false,
+    "written_at_utc": "2026-10-11T18:30:47.669210+00:00",
+    "package_versions": {
+      "requests": "2.34.2",
+      "py7zr": "1.1.3",
+      "pandas": "3.0.5",
+      "numpy": "2.5.2",
+      "scipy": "1.18.1",
+      "huggingface_hub": "1.29.0",
+      "timesfm": "3.0.0",
+      "timesfm3": "unknown",
+      "torch": "2.6.0+cu124"
+    }
+  },
+  "script": "exp_covariates_v2",
+  "outputs": [
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_covariates_v2_predictions.parquet",
+      "bytes": 2416463,
+      "sha256": "c6d9dcc50049ba0ad6cdd31616328ea5c8e07f807a3e13fdb45afdf60d355500"
+    },
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_covariates_v2_summary.parquet",
+      "bytes": 12355,
+      "sha256": "7ca4404f24ca8cf1281e1232f8d29b3ae6e3d54b81f6004f2b0fb1cefd954bdc"
+    },
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_covariates_v2_excluded.parquet",
+      "bytes": 1832,
+      "sha256": "c2f177c65480a13a3506c9557162f725e30fafa9d5d2e4a8ca00cb927b383370"
+    },
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_covariates_v2_leakage_demo.parquet",
+      "bytes": 749259,
+      "sha256": "54158d57fa458770b704a37a8edd327bcf9ff2dc90b127381192df624bf064ce"
+    }
+  ],
+  "pool": "/kaggle/tmp/timesfm3-talk/configs/benchmark_pool_v2.csv",
+  "context_len": 128,
+  "horizon": 7,
+  "origin_stride": 7,
+  "announce_lead_days_proxy": 60,
+  "excluded": []
+}

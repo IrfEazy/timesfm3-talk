@@ -1,0 +1,1110 @@
+{
+  "_meta": {
+    "git_sha": "c50493cd609ecaf4d4f1f65e2798b2e41643d54b",
+    "git_dirty": false,
+    "prereg_commit": "unknown",
+    "environment": {
+      "gpu_name": "Tesla T4",
+      "cuda_version": "12.4",
+      "torch_version": "2.6.0+cu124",
+      "device_count": 2
+    },
+    "checkpoint": {
+      "repo_id": "google/timesfm-2.5-200m-pytorch",
+      "revision_requested": "1d952420fba87f3c6dee4f240de0f1a0fbc790e3",
+      "revision_resolved": "1d952420fba87f3c6dee4f240de0f1a0fbc790e3"
+    },
+    "seed": 42,
+    "as_of": "2026-09-04",
+    "live_end": false,
+    "written_at_utc": "2026-10-12T02:48:55.255021+00:00",
+    "package_versions": {
+      "requests": "2.34.2",
+      "py7zr": "1.1.3",
+      "pandas": "3.0.5",
+      "numpy": "2.5.2",
+      "scipy": "1.18.1",
+      "huggingface_hub": "1.29.0",
+      "timesfm": "3.0.0",
+      "timesfm3": "unknown",
+      "torch": "2.6.0+cu124"
+    }
+  },
+  "dependency_versions": {
+    "torch": "2.6.0+cu124",
+    "timesfm": "3.0.0",
+    "timesfm3": "unknown",
+    "numpy": "2.5.2",
+    "pandas": "3.0.5",
+    "pyarrow": "25.0.1",
+    "statsmodels": "0.15.0"
+  },
+  "config_id": "preregistered_v2_timesfm2p5",
+  "run_id": "89ff073def6a",
+  "fingerprint": "89ff073def6a7845c86e71758a8fab3eecf22b0702bb0fa3b6877df7bd83c43e",
+  "fingerprint_payload": {
+    "canonicalization_version": 1,
+    "card_manifest_sha256": "e671a846417da9345c01d174a0b96135b4d65760c3935477f6c5397f0192d29d",
+    "checkpoint": {
+      "repo_id": "google/timesfm-2.5-200m-pytorch",
+      "revision": "1d952420fba87f3c6dee4f240de0f1a0fbc790e3"
+    },
+    "extra": {
+      "adapter": "timesfm2.5",
+      "cards_spec": "configs/benchmark_pool_v2.csv",
+      "cell_ids": [
+        "ctx00064-h0001-raw-mp1-univariate",
+        "ctx00064-h0001-raw-mp0-univariate",
+        "ctx00064-h0001-log1p-mp1-univariate",
+        "ctx00064-h0001-log1p-mp0-univariate",
+        "ctx00064-h0007-raw-mp1-univariate",
+        "ctx00064-h0007-raw-mp0-univariate",
+        "ctx00064-h0007-log1p-mp1-univariate",
+        "ctx00064-h0007-log1p-mp0-univariate",
+        "ctx00064-h0028-raw-mp1-univariate",
+        "ctx00064-h0028-raw-mp0-univariate",
+        "ctx00064-h0028-log1p-mp1-univariate",
+        "ctx00064-h0028-log1p-mp0-univariate",
+        "ctx00064-h0056-raw-mp1-univariate",
+        "ctx00064-h0056-raw-mp0-univariate",
+        "ctx00064-h0056-log1p-mp1-univariate",
+        "ctx00064-h0056-log1p-mp0-univariate",
+        "ctx00064-h0064-raw-mp1-univariate",
+        "ctx00064-h0064-raw-mp0-univariate",
+        "ctx00064-h0064-log1p-mp1-univariate",
+        "ctx00064-h0064-log1p-mp0-univariate",
+        "ctx00128-h0001-raw-mp1-univariate",
+        "ctx00128-h0001-raw-mp0-univariate",
+        "ctx00128-h0001-log1p-mp1-univariate",
+        "ctx00128-h0001-log1p-mp0-univariate",
+        "ctx00128-h0007-raw-mp1-univariate",
+        "ctx00128-h0007-raw-mp0-univariate",
+        "ctx00128-h0007-log1p-mp1-univariate",
+        "ctx00128-h0007-log1p-mp0-univariate",
+        "ctx00128-h0028-raw-mp1-univariate",
+        "ctx00128-h0028-raw-mp0-univariate",
+        "ctx00128-h0028-log1p-mp1-univariate",
+        "ctx00128-h0028-log1p-mp0-univariate",
+        "ctx00128-h0056-raw-mp1-univariate",
+        "ctx00128-h0056-raw-mp0-univariate",
+        "ctx00128-h0056-log1p-mp1-univariate",
+        "ctx00128-h0056-log1p-mp0-univariate",
+        "ctx00128-h0064-raw-mp1-univariate",
+        "ctx00128-h0064-raw-mp0-univariate",
+        "ctx00128-h0064-log1p-mp1-univariate",
+        "ctx00128-h0064-log1p-mp0-univariate",
+        "ctx00256-h0001-raw-mp1-univariate",
+        "ctx00256-h0001-raw-mp0-univariate",
+        "ctx00256-h0001-log1p-mp1-univariate",
+        "ctx00256-h0001-log1p-mp0-univariate",
+        "ctx00256-h0007-raw-mp1-univariate",
+        "ctx00256-h0007-raw-mp0-univariate",
+        "ctx00256-h0007-log1p-mp1-univariate",
+        "ctx00256-h0007-log1p-mp0-univariate",
+        "ctx00256-h0028-raw-mp1-univariate",
+        "ctx00256-h0028-raw-mp0-univariate",
+        "ctx00256-h0028-log1p-mp1-univariate",
+        "ctx00256-h0028-log1p-mp0-univariate",
+        "ctx00256-h0056-raw-mp1-univariate",
+        "ctx00256-h0056-raw-mp0-univariate",
+        "ctx00256-h0056-log1p-mp1-univariate",
+        "ctx00256-h0056-log1p-mp0-univariate",
+        "ctx00256-h0064-raw-mp1-univariate",
+        "ctx00256-h0064-raw-mp0-univariate",
+        "ctx00256-h0064-log1p-mp1-univariate",
+        "ctx00256-h0064-log1p-mp0-univariate",
+        "ctx00512-h0001-raw-mp1-univariate",
+        "ctx00512-h0001-raw-mp0-univariate",
+        "ctx00512-h0001-log1p-mp1-univariate",
+        "ctx00512-h0001-log1p-mp0-univariate",
+        "ctx00512-h0007-raw-mp1-univariate",
+        "ctx00512-h0007-raw-mp0-univariate",
+        "ctx00512-h0007-log1p-mp1-univariate",
+        "ctx00512-h0007-log1p-mp0-univariate",
+        "ctx00512-h0028-raw-mp1-univariate",
+        "ctx00512-h0028-raw-mp0-univariate",
+        "ctx00512-h0028-log1p-mp1-univariate",
+        "ctx00512-h0028-log1p-mp0-univariate",
+        "ctx00512-h0056-raw-mp1-univariate",
+        "ctx00512-h0056-raw-mp0-univariate",
+        "ctx00512-h0056-log1p-mp1-univariate",
+        "ctx00512-h0056-log1p-mp0-univariate",
+        "ctx00512-h0064-raw-mp1-univariate",
+        "ctx00512-h0064-raw-mp0-univariate",
+        "ctx00512-h0064-log1p-mp1-univariate",
+        "ctx00512-h0064-log1p-mp0-univariate"
+      ],
+      "n_days": 940,
+      "origins_sha256": "da08aa6b9c2849eee48f8f376413b1d797f7e9429f3b01c103f2e322284bdb8c",
+      "resolved_cards": [
+        {
+          "group_abbreviation": "DDP",
+          "label": "Oblivion Sower [DDP]",
+          "product_id": 101888,
+          "product_name": "Oblivion Sower"
+        },
+        {
+          "group_abbreviation": "C16",
+          "label": "Breya, Etherium Shaper [C16]",
+          "product_id": 123987,
+          "product_name": "Breya, Etherium Shaper"
+        },
+        {
+          "group_abbreviation": "PRE",
+          "label": "Borborygmos and Fblthp [PRE]",
+          "product_id": 492958,
+          "product_name": "Borborygmos and Fblthp"
+        },
+        {
+          "group_abbreviation": "WWK",
+          "label": "Abyssal Persecutor [WWK]",
+          "product_id": 34323,
+          "product_name": "Abyssal Persecutor"
+        },
+        {
+          "group_abbreviation": "PRE",
+          "label": "Lightning Runner [PRE]",
+          "product_id": 126846,
+          "product_name": "Lightning Runner"
+        },
+        {
+          "group_abbreviation": "THB",
+          "label": "Ashiok, Sculptor of Fears [THB]",
+          "product_id": 206189,
+          "product_name": "Ashiok, Sculptor of Fears"
+        },
+        {
+          "group_abbreviation": "ISD",
+          "label": "Balefire Dragon [ISD]",
+          "product_id": 52208,
+          "product_name": "Balefire Dragon"
+        },
+        {
+          "group_abbreviation": "ELD",
+          "label": "Korvold, Fae-Cursed King [ELD]",
+          "product_id": 198424,
+          "product_name": "Korvold, Fae-Cursed King"
+        },
+        {
+          "group_abbreviation": "CLB",
+          "label": "Vexing Puzzlebox [CLB]",
+          "product_id": 273204,
+          "product_name": "Vexing Puzzlebox"
+        },
+        {
+          "group_abbreviation": "HML",
+          "label": "Autumn Willow [HML]",
+          "product_id": 4454,
+          "product_name": "Autumn Willow"
+        },
+        {
+          "group_abbreviation": "RAV",
+          "label": "Circu, Dimir Lobotomist [RAV]",
+          "product_id": 13226,
+          "product_name": "Circu, Dimir Lobotomist"
+        },
+        {
+          "group_abbreviation": "SHM",
+          "label": "Glen Elendra Liege [SHM]",
+          "product_id": 18646,
+          "product_name": "Glen Elendra Liege"
+        },
+        {
+          "group_abbreviation": "C13",
+          "label": "Tempt with Immortality [C13]",
+          "product_id": 71853,
+          "product_name": "Tempt with Immortality"
+        },
+        {
+          "group_abbreviation": "PRE",
+          "label": "Akoum Hellkite [PRE]",
+          "product_id": 93385,
+          "product_name": "Akoum Hellkite"
+        },
+        {
+          "group_abbreviation": "C17",
+          "label": "Palace Siege [C17]",
+          "product_id": 140008,
+          "product_name": "Palace Siege"
+        },
+        {
+          "group_abbreviation": "BBD",
+          "label": "Pir's Whim [BBD]",
+          "product_id": 167655,
+          "product_name": "Pir's Whim"
+        },
+        {
+          "group_abbreviation": "ODY",
+          "label": "Epicenter [ODY]",
+          "product_id": 9467,
+          "product_name": "Epicenter"
+        },
+        {
+          "group_abbreviation": "FUT",
+          "label": "Magus of the Vineyard [FUT]",
+          "product_id": 14936,
+          "product_name": "Magus of the Vineyard"
+        },
+        {
+          "group_abbreviation": "M11",
+          "label": "Leyline of Vitality [M11]",
+          "product_id": 35578,
+          "product_name": "Leyline of Vitality"
+        },
+        {
+          "group_abbreviation": "RTR",
+          "label": "Supreme Verdict [RTR]",
+          "product_id": 66459,
+          "product_name": "Supreme Verdict"
+        },
+        {
+          "group_abbreviation": "PRE",
+          "label": "Supplant Form [PRE]",
+          "product_id": 95629,
+          "product_name": "Supplant Form"
+        },
+        {
+          "group_abbreviation": "IKO",
+          "label": "Bonders' Enclave (Extended Art) [IKO]",
+          "product_id": 212686,
+          "product_name": "Bonders' Enclave (Extended Art)"
+        },
+        {
+          "group_abbreviation": "CMR",
+          "label": "Kodama of the East Tree [CMR]",
+          "product_id": 226404,
+          "product_name": "Kodama of the East Tree"
+        },
+        {
+          "group_abbreviation": "SLD",
+          "label": "Depala, Pilot Exemplar [SLD]",
+          "product_id": 278768,
+          "product_name": "Depala, Pilot Exemplar"
+        },
+        {
+          "group_abbreviation": "PTK",
+          "label": "Balance of Power [PTK]",
+          "product_id": 426,
+          "product_name": "Balance of Power"
+        },
+        {
+          "group_abbreviation": "WTH",
+          "label": "Bubble Matrix [WTH]",
+          "product_id": 5997,
+          "product_name": "Bubble Matrix"
+        },
+        {
+          "group_abbreviation": "USG",
+          "label": "Barrin, Master Wizard [USG]",
+          "product_id": 6792,
+          "product_name": "Barrin, Master Wizard"
+        },
+        {
+          "group_abbreviation": "SCG",
+          "label": "Decree of Justice [SCG]",
+          "product_id": 10837,
+          "product_name": "Decree of Justice"
+        },
+        {
+          "group_abbreviation": "CN2",
+          "label": "Selvala's Stampede [CN2]",
+          "product_id": 121902,
+          "product_name": "Selvala's Stampede"
+        },
+        {
+          "group_abbreviation": "AER",
+          "label": "Heroic Intervention [AER]",
+          "product_id": 126488,
+          "product_name": "Heroic Intervention"
+        },
+        {
+          "group_abbreviation": "REX",
+          "label": "Don't Move (Borderless) [REX]",
+          "product_id": 524341,
+          "product_name": "Don't Move (Borderless)"
+        },
+        {
+          "group_abbreviation": "INV",
+          "label": "Plague Spitter [INV]",
+          "product_id": 7588,
+          "product_name": "Plague Spitter"
+        },
+        {
+          "group_abbreviation": "PLC",
+          "label": "Dawn Charm [PLC]",
+          "product_id": 14706,
+          "product_name": "Dawn Charm"
+        },
+        {
+          "group_abbreviation": "MH1",
+          "label": "Talisman of Hierarchy [MH1]",
+          "product_id": 191058,
+          "product_name": "Talisman of Hierarchy"
+        },
+        {
+          "group_abbreviation": "SCG",
+          "label": "Long-Term Plans [SCG]",
+          "product_id": 10864,
+          "product_name": "Long-Term Plans"
+        },
+        {
+          "group_abbreviation": "M12",
+          "label": "Spirit Mantle [M12]",
+          "product_id": 47188,
+          "product_name": "Spirit Mantle"
+        },
+        {
+          "group_abbreviation": "CMR",
+          "label": "Kediss, Emberclaw Familiar [CMR]",
+          "product_id": 226634,
+          "product_name": "Kediss, Emberclaw Familiar"
+        },
+        {
+          "group_abbreviation": "LEA",
+          "label": "Grizzly Bears [LEA]",
+          "product_id": 1133,
+          "product_name": "Grizzly Bears"
+        },
+        {
+          "group_abbreviation": "M20",
+          "label": "Veil of Summer [M20]",
+          "product_id": 192543,
+          "product_name": "Veil of Summer"
+        },
+        {
+          "group_abbreviation": "SLD",
+          "label": "Dregscape Sliver (Extended Art) [SLD]",
+          "product_id": 475899,
+          "product_name": "Dregscape Sliver (Extended Art)"
+        }
+      ]
+    },
+    "git": {
+      "dirty": false,
+      "dirty_digest": "ca8a185cae05e5b8c35dcda601dfc9dc6d1a6d966bcd770d551cd404fcc36902",
+      "sha": "c50493cd609ecaf4d4f1f65e2798b2e41643d54b"
+    },
+    "input_cache_sha256": "a434ee32c4800ffad56cf253679bb60b0576fb9a03e1d7bc0e6dbe10aae18d83",
+    "metric_version": 1,
+    "protocol_version": 1,
+    "resolved_config": {
+      "baselines": [
+        "naive"
+      ],
+      "cards": "configs/benchmark_pool_v2.csv",
+      "config_id": "preregistered_v2_timesfm2p5",
+      "context_lengths": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "horizons": [
+        1,
+        7,
+        28,
+        56,
+        64
+      ],
+      "make_positive": [
+        true,
+        false
+      ],
+      "max_origins": null,
+      "modes": [
+        "univariate"
+      ],
+      "origin_stride": 7,
+      "placebo_panel_size": 7,
+      "placebo_seed": 42,
+      "primary_horizons": [
+        28,
+        56
+      ],
+      "season_length": 7,
+      "transforms": [
+        "raw",
+        "log1p"
+      ]
+    },
+    "schema_version": 1,
+    "seed": 42
+  },
+  "run_dir": "/kaggle/tmp/tfm3lab-data/results/benchmark/preregistered_v2_timesfm2p5/89ff073def6a",
+  "adapter": "timesfm2.5",
+  "resolved_cards": [
+    "Oblivion Sower [DDP]",
+    "Breya, Etherium Shaper [C16]",
+    "Borborygmos and Fblthp [PRE]",
+    "Abyssal Persecutor [WWK]",
+    "Lightning Runner [PRE]",
+    "Ashiok, Sculptor of Fears [THB]",
+    "Balefire Dragon [ISD]",
+    "Korvold, Fae-Cursed King [ELD]",
+    "Vexing Puzzlebox [CLB]",
+    "Autumn Willow [HML]",
+    "Circu, Dimir Lobotomist [RAV]",
+    "Glen Elendra Liege [SHM]",
+    "Tempt with Immortality [C13]",
+    "Akoum Hellkite [PRE]",
+    "Palace Siege [C17]",
+    "Pir's Whim [BBD]",
+    "Epicenter [ODY]",
+    "Magus of the Vineyard [FUT]",
+    "Leyline of Vitality [M11]",
+    "Supreme Verdict [RTR]",
+    "Supplant Form [PRE]",
+    "Bonders' Enclave (Extended Art) [IKO]",
+    "Kodama of the East Tree [CMR]",
+    "Depala, Pilot Exemplar [SLD]",
+    "Balance of Power [PTK]",
+    "Bubble Matrix [WTH]",
+    "Barrin, Master Wizard [USG]",
+    "Decree of Justice [SCG]",
+    "Selvala's Stampede [CN2]",
+    "Heroic Intervention [AER]",
+    "Don't Move (Borderless) [REX]",
+    "Plague Spitter [INV]",
+    "Dawn Charm [PLC]",
+    "Talisman of Hierarchy [MH1]",
+    "Long-Term Plans [SCG]",
+    "Spirit Mantle [M12]",
+    "Kediss, Emberclaw Familiar [CMR]",
+    "Grizzly Bears [LEA]",
+    "Veil of Summer [M20]",
+    "Dregscape Sliver (Extended Art) [SLD]"
+  ],
+  "grid": {
+    "context_lengths": [
+      64,
+      128,
+      256,
+      512
+    ],
+    "horizons": [
+      1,
+      7,
+      28,
+      56,
+      64
+    ],
+    "primary_horizons": [
+      28,
+      56
+    ],
+    "transforms": [
+      "raw",
+      "log1p"
+    ],
+    "make_positive": [
+      true,
+      false
+    ],
+    "modes": [
+      "univariate"
+    ],
+    "origin_stride": 7,
+    "max_origins": null,
+    "placebo_seed": 42,
+    "season_length": 7,
+    "n_combos": 80,
+    "n_origins": 53,
+    "ffill_days": null,
+    "ffill_gap_drop": null
+  },
+  "baselines": [
+    "naive"
+  ],
+  "use_symmetric_averaging": false,
+  "summarize_origin_stride_passed": true,
+  "cells": [
+    "ctx00064-h0001-raw-mp1-univariate",
+    "ctx00064-h0001-raw-mp0-univariate",
+    "ctx00064-h0001-log1p-mp1-univariate",
+    "ctx00064-h0001-log1p-mp0-univariate",
+    "ctx00064-h0007-raw-mp1-univariate",
+    "ctx00064-h0007-raw-mp0-univariate",
+    "ctx00064-h0007-log1p-mp1-univariate",
+    "ctx00064-h0007-log1p-mp0-univariate",
+    "ctx00064-h0028-raw-mp1-univariate",
+    "ctx00064-h0028-raw-mp0-univariate",
+    "ctx00064-h0028-log1p-mp1-univariate",
+    "ctx00064-h0028-log1p-mp0-univariate",
+    "ctx00064-h0056-raw-mp1-univariate",
+    "ctx00064-h0056-raw-mp0-univariate",
+    "ctx00064-h0056-log1p-mp1-univariate",
+    "ctx00064-h0056-log1p-mp0-univariate",
+    "ctx00064-h0064-raw-mp1-univariate",
+    "ctx00064-h0064-raw-mp0-univariate",
+    "ctx00064-h0064-log1p-mp1-univariate",
+    "ctx00064-h0064-log1p-mp0-univariate",
+    "ctx00128-h0001-raw-mp1-univariate",
+    "ctx00128-h0001-raw-mp0-univariate",
+    "ctx00128-h0001-log1p-mp1-univariate",
+    "ctx00128-h0001-log1p-mp0-univariate",
+    "ctx00128-h0007-raw-mp1-univariate",
+    "ctx00128-h0007-raw-mp0-univariate",
+    "ctx00128-h0007-log1p-mp1-univariate",
+    "ctx00128-h0007-log1p-mp0-univariate",
+    "ctx00128-h0028-raw-mp1-univariate",
+    "ctx00128-h0028-raw-mp0-univariate",
+    "ctx00128-h0028-log1p-mp1-univariate",
+    "ctx00128-h0028-log1p-mp0-univariate",
+    "ctx00128-h0056-raw-mp1-univariate",
+    "ctx00128-h0056-raw-mp0-univariate",
+    "ctx00128-h0056-log1p-mp1-univariate",
+    "ctx00128-h0056-log1p-mp0-univariate",
+    "ctx00128-h0064-raw-mp1-univariate",
+    "ctx00128-h0064-raw-mp0-univariate",
+    "ctx00128-h0064-log1p-mp1-univariate",
+    "ctx00128-h0064-log1p-mp0-univariate",
+    "ctx00256-h0001-raw-mp1-univariate",
+    "ctx00256-h0001-raw-mp0-univariate",
+    "ctx00256-h0001-log1p-mp1-univariate",
+    "ctx00256-h0001-log1p-mp0-univariate",
+    "ctx00256-h0007-raw-mp1-univariate",
+    "ctx00256-h0007-raw-mp0-univariate",
+    "ctx00256-h0007-log1p-mp1-univariate",
+    "ctx00256-h0007-log1p-mp0-univariate",
+    "ctx00256-h0028-raw-mp1-univariate",
+    "ctx00256-h0028-raw-mp0-univariate",
+    "ctx00256-h0028-log1p-mp1-univariate",
+    "ctx00256-h0028-log1p-mp0-univariate",
+    "ctx00256-h0056-raw-mp1-univariate",
+    "ctx00256-h0056-raw-mp0-univariate",
+    "ctx00256-h0056-log1p-mp1-univariate",
+    "ctx00256-h0056-log1p-mp0-univariate",
+    "ctx00256-h0064-raw-mp1-univariate",
+    "ctx00256-h0064-raw-mp0-univariate",
+    "ctx00256-h0064-log1p-mp1-univariate",
+    "ctx00256-h0064-log1p-mp0-univariate",
+    "ctx00512-h0001-raw-mp1-univariate",
+    "ctx00512-h0001-raw-mp0-univariate",
+    "ctx00512-h0001-log1p-mp1-univariate",
+    "ctx00512-h0001-log1p-mp0-univariate",
+    "ctx00512-h0007-raw-mp1-univariate",
+    "ctx00512-h0007-raw-mp0-univariate",
+    "ctx00512-h0007-log1p-mp1-univariate",
+    "ctx00512-h0007-log1p-mp0-univariate",
+    "ctx00512-h0028-raw-mp1-univariate",
+    "ctx00512-h0028-raw-mp0-univariate",
+    "ctx00512-h0028-log1p-mp1-univariate",
+    "ctx00512-h0028-log1p-mp0-univariate",
+    "ctx00512-h0056-raw-mp1-univariate",
+    "ctx00512-h0056-raw-mp0-univariate",
+    "ctx00512-h0056-log1p-mp1-univariate",
+    "ctx00512-h0056-log1p-mp0-univariate",
+    "ctx00512-h0064-raw-mp1-univariate",
+    "ctx00512-h0064-raw-mp0-univariate",
+    "ctx00512-h0064-log1p-mp1-univariate",
+    "ctx00512-h0064-log1p-mp0-univariate"
+  ],
+  "committed_cells": {
+    "ctx00064-h0001-log1p-mp0-univariate": {
+      "sha256": "7d90cb6f2d8a39ecc082a0d8f72fc087369f17a202a7505778135cc02683bc43",
+      "row_count": 2120,
+      "byte_size": 190828
+    },
+    "ctx00064-h0001-log1p-mp1-univariate": {
+      "sha256": "193227bb4af9ace36f999db7d03a45365350455cc17f66afb0028a7122c6235f",
+      "row_count": 2120,
+      "byte_size": 190828
+    },
+    "ctx00064-h0001-raw-mp0-univariate": {
+      "sha256": "ff988820f7afdf13eb2da55ff6807463e10b24668c641954f1a4b0c3af1a80eb",
+      "row_count": 2120,
+      "byte_size": 187402
+    },
+    "ctx00064-h0001-raw-mp1-univariate": {
+      "sha256": "33f3c06397c6de4026533dd6a4310665e7d5ec6b3db6d2d9b7ec2ef6c4afd5b4",
+      "row_count": 2120,
+      "byte_size": 187402
+    },
+    "ctx00064-h0007-log1p-mp0-univariate": {
+      "sha256": "1c94d0cf789949f6931e71fbdf4b7a32a4f17a5f9c06cd8614c97e620ddac3e3",
+      "row_count": 14840,
+      "byte_size": 1082072
+    },
+    "ctx00064-h0007-log1p-mp1-univariate": {
+      "sha256": "db2b6a5bfdf1acff992eb19be01afd84623d6f2c1189ef3d214f25d868f8902c",
+      "row_count": 14840,
+      "byte_size": 1082072
+    },
+    "ctx00064-h0007-raw-mp0-univariate": {
+      "sha256": "9666c47c2dfe7985963a2600c2cf2beb6ae05ed657c4bdfbc3844fb20f516564",
+      "row_count": 14840,
+      "byte_size": 1052420
+    },
+    "ctx00064-h0007-raw-mp1-univariate": {
+      "sha256": "38608f08ccc2d0c6020b94a515a06775c482c51efd0d5557841e6f40ac124c0c",
+      "row_count": 14840,
+      "byte_size": 1052420
+    },
+    "ctx00064-h0028-log1p-mp0-univariate": {
+      "sha256": "a016ac5a7a733d999bb3b8690e237adb1f77e690c700654571b26f0d36228e4c",
+      "row_count": 59360,
+      "byte_size": 4356401
+    },
+    "ctx00064-h0028-log1p-mp1-univariate": {
+      "sha256": "bf010961c67ded6c61017d07c4eb5fc33a11d260798bdb3dcca12d0bdb9767fd",
+      "row_count": 59360,
+      "byte_size": 4356401
+    },
+    "ctx00064-h0028-raw-mp0-univariate": {
+      "sha256": "84d03c3d8f693d5ab1e3cc7aec7a3f606435682f87b04a25a7777feb0e2564b0",
+      "row_count": 59360,
+      "byte_size": 4193333
+    },
+    "ctx00064-h0028-raw-mp1-univariate": {
+      "sha256": "3fd26ef3bf798e26f537682e1fec23bf6dc7f3ea98ed858fc521602a299c2e73",
+      "row_count": 59360,
+      "byte_size": 4193333
+    },
+    "ctx00064-h0056-log1p-mp0-univariate": {
+      "sha256": "01132388ecb0ab1fa8af85f67da677794c7ecabddfb9a1a2f66e4e1511f96110",
+      "row_count": 118720,
+      "byte_size": 8690023
+    },
+    "ctx00064-h0056-log1p-mp1-univariate": {
+      "sha256": "5715d0b8f300b72af8e5cb799f1172ba69676e30dde54d3ea324d1b13ce50545",
+      "row_count": 118720,
+      "byte_size": 8690023
+    },
+    "ctx00064-h0056-raw-mp0-univariate": {
+      "sha256": "b37522581d26a61224d7fde58bc8bc664753797cc997a26d6ac03d8dced7a502",
+      "row_count": 118720,
+      "byte_size": 8329909
+    },
+    "ctx00064-h0056-raw-mp1-univariate": {
+      "sha256": "603c7d11bb52062f3392e39ab869714c136b48aae1e8caa51bec67841348b34a",
+      "row_count": 118720,
+      "byte_size": 8329909
+    },
+    "ctx00064-h0064-log1p-mp0-univariate": {
+      "sha256": "5265f80c04fc624f3db45237c5e02c2703289b533f5e92672d9703750376b8b0",
+      "row_count": 135680,
+      "byte_size": 9856576
+    },
+    "ctx00064-h0064-log1p-mp1-univariate": {
+      "sha256": "95414015d54bffe0d71c468ae5130b21a0733e8bf236131397e6ba66aeb6d604",
+      "row_count": 135680,
+      "byte_size": 9856576
+    },
+    "ctx00064-h0064-raw-mp0-univariate": {
+      "sha256": "1834cb81334d1a587b065ac995541e00029eee235775f8a616553143c197dcd9",
+      "row_count": 135680,
+      "byte_size": 9411776
+    },
+    "ctx00064-h0064-raw-mp1-univariate": {
+      "sha256": "19219f8ec4033cba17d3ac340ce786c562368c3beaa8dd4f3e0b0f9c786a90c3",
+      "row_count": 135680,
+      "byte_size": 9411776
+    },
+    "ctx00128-h0001-log1p-mp0-univariate": {
+      "sha256": "796972d09f335a7776004a55c1d5bd1b375fe84582299f9ff4ed6983c4bc662b",
+      "row_count": 2120,
+      "byte_size": 191560
+    },
+    "ctx00128-h0001-log1p-mp1-univariate": {
+      "sha256": "05f5560b6ba4d0b17be4db5d95132ef83947fb7cc39db5bfdd14a36a77f60072",
+      "row_count": 2120,
+      "byte_size": 191560
+    },
+    "ctx00128-h0001-raw-mp0-univariate": {
+      "sha256": "361d9ce9de983f6f802ac1d8ceb5c5501c6141a9d3d3db01deeea59ccd73c4c0",
+      "row_count": 2120,
+      "byte_size": 189612
+    },
+    "ctx00128-h0001-raw-mp1-univariate": {
+      "sha256": "eca28f24295f8905a3bed84a9f05f3645b0f57cfcabb1b0745b66ae8e0f80c16",
+      "row_count": 2120,
+      "byte_size": 189612
+    },
+    "ctx00128-h0007-log1p-mp0-univariate": {
+      "sha256": "46abae4a45afa3ef84e2c5936a87c3255852b30bee6dffadf66bb4e6904f21b4",
+      "row_count": 14840,
+      "byte_size": 1094054
+    },
+    "ctx00128-h0007-log1p-mp1-univariate": {
+      "sha256": "bb13381c9ba5b45ebfb63cfd38da81c6a4f87836477c6115395790f323ffcd26",
+      "row_count": 14840,
+      "byte_size": 1094054
+    },
+    "ctx00128-h0007-raw-mp0-univariate": {
+      "sha256": "05a0e79450e92eb5668bf5774ecb787d61e90238435d2c9f4413a82db1d5c526",
+      "row_count": 14840,
+      "byte_size": 1075366
+    },
+    "ctx00128-h0007-raw-mp1-univariate": {
+      "sha256": "74a1c328e7764d3e30138a86b979a84db92331f788f995095146bf65e581d3ee",
+      "row_count": 14840,
+      "byte_size": 1075366
+    },
+    "ctx00128-h0028-log1p-mp0-univariate": {
+      "sha256": "ef6e64c85837c04d1ac7b3160562f9b518647b52fdf0c2f9f96b91da04234998",
+      "row_count": 59360,
+      "byte_size": 4445704
+    },
+    "ctx00128-h0028-log1p-mp1-univariate": {
+      "sha256": "10bbda854351a24b517bfe8f050eb51d97ffad9849a9d4e02e34b44463db9ba1",
+      "row_count": 59360,
+      "byte_size": 4445704
+    },
+    "ctx00128-h0028-raw-mp0-univariate": {
+      "sha256": "81f45bdcbedcefdbe36221d3fb05fd333e6132bc8259f09c4c4e40259fc3d9ba",
+      "row_count": 59360,
+      "byte_size": 4330835
+    },
+    "ctx00128-h0028-raw-mp1-univariate": {
+      "sha256": "ca248642c6f7bfa959017ebada64eebbd2f1640f4c777a1b9e6d89dd68fb1cc1",
+      "row_count": 59360,
+      "byte_size": 4330835
+    },
+    "ctx00128-h0056-log1p-mp0-univariate": {
+      "sha256": "da6105e79462eb358ccb6b5dc131d9217bff747d8afe378ab6b72eb052433e0d",
+      "row_count": 118720,
+      "byte_size": 8840630
+    },
+    "ctx00128-h0056-log1p-mp1-univariate": {
+      "sha256": "ad3cb0b1c5a17307cd797407917b8b2e917f8a5eaf159e8c98293bce18ca77a9",
+      "row_count": 118720,
+      "byte_size": 8840630
+    },
+    "ctx00128-h0056-raw-mp0-univariate": {
+      "sha256": "d88dca7e11b8f0d4acfb0ec1aa43cee59d061d125f6e7553b85a312a47953357",
+      "row_count": 118720,
+      "byte_size": 8565989
+    },
+    "ctx00128-h0056-raw-mp1-univariate": {
+      "sha256": "f0bce7ef50097d76de339cae77e7decb157ddeab23ecf35087b3d037ac68669b",
+      "row_count": 118720,
+      "byte_size": 8565989
+    },
+    "ctx00128-h0064-log1p-mp0-univariate": {
+      "sha256": "beb11a64f659040d160a0ffc4dffe652f4ceadee3c0fb0c3a445106b73d32d5b",
+      "row_count": 135680,
+      "byte_size": 9990759
+    },
+    "ctx00128-h0064-log1p-mp1-univariate": {
+      "sha256": "ac3c7bf6974536ac24eb954ef8b7146a394ab27fcd740ef571ce9218e7c39c32",
+      "row_count": 135680,
+      "byte_size": 9990759
+    },
+    "ctx00128-h0064-raw-mp0-univariate": {
+      "sha256": "640f5235ea6716959ec5ce86fed3eccec6b379e0b8310ca4a426a88d2b348ffa",
+      "row_count": 135680,
+      "byte_size": 9666332
+    },
+    "ctx00128-h0064-raw-mp1-univariate": {
+      "sha256": "a6108e783dfdfeed38cedbc4bd87c2e99b3d58b845c0bf59e46adbf1bf8acc9a",
+      "row_count": 135680,
+      "byte_size": 9666332
+    },
+    "ctx00256-h0001-log1p-mp0-univariate": {
+      "sha256": "2eb13887b07d12ca75ad3affd5090a859129b5d9dc70c62e2a46a1719a718bc4",
+      "row_count": 2120,
+      "byte_size": 191890
+    },
+    "ctx00256-h0001-log1p-mp1-univariate": {
+      "sha256": "703122aeca4b9011924a0b5a4b34f849506cfaf221e8f00657e56f19ee2b3275",
+      "row_count": 2120,
+      "byte_size": 191890
+    },
+    "ctx00256-h0001-raw-mp0-univariate": {
+      "sha256": "5af5ad6a0dd5fae9c538ae81f935580788c405b43c77a4b013cbcae32a2e9282",
+      "row_count": 2120,
+      "byte_size": 189713
+    },
+    "ctx00256-h0001-raw-mp1-univariate": {
+      "sha256": "28d1180de7a16e80ce16bc6c7ab522322c68e4424780637c7a9ca87468861404",
+      "row_count": 2120,
+      "byte_size": 189713
+    },
+    "ctx00256-h0007-log1p-mp0-univariate": {
+      "sha256": "4563ac67a8bd572dae0cf44875f024516e488e37b125df6ffe51ec94413f3694",
+      "row_count": 14840,
+      "byte_size": 1097679
+    },
+    "ctx00256-h0007-log1p-mp1-univariate": {
+      "sha256": "808af484d13da9c64df9a93eae9352a6b193e1f111a5442148cdeb73b2b6d001",
+      "row_count": 14840,
+      "byte_size": 1097679
+    },
+    "ctx00256-h0007-raw-mp0-univariate": {
+      "sha256": "e87ced9974f6a1753bd0486a07bad86f67d57998a5efc21592b013eb4aecf06b",
+      "row_count": 14840,
+      "byte_size": 1084236
+    },
+    "ctx00256-h0007-raw-mp1-univariate": {
+      "sha256": "f0745d5a8b26c2c87fb1a6063d6cdbd51cd250f973938f55463f1091cf12afbb",
+      "row_count": 14840,
+      "byte_size": 1084236
+    },
+    "ctx00256-h0028-log1p-mp0-univariate": {
+      "sha256": "90b1cb874df79e3fa44f191ea4717a048587e0095d204087fcbea73ffdcf7cbc",
+      "row_count": 59360,
+      "byte_size": 4493883
+    },
+    "ctx00256-h0028-log1p-mp1-univariate": {
+      "sha256": "384e3f907a0da5d0560c8ca6f93c68b265197ce16ea4732cd8e272be562c52b7",
+      "row_count": 59360,
+      "byte_size": 4493883
+    },
+    "ctx00256-h0028-raw-mp0-univariate": {
+      "sha256": "6e21812e424347dc12b5ca5a1b0293495171c0398167869e2aadb57cc9db93b2",
+      "row_count": 59360,
+      "byte_size": 4398475
+    },
+    "ctx00256-h0028-raw-mp1-univariate": {
+      "sha256": "7d6c4356b509ce1a152c20efd44ee282a35515e6c61b30dfa15479f996cdbc27",
+      "row_count": 59360,
+      "byte_size": 4398475
+    },
+    "ctx00256-h0056-log1p-mp0-univariate": {
+      "sha256": "5b64ce4094278c6d81526d43e121806b10dfba4a0d69c9626814906fa91332ed",
+      "row_count": 118720,
+      "byte_size": 8951323
+    },
+    "ctx00256-h0056-log1p-mp1-univariate": {
+      "sha256": "a209deed18de4fdb12ea93d2c706a033a667d6054ee597717b57094e39001504",
+      "row_count": 118720,
+      "byte_size": 8951323
+    },
+    "ctx00256-h0056-raw-mp0-univariate": {
+      "sha256": "640ef81ba751012ed370759522a6a537f53b487fe89454730c04e095be4a087c",
+      "row_count": 118720,
+      "byte_size": 8718850
+    },
+    "ctx00256-h0056-raw-mp1-univariate": {
+      "sha256": "3aa0431cfc3595422eda4063df49b49f6e8aaa45bde9c964d9aef180c29658c1",
+      "row_count": 118720,
+      "byte_size": 8718850
+    },
+    "ctx00256-h0064-log1p-mp0-univariate": {
+      "sha256": "9273644a30612a9ee1e931e645ecfca1ea86377804d6fc90108bbacd76b6ece0",
+      "row_count": 135680,
+      "byte_size": 10100507
+    },
+    "ctx00256-h0064-log1p-mp1-univariate": {
+      "sha256": "233fd07a943e7fbb6928695e34ba45b3cd830703420f86e2873eecbe4d111945",
+      "row_count": 135680,
+      "byte_size": 10100507
+    },
+    "ctx00256-h0064-raw-mp0-univariate": {
+      "sha256": "28ace5990641d43ccf58ca24eeb82062b365ef5dca2df0b1fbabaf29573df4da",
+      "row_count": 135680,
+      "byte_size": 9833386
+    },
+    "ctx00256-h0064-raw-mp1-univariate": {
+      "sha256": "9fd029092d7ee63ab9a551eb2f1278471087d505d9a2e08c6adbcd7a2598282a",
+      "row_count": 135680,
+      "byte_size": 9833386
+    },
+    "ctx00512-h0001-log1p-mp0-univariate": {
+      "sha256": "329843a57b2fc81c2441fcc5b81070009ec8ddd2670f6d04d9ab23946c3f0f3d",
+      "row_count": 2120,
+      "byte_size": 192518
+    },
+    "ctx00512-h0001-log1p-mp1-univariate": {
+      "sha256": "a616072cf97f1f473fc4b635b9994a204725c0ad2e98126c6bef7ad0d68bd5d1",
+      "row_count": 2120,
+      "byte_size": 192518
+    },
+    "ctx00512-h0001-raw-mp0-univariate": {
+      "sha256": "ddf7afa4908c6ebcd8b760c404d9bbba115476da1d4c1c945a0600dc9f8171f7",
+      "row_count": 2120,
+      "byte_size": 190780
+    },
+    "ctx00512-h0001-raw-mp1-univariate": {
+      "sha256": "b311dcca4f4f056eb3779e540cdbd9bc1056a7321b5f0e01a8f8fe1b1e380b76",
+      "row_count": 2120,
+      "byte_size": 190780
+    },
+    "ctx00512-h0007-log1p-mp0-univariate": {
+      "sha256": "bd6322feec7c0a32894d8b6ca4b5402b156b5612b4faae62e2b43e9a0b8d2512",
+      "row_count": 14840,
+      "byte_size": 1102774
+    },
+    "ctx00512-h0007-log1p-mp1-univariate": {
+      "sha256": "bd6cf4adc522068be56ee0c91c5b6195869cd887184914018bb182e1f0d5b38e",
+      "row_count": 14840,
+      "byte_size": 1102774
+    },
+    "ctx00512-h0007-raw-mp0-univariate": {
+      "sha256": "b5aa75b647420cf24871c7875a2ad91a2383b729f4efcfe9f7be0ddd02ea0c18",
+      "row_count": 14840,
+      "byte_size": 1098084
+    },
+    "ctx00512-h0007-raw-mp1-univariate": {
+      "sha256": "000fddb576bd5c841ef8dd0a3bd4f00b0ffe1cc27427636ac9b14ce3a98ef7a7",
+      "row_count": 14840,
+      "byte_size": 1098084
+    },
+    "ctx00512-h0028-log1p-mp0-univariate": {
+      "sha256": "a735789b2ad1da5d594762b9fce501a2b79d8c3837b202cf6a0027ca03aeb615",
+      "row_count": 59360,
+      "byte_size": 4513117
+    },
+    "ctx00512-h0028-log1p-mp1-univariate": {
+      "sha256": "99b7f956363dc40652b7c82bf9273a11dceaa7142525ffa251a704343d29defc",
+      "row_count": 59360,
+      "byte_size": 4513117
+    },
+    "ctx00512-h0028-raw-mp0-univariate": {
+      "sha256": "2b9146d0c40fa9a1f915b0c4ba010a173fc1ad12b9e177e5eda90d71a787b212",
+      "row_count": 59360,
+      "byte_size": 4478241
+    },
+    "ctx00512-h0028-raw-mp1-univariate": {
+      "sha256": "cfce09b88728908546a32eb147ef5e831e5d0fde0d039a33706d9cd2c2c437a7",
+      "row_count": 59360,
+      "byte_size": 4478241
+    },
+    "ctx00512-h0056-log1p-mp0-univariate": {
+      "sha256": "77ce2743b2c6ca02ce7dbb12299fb89eb23711a53fd62906f45aa22a2c4eb7dc",
+      "row_count": 118720,
+      "byte_size": 8981569
+    },
+    "ctx00512-h0056-log1p-mp1-univariate": {
+      "sha256": "4740ab33b6888a4d1ba764b2dc14d57324acdf0c4c17e823f475df9999cb4a6a",
+      "row_count": 118720,
+      "byte_size": 8981569
+    },
+    "ctx00512-h0056-raw-mp0-univariate": {
+      "sha256": "045b8f64c6774b152b6f7c07b62e178d42f8bd73e907f4d3a2b24a3a73c2221c",
+      "row_count": 118720,
+      "byte_size": 8877219
+    },
+    "ctx00512-h0056-raw-mp1-univariate": {
+      "sha256": "7deb6269b5fa7707584c81a5b5a7489ae8ec0e0b4080f41fa03d6711646d415b",
+      "row_count": 118720,
+      "byte_size": 8877219
+    },
+    "ctx00512-h0064-log1p-mp0-univariate": {
+      "sha256": "45f04f1b4d7a8f30b4f6d7b6bda1e41893073df82eabfbdc02ab040ecabca790",
+      "row_count": 135680,
+      "byte_size": 10135684
+    },
+    "ctx00512-h0064-log1p-mp1-univariate": {
+      "sha256": "4dfffd81b75e525fbfdb050c4ce16408b38f669bab58001ec9c1eaba50cb6c7e",
+      "row_count": 135680,
+      "byte_size": 10135684
+    },
+    "ctx00512-h0064-raw-mp0-univariate": {
+      "sha256": "db7e42b30b41f4a36455c19aeea4273cd0aea8bdb3b931aa4c9697e560813fdb",
+      "row_count": 135680,
+      "byte_size": 10006468
+    },
+    "ctx00512-h0064-raw-mp1-univariate": {
+      "sha256": "aa952dc27f9ee72e1a084c18a53d5c23368f3f204f5b47186e2120a3af84ed7c",
+      "row_count": 135680,
+      "byte_size": 10006468
+    }
+  },
+  "session": {
+    "computed": [
+      "ctx00512-h0028-raw-mp1-univariate",
+      "ctx00512-h0056-raw-mp1-univariate",
+      "ctx00512-h0001-raw-mp1-univariate",
+      "ctx00512-h0007-raw-mp1-univariate",
+      "ctx00512-h0064-raw-mp1-univariate",
+      "ctx00064-h0028-raw-mp1-univariate",
+      "ctx00064-h0028-raw-mp0-univariate",
+      "ctx00064-h0028-log1p-mp1-univariate",
+      "ctx00064-h0028-log1p-mp0-univariate",
+      "ctx00064-h0056-raw-mp1-univariate",
+      "ctx00064-h0056-raw-mp0-univariate",
+      "ctx00064-h0056-log1p-mp1-univariate",
+      "ctx00064-h0056-log1p-mp0-univariate",
+      "ctx00128-h0028-raw-mp1-univariate",
+      "ctx00128-h0028-raw-mp0-univariate",
+      "ctx00128-h0028-log1p-mp1-univariate",
+      "ctx00128-h0028-log1p-mp0-univariate",
+      "ctx00128-h0056-raw-mp1-univariate",
+      "ctx00128-h0056-raw-mp0-univariate",
+      "ctx00128-h0056-log1p-mp1-univariate",
+      "ctx00128-h0056-log1p-mp0-univariate",
+      "ctx00256-h0028-raw-mp1-univariate",
+      "ctx00256-h0028-raw-mp0-univariate",
+      "ctx00256-h0028-log1p-mp1-univariate",
+      "ctx00256-h0028-log1p-mp0-univariate",
+      "ctx00256-h0056-raw-mp1-univariate",
+      "ctx00256-h0056-raw-mp0-univariate",
+      "ctx00256-h0056-log1p-mp1-univariate",
+      "ctx00256-h0056-log1p-mp0-univariate",
+      "ctx00512-h0028-raw-mp0-univariate",
+      "ctx00512-h0028-log1p-mp1-univariate",
+      "ctx00512-h0028-log1p-mp0-univariate",
+      "ctx00512-h0056-raw-mp0-univariate",
+      "ctx00512-h0056-log1p-mp1-univariate",
+      "ctx00512-h0056-log1p-mp0-univariate",
+      "ctx00064-h0001-raw-mp1-univariate",
+      "ctx00064-h0001-raw-mp0-univariate",
+      "ctx00064-h0001-log1p-mp1-univariate",
+      "ctx00064-h0001-log1p-mp0-univariate",
+      "ctx00064-h0007-raw-mp1-univariate",
+      "ctx00064-h0007-raw-mp0-univariate",
+      "ctx00064-h0007-log1p-mp1-univariate",
+      "ctx00064-h0007-log1p-mp0-univariate",
+      "ctx00064-h0064-raw-mp1-univariate",
+      "ctx00064-h0064-raw-mp0-univariate",
+      "ctx00064-h0064-log1p-mp1-univariate",
+      "ctx00064-h0064-log1p-mp0-univariate",
+      "ctx00128-h0001-raw-mp1-univariate",
+      "ctx00128-h0001-raw-mp0-univariate",
+      "ctx00128-h0001-log1p-mp1-univariate",
+      "ctx00128-h0001-log1p-mp0-univariate",
+      "ctx00128-h0007-raw-mp1-univariate",
+      "ctx00128-h0007-raw-mp0-univariate",
+      "ctx00128-h0007-log1p-mp1-univariate",
+      "ctx00128-h0007-log1p-mp0-univariate",
+      "ctx00128-h0064-raw-mp1-univariate",
+      "ctx00128-h0064-raw-mp0-univariate",
+      "ctx00128-h0064-log1p-mp1-univariate",
+      "ctx00128-h0064-log1p-mp0-univariate",
+      "ctx00256-h0001-raw-mp1-univariate",
+      "ctx00256-h0001-raw-mp0-univariate",
+      "ctx00256-h0001-log1p-mp1-univariate",
+      "ctx00256-h0001-log1p-mp0-univariate",
+      "ctx00256-h0007-raw-mp1-univariate",
+      "ctx00256-h0007-raw-mp0-univariate",
+      "ctx00256-h0007-log1p-mp1-univariate",
+      "ctx00256-h0007-log1p-mp0-univariate",
+      "ctx00256-h0064-raw-mp1-univariate",
+      "ctx00256-h0064-raw-mp0-univariate",
+      "ctx00256-h0064-log1p-mp1-univariate",
+      "ctx00256-h0064-log1p-mp0-univariate",
+      "ctx00512-h0001-raw-mp0-univariate",
+      "ctx00512-h0001-log1p-mp1-univariate",
+      "ctx00512-h0001-log1p-mp0-univariate",
+      "ctx00512-h0007-raw-mp0-univariate",
+      "ctx00512-h0007-log1p-mp1-univariate",
+      "ctx00512-h0007-log1p-mp0-univariate",
+      "ctx00512-h0064-raw-mp0-univariate",
+      "ctx00512-h0064-log1p-mp1-univariate",
+      "ctx00512-h0064-log1p-mp0-univariate"
+    ],
+    "skipped_committed": [],
+    "quarantined": [],
+    "summary_complete": true,
+    "n_cells_committed": 80,
+    "n_cells_expected": 80
+  },
+  "outputs": [
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_mtg_benchmark_leaderboard__preregistered_v2_timesfm2p5.parquet",
+      "bytes": 2206385,
+      "sha256": "493d84b00707fd9fd0538681d5107540f887ee9b39f9ef0fb1af2da4fa4f2e9e"
+    },
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_mtg_benchmark_leaderboard_aggregate__preregistered_v2_timesfm2p5.parquet",
+      "bytes": 30073,
+      "sha256": "48b8f101d970a3ed000e3884eeec2c2269fc2c0804b817754a6aa08a176c4f2e"
+    },
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_mtg_benchmark_primary__preregistered_v2_timesfm2p5.parquet",
+      "bytes": 483052,
+      "sha256": "67b4ce739969562d06bc486348bd71776f720f2367bc5a585dbb7ef9bd10ce97"
+    }
+  ]
+}

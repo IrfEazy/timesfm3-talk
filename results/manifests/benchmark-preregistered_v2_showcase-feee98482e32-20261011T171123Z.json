@@ -1,0 +1,275 @@
+{
+  "_meta": {
+    "git_sha": "a39683d18d35ab7ff904f7fe7f3ab0397ca81bae",
+    "git_dirty": false,
+    "prereg_commit": "unknown",
+    "environment": {
+      "gpu_name": "Tesla T4",
+      "cuda_version": "12.4",
+      "torch_version": "2.6.0+cu124",
+      "device_count": 2
+    },
+    "checkpoint": {
+      "repo_id": "google/timesfm-3.0-pytorch",
+      "revision_requested": "43046b85ec22d584a13f8098c2ed39c889e129c2",
+      "revision_resolved": "43046b85ec22d584a13f8098c2ed39c889e129c2"
+    },
+    "seed": 42,
+    "as_of": "2026-09-04",
+    "live_end": false,
+    "written_at_utc": "2026-10-11T17:11:23.995404+00:00",
+    "package_versions": {
+      "requests": "2.34.2",
+      "py7zr": "1.1.3",
+      "pandas": "3.0.5",
+      "numpy": "2.5.2",
+      "scipy": "1.18.1",
+      "huggingface_hub": "1.29.0",
+      "timesfm": "3.0.0",
+      "timesfm3": "unknown",
+      "torch": "2.6.0+cu124"
+    }
+  },
+  "dependency_versions": {
+    "torch": "2.6.0+cu124",
+    "timesfm": "3.0.0",
+    "timesfm3": "unknown",
+    "numpy": "2.5.2",
+    "pandas": "3.0.5",
+    "pyarrow": "25.0.1",
+    "statsmodels": "0.15.0"
+  },
+  "config_id": "preregistered_v2_showcase",
+  "run_id": "feee98482e32",
+  "fingerprint": "feee98482e32ccb316069f1390f67ee9da67548b8c9d5f5e852d9cc463d8d820",
+  "fingerprint_payload": {
+    "canonicalization_version": 1,
+    "card_manifest_sha256": "2286788fec52fa737fe0db6a4159ba9ea9bef76568e3a8ba1fa5fb3a4796fe40",
+    "checkpoint": {
+      "repo_id": "google/timesfm-3.0-pytorch",
+      "revision": "43046b85ec22d584a13f8098c2ed39c889e129c2"
+    },
+    "extra": {
+      "adapter": "timesfm3",
+      "cards_spec": "showcase",
+      "cell_ids": [
+        "ctx00512-h0001-raw-mp1-univariate",
+        "ctx00512-h0007-raw-mp1-univariate",
+        "ctx00512-h0028-raw-mp1-univariate",
+        "ctx00512-h0056-raw-mp1-univariate",
+        "ctx00512-h0064-raw-mp1-univariate"
+      ],
+      "n_days": 940,
+      "origins_sha256": "da08aa6b9c2849eee48f8f376413b1d797f7e9429f3b01c103f2e322284bdb8c",
+      "resolved_cards": [
+        {
+          "group_abbreviation": "MH2",
+          "label": "Ragavan [MH2]",
+          "product_id": null,
+          "product_name": "Ragavan, Nimble Pilferer"
+        },
+        {
+          "group_abbreviation": "MH2",
+          "label": "Urza's Saga [MH2]",
+          "product_id": null,
+          "product_name": "Urza's Saga"
+        },
+        {
+          "group_abbreviation": "DMU",
+          "label": "Sheoldred [DMU]",
+          "product_id": null,
+          "product_name": "Sheoldred, the Apocalypse"
+        },
+        {
+          "group_abbreviation": "LTR",
+          "label": "The One Ring [LTR]",
+          "product_id": null,
+          "product_name": "The One Ring"
+        },
+        {
+          "group_abbreviation": "LTR",
+          "label": "Orcish Bowmasters [LTR]",
+          "product_id": null,
+          "product_name": "Orcish Bowmasters"
+        },
+        {
+          "group_abbreviation": "MH2",
+          "label": "Chatterfang [MH2]",
+          "product_id": null,
+          "product_name": "Chatterfang, Squirrel General"
+        },
+        {
+          "group_abbreviation": "MH2",
+          "label": "Mishra's Factory [MH2]",
+          "product_id": null,
+          "product_name": "Mishra's Factory"
+        }
+      ]
+    },
+    "git": {
+      "dirty": false,
+      "dirty_digest": "2f9e0ee867c88cc3860e1c26064e4f22e8561f3dd53f21e5097dc4bcc743f395",
+      "sha": "a39683d18d35ab7ff904f7fe7f3ab0397ca81bae"
+    },
+    "input_cache_sha256": "a434ee32c4800ffad56cf253679bb60b0576fb9a03e1d7bc0e6dbe10aae18d83",
+    "metric_version": 1,
+    "protocol_version": 1,
+    "resolved_config": {
+      "baselines": [
+        "naive",
+        "seasonal_naive",
+        "drift",
+        "ets"
+      ],
+      "cards": "showcase",
+      "config_id": "preregistered_v2_showcase",
+      "context_lengths": [
+        512
+      ],
+      "horizons": [
+        1,
+        7,
+        28,
+        56,
+        64
+      ],
+      "make_positive": [
+        true
+      ],
+      "max_origins": null,
+      "modes": [
+        "univariate"
+      ],
+      "origin_stride": 7,
+      "placebo_panel_size": 7,
+      "placebo_seed": 42,
+      "primary_horizons": [
+        28,
+        56
+      ],
+      "season_length": 7,
+      "transforms": [
+        "raw"
+      ]
+    },
+    "schema_version": 1,
+    "seed": 42
+  },
+  "run_dir": "/kaggle/tmp/tfm3lab-data/results/benchmark/preregistered_v2_showcase/feee98482e32",
+  "adapter": "timesfm3",
+  "resolved_cards": [
+    "Ragavan [MH2]",
+    "Urza's Saga [MH2]",
+    "Sheoldred [DMU]",
+    "The One Ring [LTR]",
+    "Orcish Bowmasters [LTR]",
+    "Chatterfang [MH2]",
+    "Mishra's Factory [MH2]"
+  ],
+  "grid": {
+    "context_lengths": [
+      512
+    ],
+    "horizons": [
+      1,
+      7,
+      28,
+      56,
+      64
+    ],
+    "primary_horizons": [
+      28,
+      56
+    ],
+    "transforms": [
+      "raw"
+    ],
+    "make_positive": [
+      true
+    ],
+    "modes": [
+      "univariate"
+    ],
+    "origin_stride": 7,
+    "max_origins": null,
+    "placebo_seed": 42,
+    "season_length": 7,
+    "n_combos": 5,
+    "n_origins": 53,
+    "ffill_days": null,
+    "ffill_gap_drop": null
+  },
+  "baselines": [
+    "naive",
+    "seasonal_naive",
+    "drift",
+    "ets"
+  ],
+  "use_symmetric_averaging": true,
+  "summarize_origin_stride_passed": true,
+  "cells": [
+    "ctx00512-h0001-raw-mp1-univariate",
+    "ctx00512-h0007-raw-mp1-univariate",
+    "ctx00512-h0028-raw-mp1-univariate",
+    "ctx00512-h0056-raw-mp1-univariate",
+    "ctx00512-h0064-raw-mp1-univariate"
+  ],
+  "committed_cells": {
+    "ctx00512-h0001-raw-mp1-univariate": {
+      "sha256": "ea62f16c47aafdd870253332cd17be0b1ab70c716bde231a8622ea9cc79f6b3d",
+      "row_count": 371,
+      "byte_size": 52169
+    },
+    "ctx00512-h0007-raw-mp1-univariate": {
+      "sha256": "47fd8e795126a8f203a426e47a9e595f126b79c7ad45311460dd9a80611b480a",
+      "row_count": 2597,
+      "byte_size": 226165
+    },
+    "ctx00512-h0028-raw-mp1-univariate": {
+      "sha256": "8e736406c19bc3905a5bb93924c602971a357858ce3bb71fc0d7f8937a8560f4",
+      "row_count": 10388,
+      "byte_size": 770026
+    },
+    "ctx00512-h0056-raw-mp1-univariate": {
+      "sha256": "bbd81c81501e277a558c84c9c60fec10acfe1a8da8d2fdba1dd5ceead7e36f2d",
+      "row_count": 20776,
+      "byte_size": 1520534
+    },
+    "ctx00512-h0064-raw-mp1-univariate": {
+      "sha256": "ce0f4af604856c9232a0c6692ea99787524ba12189d63f4412c7ce3f95f2605a",
+      "row_count": 23744,
+      "byte_size": 1724133
+    }
+  },
+  "session": {
+    "computed": [
+      "ctx00512-h0001-raw-mp1-univariate",
+      "ctx00512-h0007-raw-mp1-univariate",
+      "ctx00512-h0028-raw-mp1-univariate",
+      "ctx00512-h0056-raw-mp1-univariate",
+      "ctx00512-h0064-raw-mp1-univariate"
+    ],
+    "skipped_committed": [],
+    "quarantined": [],
+    "summary_complete": true,
+    "n_cells_committed": 5,
+    "n_cells_expected": 5
+  },
+  "outputs": [
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_mtg_benchmark_leaderboard__preregistered_v2_showcase.parquet",
+      "bytes": 133448,
+      "sha256": "59a2c1907d303a028e3b37c35d6dc9814ba3435fd24f6df75fab0c07ce363293"
+    },
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_mtg_benchmark_leaderboard_aggregate__preregistered_v2_showcase.parquet",
+      "bytes": 19919,
+      "sha256": "6d9daf611de78fa453d89784e79d78f13656951c7b722b5bceb30ceccea7857a"
+    },
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_mtg_benchmark_primary__preregistered_v2_showcase.parquet",
+      "bytes": 149913,
+      "sha256": "9deb9e7df8102307df9798142f0db7bc5c57c759b5a30e6b0a8a15d41d6c3552"
+    }
+  ]
+}

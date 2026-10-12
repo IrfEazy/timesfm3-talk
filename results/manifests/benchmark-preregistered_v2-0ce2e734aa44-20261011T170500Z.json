@@ -1,0 +1,2401 @@
+{
+  "_meta": {
+    "git_sha": "a39683d18d35ab7ff904f7fe7f3ab0397ca81bae",
+    "git_dirty": false,
+    "prereg_commit": "unknown",
+    "environment": {
+      "gpu_name": "Tesla T4",
+      "cuda_version": "12.4",
+      "torch_version": "2.6.0+cu124",
+      "device_count": 2
+    },
+    "checkpoint": {
+      "repo_id": "google/timesfm-3.0-pytorch",
+      "revision_requested": "43046b85ec22d584a13f8098c2ed39c889e129c2",
+      "revision_resolved": "43046b85ec22d584a13f8098c2ed39c889e129c2"
+    },
+    "seed": 42,
+    "as_of": "2026-09-04",
+    "live_end": false,
+    "written_at_utc": "2026-10-11T17:05:00.856093+00:00",
+    "package_versions": {
+      "requests": "2.34.2",
+      "py7zr": "1.1.3",
+      "pandas": "3.0.5",
+      "numpy": "2.5.2",
+      "scipy": "1.18.1",
+      "huggingface_hub": "1.29.0",
+      "timesfm": "3.0.0",
+      "timesfm3": "unknown",
+      "torch": "2.6.0+cu124"
+    }
+  },
+  "dependency_versions": {
+    "torch": "2.6.0+cu124",
+    "timesfm": "3.0.0",
+    "timesfm3": "unknown",
+    "numpy": "2.5.2",
+    "pandas": "3.0.5",
+    "pyarrow": "25.0.1",
+    "statsmodels": "0.15.0"
+  },
+  "config_id": "preregistered_v2",
+  "run_id": "0ce2e734aa44",
+  "fingerprint": "0ce2e734aa44dcd10745e6a5b3ee8e0077e11eff490c28ca2937933acd0ce188",
+  "fingerprint_payload": {
+    "canonicalization_version": 1,
+    "card_manifest_sha256": "e671a846417da9345c01d174a0b96135b4d65760c3935477f6c5397f0192d29d",
+    "checkpoint": {
+      "repo_id": "google/timesfm-3.0-pytorch",
+      "revision": "43046b85ec22d584a13f8098c2ed39c889e129c2"
+    },
+    "extra": {
+      "adapter": "timesfm3",
+      "cards_spec": "configs/benchmark_pool_v2.csv",
+      "cell_ids": [
+        "ctx00064-h0001-raw-mp1-univariate",
+        "ctx00064-h0001-raw-mp1-multivariate",
+        "ctx00064-h0001-raw-mp1-multivariate_placebo",
+        "ctx00064-h0001-raw-mp0-univariate",
+        "ctx00064-h0001-raw-mp0-multivariate",
+        "ctx00064-h0001-raw-mp0-multivariate_placebo",
+        "ctx00064-h0001-log1p-mp1-univariate",
+        "ctx00064-h0001-log1p-mp1-multivariate",
+        "ctx00064-h0001-log1p-mp1-multivariate_placebo",
+        "ctx00064-h0001-log1p-mp0-univariate",
+        "ctx00064-h0001-log1p-mp0-multivariate",
+        "ctx00064-h0001-log1p-mp0-multivariate_placebo",
+        "ctx00064-h0007-raw-mp1-univariate",
+        "ctx00064-h0007-raw-mp1-multivariate",
+        "ctx00064-h0007-raw-mp1-multivariate_placebo",
+        "ctx00064-h0007-raw-mp0-univariate",
+        "ctx00064-h0007-raw-mp0-multivariate",
+        "ctx00064-h0007-raw-mp0-multivariate_placebo",
+        "ctx00064-h0007-log1p-mp1-univariate",
+        "ctx00064-h0007-log1p-mp1-multivariate",
+        "ctx00064-h0007-log1p-mp1-multivariate_placebo",
+        "ctx00064-h0007-log1p-mp0-univariate",
+        "ctx00064-h0007-log1p-mp0-multivariate",
+        "ctx00064-h0007-log1p-mp0-multivariate_placebo",
+        "ctx00064-h0028-raw-mp1-univariate",
+        "ctx00064-h0028-raw-mp1-multivariate",
+        "ctx00064-h0028-raw-mp1-multivariate_placebo",
+        "ctx00064-h0028-raw-mp0-univariate",
+        "ctx00064-h0028-raw-mp0-multivariate",
+        "ctx00064-h0028-raw-mp0-multivariate_placebo",
+        "ctx00064-h0028-log1p-mp1-univariate",
+        "ctx00064-h0028-log1p-mp1-multivariate",
+        "ctx00064-h0028-log1p-mp1-multivariate_placebo",
+        "ctx00064-h0028-log1p-mp0-univariate",
+        "ctx00064-h0028-log1p-mp0-multivariate",
+        "ctx00064-h0028-log1p-mp0-multivariate_placebo",
+        "ctx00064-h0056-raw-mp1-univariate",
+        "ctx00064-h0056-raw-mp1-multivariate",
+        "ctx00064-h0056-raw-mp1-multivariate_placebo",
+        "ctx00064-h0056-raw-mp0-univariate",
+        "ctx00064-h0056-raw-mp0-multivariate",
+        "ctx00064-h0056-raw-mp0-multivariate_placebo",
+        "ctx00064-h0056-log1p-mp1-univariate",
+        "ctx00064-h0056-log1p-mp1-multivariate",
+        "ctx00064-h0056-log1p-mp1-multivariate_placebo",
+        "ctx00064-h0056-log1p-mp0-univariate",
+        "ctx00064-h0056-log1p-mp0-multivariate",
+        "ctx00064-h0056-log1p-mp0-multivariate_placebo",
+        "ctx00064-h0064-raw-mp1-univariate",
+        "ctx00064-h0064-raw-mp1-multivariate",
+        "ctx00064-h0064-raw-mp1-multivariate_placebo",
+        "ctx00064-h0064-raw-mp0-univariate",
+        "ctx00064-h0064-raw-mp0-multivariate",
+        "ctx00064-h0064-raw-mp0-multivariate_placebo",
+        "ctx00064-h0064-log1p-mp1-univariate",
+        "ctx00064-h0064-log1p-mp1-multivariate",
+        "ctx00064-h0064-log1p-mp1-multivariate_placebo",
+        "ctx00064-h0064-log1p-mp0-univariate",
+        "ctx00064-h0064-log1p-mp0-multivariate",
+        "ctx00064-h0064-log1p-mp0-multivariate_placebo",
+        "ctx00128-h0001-raw-mp1-univariate",
+        "ctx00128-h0001-raw-mp1-multivariate",
+        "ctx00128-h0001-raw-mp1-multivariate_placebo",
+        "ctx00128-h0001-raw-mp0-univariate",
+        "ctx00128-h0001-raw-mp0-multivariate",
+        "ctx00128-h0001-raw-mp0-multivariate_placebo",
+        "ctx00128-h0001-log1p-mp1-univariate",
+        "ctx00128-h0001-log1p-mp1-multivariate",
+        "ctx00128-h0001-log1p-mp1-multivariate_placebo",
+        "ctx00128-h0001-log1p-mp0-univariate",
+        "ctx00128-h0001-log1p-mp0-multivariate",
+        "ctx00128-h0001-log1p-mp0-multivariate_placebo",
+        "ctx00128-h0007-raw-mp1-univariate",
+        "ctx00128-h0007-raw-mp1-multivariate",
+        "ctx00128-h0007-raw-mp1-multivariate_placebo",
+        "ctx00128-h0007-raw-mp0-univariate",
+        "ctx00128-h0007-raw-mp0-multivariate",
+        "ctx00128-h0007-raw-mp0-multivariate_placebo",
+        "ctx00128-h0007-log1p-mp1-univariate",
+        "ctx00128-h0007-log1p-mp1-multivariate",
+        "ctx00128-h0007-log1p-mp1-multivariate_placebo",
+        "ctx00128-h0007-log1p-mp0-univariate",
+        "ctx00128-h0007-log1p-mp0-multivariate",
+        "ctx00128-h0007-log1p-mp0-multivariate_placebo",
+        "ctx00128-h0028-raw-mp1-univariate",
+        "ctx00128-h0028-raw-mp1-multivariate",
+        "ctx00128-h0028-raw-mp1-multivariate_placebo",
+        "ctx00128-h0028-raw-mp0-univariate",
+        "ctx00128-h0028-raw-mp0-multivariate",
+        "ctx00128-h0028-raw-mp0-multivariate_placebo",
+        "ctx00128-h0028-log1p-mp1-univariate",
+        "ctx00128-h0028-log1p-mp1-multivariate",
+        "ctx00128-h0028-log1p-mp1-multivariate_placebo",
+        "ctx00128-h0028-log1p-mp0-univariate",
+        "ctx00128-h0028-log1p-mp0-multivariate",
+        "ctx00128-h0028-log1p-mp0-multivariate_placebo",
+        "ctx00128-h0056-raw-mp1-univariate",
+        "ctx00128-h0056-raw-mp1-multivariate",
+        "ctx00128-h0056-raw-mp1-multivariate_placebo",
+        "ctx00128-h0056-raw-mp0-univariate",
+        "ctx00128-h0056-raw-mp0-multivariate",
+        "ctx00128-h0056-raw-mp0-multivariate_placebo",
+        "ctx00128-h0056-log1p-mp1-univariate",
+        "ctx00128-h0056-log1p-mp1-multivariate",
+        "ctx00128-h0056-log1p-mp1-multivariate_placebo",
+        "ctx00128-h0056-log1p-mp0-univariate",
+        "ctx00128-h0056-log1p-mp0-multivariate",
+        "ctx00128-h0056-log1p-mp0-multivariate_placebo",
+        "ctx00128-h0064-raw-mp1-univariate",
+        "ctx00128-h0064-raw-mp1-multivariate",
+        "ctx00128-h0064-raw-mp1-multivariate_placebo",
+        "ctx00128-h0064-raw-mp0-univariate",
+        "ctx00128-h0064-raw-mp0-multivariate",
+        "ctx00128-h0064-raw-mp0-multivariate_placebo",
+        "ctx00128-h0064-log1p-mp1-univariate",
+        "ctx00128-h0064-log1p-mp1-multivariate",
+        "ctx00128-h0064-log1p-mp1-multivariate_placebo",
+        "ctx00128-h0064-log1p-mp0-univariate",
+        "ctx00128-h0064-log1p-mp0-multivariate",
+        "ctx00128-h0064-log1p-mp0-multivariate_placebo",
+        "ctx00256-h0001-raw-mp1-univariate",
+        "ctx00256-h0001-raw-mp1-multivariate",
+        "ctx00256-h0001-raw-mp1-multivariate_placebo",
+        "ctx00256-h0001-raw-mp0-univariate",
+        "ctx00256-h0001-raw-mp0-multivariate",
+        "ctx00256-h0001-raw-mp0-multivariate_placebo",
+        "ctx00256-h0001-log1p-mp1-univariate",
+        "ctx00256-h0001-log1p-mp1-multivariate",
+        "ctx00256-h0001-log1p-mp1-multivariate_placebo",
+        "ctx00256-h0001-log1p-mp0-univariate",
+        "ctx00256-h0001-log1p-mp0-multivariate",
+        "ctx00256-h0001-log1p-mp0-multivariate_placebo",
+        "ctx00256-h0007-raw-mp1-univariate",
+        "ctx00256-h0007-raw-mp1-multivariate",
+        "ctx00256-h0007-raw-mp1-multivariate_placebo",
+        "ctx00256-h0007-raw-mp0-univariate",
+        "ctx00256-h0007-raw-mp0-multivariate",
+        "ctx00256-h0007-raw-mp0-multivariate_placebo",
+        "ctx00256-h0007-log1p-mp1-univariate",
+        "ctx00256-h0007-log1p-mp1-multivariate",
+        "ctx00256-h0007-log1p-mp1-multivariate_placebo",
+        "ctx00256-h0007-log1p-mp0-univariate",
+        "ctx00256-h0007-log1p-mp0-multivariate",
+        "ctx00256-h0007-log1p-mp0-multivariate_placebo",
+        "ctx00256-h0028-raw-mp1-univariate",
+        "ctx00256-h0028-raw-mp1-multivariate",
+        "ctx00256-h0028-raw-mp1-multivariate_placebo",
+        "ctx00256-h0028-raw-mp0-univariate",
+        "ctx00256-h0028-raw-mp0-multivariate",
+        "ctx00256-h0028-raw-mp0-multivariate_placebo",
+        "ctx00256-h0028-log1p-mp1-univariate",
+        "ctx00256-h0028-log1p-mp1-multivariate",
+        "ctx00256-h0028-log1p-mp1-multivariate_placebo",
+        "ctx00256-h0028-log1p-mp0-univariate",
+        "ctx00256-h0028-log1p-mp0-multivariate",
+        "ctx00256-h0028-log1p-mp0-multivariate_placebo",
+        "ctx00256-h0056-raw-mp1-univariate",
+        "ctx00256-h0056-raw-mp1-multivariate",
+        "ctx00256-h0056-raw-mp1-multivariate_placebo",
+        "ctx00256-h0056-raw-mp0-univariate",
+        "ctx00256-h0056-raw-mp0-multivariate",
+        "ctx00256-h0056-raw-mp0-multivariate_placebo",
+        "ctx00256-h0056-log1p-mp1-univariate",
+        "ctx00256-h0056-log1p-mp1-multivariate",
+        "ctx00256-h0056-log1p-mp1-multivariate_placebo",
+        "ctx00256-h0056-log1p-mp0-univariate",
+        "ctx00256-h0056-log1p-mp0-multivariate",
+        "ctx00256-h0056-log1p-mp0-multivariate_placebo",
+        "ctx00256-h0064-raw-mp1-univariate",
+        "ctx00256-h0064-raw-mp1-multivariate",
+        "ctx00256-h0064-raw-mp1-multivariate_placebo",
+        "ctx00256-h0064-raw-mp0-univariate",
+        "ctx00256-h0064-raw-mp0-multivariate",
+        "ctx00256-h0064-raw-mp0-multivariate_placebo",
+        "ctx00256-h0064-log1p-mp1-univariate",
+        "ctx00256-h0064-log1p-mp1-multivariate",
+        "ctx00256-h0064-log1p-mp1-multivariate_placebo",
+        "ctx00256-h0064-log1p-mp0-univariate",
+        "ctx00256-h0064-log1p-mp0-multivariate",
+        "ctx00256-h0064-log1p-mp0-multivariate_placebo",
+        "ctx00512-h0001-raw-mp1-univariate",
+        "ctx00512-h0001-raw-mp1-multivariate",
+        "ctx00512-h0001-raw-mp1-multivariate_placebo",
+        "ctx00512-h0001-raw-mp0-univariate",
+        "ctx00512-h0001-raw-mp0-multivariate",
+        "ctx00512-h0001-raw-mp0-multivariate_placebo",
+        "ctx00512-h0001-log1p-mp1-univariate",
+        "ctx00512-h0001-log1p-mp1-multivariate",
+        "ctx00512-h0001-log1p-mp1-multivariate_placebo",
+        "ctx00512-h0001-log1p-mp0-univariate",
+        "ctx00512-h0001-log1p-mp0-multivariate",
+        "ctx00512-h0001-log1p-mp0-multivariate_placebo",
+        "ctx00512-h0007-raw-mp1-univariate",
+        "ctx00512-h0007-raw-mp1-multivariate",
+        "ctx00512-h0007-raw-mp1-multivariate_placebo",
+        "ctx00512-h0007-raw-mp0-univariate",
+        "ctx00512-h0007-raw-mp0-multivariate",
+        "ctx00512-h0007-raw-mp0-multivariate_placebo",
+        "ctx00512-h0007-log1p-mp1-univariate",
+        "ctx00512-h0007-log1p-mp1-multivariate",
+        "ctx00512-h0007-log1p-mp1-multivariate_placebo",
+        "ctx00512-h0007-log1p-mp0-univariate",
+        "ctx00512-h0007-log1p-mp0-multivariate",
+        "ctx00512-h0007-log1p-mp0-multivariate_placebo",
+        "ctx00512-h0028-raw-mp1-univariate",
+        "ctx00512-h0028-raw-mp1-multivariate",
+        "ctx00512-h0028-raw-mp1-multivariate_placebo",
+        "ctx00512-h0028-raw-mp0-univariate",
+        "ctx00512-h0028-raw-mp0-multivariate",
+        "ctx00512-h0028-raw-mp0-multivariate_placebo",
+        "ctx00512-h0028-log1p-mp1-univariate",
+        "ctx00512-h0028-log1p-mp1-multivariate",
+        "ctx00512-h0028-log1p-mp1-multivariate_placebo",
+        "ctx00512-h0028-log1p-mp0-univariate",
+        "ctx00512-h0028-log1p-mp0-multivariate",
+        "ctx00512-h0028-log1p-mp0-multivariate_placebo",
+        "ctx00512-h0056-raw-mp1-univariate",
+        "ctx00512-h0056-raw-mp1-multivariate",
+        "ctx00512-h0056-raw-mp1-multivariate_placebo",
+        "ctx00512-h0056-raw-mp0-univariate",
+        "ctx00512-h0056-raw-mp0-multivariate",
+        "ctx00512-h0056-raw-mp0-multivariate_placebo",
+        "ctx00512-h0056-log1p-mp1-univariate",
+        "ctx00512-h0056-log1p-mp1-multivariate",
+        "ctx00512-h0056-log1p-mp1-multivariate_placebo",
+        "ctx00512-h0056-log1p-mp0-univariate",
+        "ctx00512-h0056-log1p-mp0-multivariate",
+        "ctx00512-h0056-log1p-mp0-multivariate_placebo",
+        "ctx00512-h0064-raw-mp1-univariate",
+        "ctx00512-h0064-raw-mp1-multivariate",
+        "ctx00512-h0064-raw-mp1-multivariate_placebo",
+        "ctx00512-h0064-raw-mp0-univariate",
+        "ctx00512-h0064-raw-mp0-multivariate",
+        "ctx00512-h0064-raw-mp0-multivariate_placebo",
+        "ctx00512-h0064-log1p-mp1-univariate",
+        "ctx00512-h0064-log1p-mp1-multivariate",
+        "ctx00512-h0064-log1p-mp1-multivariate_placebo",
+        "ctx00512-h0064-log1p-mp0-univariate",
+        "ctx00512-h0064-log1p-mp0-multivariate",
+        "ctx00512-h0064-log1p-mp0-multivariate_placebo"
+      ],
+      "n_days": 940,
+      "origins_sha256": "da08aa6b9c2849eee48f8f376413b1d797f7e9429f3b01c103f2e322284bdb8c",
+      "resolved_cards": [
+        {
+          "group_abbreviation": "DDP",
+          "label": "Oblivion Sower [DDP]",
+          "product_id": 101888,
+          "product_name": "Oblivion Sower"
+        },
+        {
+          "group_abbreviation": "C16",
+          "label": "Breya, Etherium Shaper [C16]",
+          "product_id": 123987,
+          "product_name": "Breya, Etherium Shaper"
+        },
+        {
+          "group_abbreviation": "PRE",
+          "label": "Borborygmos and Fblthp [PRE]",
+          "product_id": 492958,
+          "product_name": "Borborygmos and Fblthp"
+        },
+        {
+          "group_abbreviation": "WWK",
+          "label": "Abyssal Persecutor [WWK]",
+          "product_id": 34323,
+          "product_name": "Abyssal Persecutor"
+        },
+        {
+          "group_abbreviation": "PRE",
+          "label": "Lightning Runner [PRE]",
+          "product_id": 126846,
+          "product_name": "Lightning Runner"
+        },
+        {
+          "group_abbreviation": "THB",
+          "label": "Ashiok, Sculptor of Fears [THB]",
+          "product_id": 206189,
+          "product_name": "Ashiok, Sculptor of Fears"
+        },
+        {
+          "group_abbreviation": "ISD",
+          "label": "Balefire Dragon [ISD]",
+          "product_id": 52208,
+          "product_name": "Balefire Dragon"
+        },
+        {
+          "group_abbreviation": "ELD",
+          "label": "Korvold, Fae-Cursed King [ELD]",
+          "product_id": 198424,
+          "product_name": "Korvold, Fae-Cursed King"
+        },
+        {
+          "group_abbreviation": "CLB",
+          "label": "Vexing Puzzlebox [CLB]",
+          "product_id": 273204,
+          "product_name": "Vexing Puzzlebox"
+        },
+        {
+          "group_abbreviation": "HML",
+          "label": "Autumn Willow [HML]",
+          "product_id": 4454,
+          "product_name": "Autumn Willow"
+        },
+        {
+          "group_abbreviation": "RAV",
+          "label": "Circu, Dimir Lobotomist [RAV]",
+          "product_id": 13226,
+          "product_name": "Circu, Dimir Lobotomist"
+        },
+        {
+          "group_abbreviation": "SHM",
+          "label": "Glen Elendra Liege [SHM]",
+          "product_id": 18646,
+          "product_name": "Glen Elendra Liege"
+        },
+        {
+          "group_abbreviation": "C13",
+          "label": "Tempt with Immortality [C13]",
+          "product_id": 71853,
+          "product_name": "Tempt with Immortality"
+        },
+        {
+          "group_abbreviation": "PRE",
+          "label": "Akoum Hellkite [PRE]",
+          "product_id": 93385,
+          "product_name": "Akoum Hellkite"
+        },
+        {
+          "group_abbreviation": "C17",
+          "label": "Palace Siege [C17]",
+          "product_id": 140008,
+          "product_name": "Palace Siege"
+        },
+        {
+          "group_abbreviation": "BBD",
+          "label": "Pir's Whim [BBD]",
+          "product_id": 167655,
+          "product_name": "Pir's Whim"
+        },
+        {
+          "group_abbreviation": "ODY",
+          "label": "Epicenter [ODY]",
+          "product_id": 9467,
+          "product_name": "Epicenter"
+        },
+        {
+          "group_abbreviation": "FUT",
+          "label": "Magus of the Vineyard [FUT]",
+          "product_id": 14936,
+          "product_name": "Magus of the Vineyard"
+        },
+        {
+          "group_abbreviation": "M11",
+          "label": "Leyline of Vitality [M11]",
+          "product_id": 35578,
+          "product_name": "Leyline of Vitality"
+        },
+        {
+          "group_abbreviation": "RTR",
+          "label": "Supreme Verdict [RTR]",
+          "product_id": 66459,
+          "product_name": "Supreme Verdict"
+        },
+        {
+          "group_abbreviation": "PRE",
+          "label": "Supplant Form [PRE]",
+          "product_id": 95629,
+          "product_name": "Supplant Form"
+        },
+        {
+          "group_abbreviation": "IKO",
+          "label": "Bonders' Enclave (Extended Art) [IKO]",
+          "product_id": 212686,
+          "product_name": "Bonders' Enclave (Extended Art)"
+        },
+        {
+          "group_abbreviation": "CMR",
+          "label": "Kodama of the East Tree [CMR]",
+          "product_id": 226404,
+          "product_name": "Kodama of the East Tree"
+        },
+        {
+          "group_abbreviation": "SLD",
+          "label": "Depala, Pilot Exemplar [SLD]",
+          "product_id": 278768,
+          "product_name": "Depala, Pilot Exemplar"
+        },
+        {
+          "group_abbreviation": "PTK",
+          "label": "Balance of Power [PTK]",
+          "product_id": 426,
+          "product_name": "Balance of Power"
+        },
+        {
+          "group_abbreviation": "WTH",
+          "label": "Bubble Matrix [WTH]",
+          "product_id": 5997,
+          "product_name": "Bubble Matrix"
+        },
+        {
+          "group_abbreviation": "USG",
+          "label": "Barrin, Master Wizard [USG]",
+          "product_id": 6792,
+          "product_name": "Barrin, Master Wizard"
+        },
+        {
+          "group_abbreviation": "SCG",
+          "label": "Decree of Justice [SCG]",
+          "product_id": 10837,
+          "product_name": "Decree of Justice"
+        },
+        {
+          "group_abbreviation": "CN2",
+          "label": "Selvala's Stampede [CN2]",
+          "product_id": 121902,
+          "product_name": "Selvala's Stampede"
+        },
+        {
+          "group_abbreviation": "AER",
+          "label": "Heroic Intervention [AER]",
+          "product_id": 126488,
+          "product_name": "Heroic Intervention"
+        },
+        {
+          "group_abbreviation": "REX",
+          "label": "Don't Move (Borderless) [REX]",
+          "product_id": 524341,
+          "product_name": "Don't Move (Borderless)"
+        },
+        {
+          "group_abbreviation": "INV",
+          "label": "Plague Spitter [INV]",
+          "product_id": 7588,
+          "product_name": "Plague Spitter"
+        },
+        {
+          "group_abbreviation": "PLC",
+          "label": "Dawn Charm [PLC]",
+          "product_id": 14706,
+          "product_name": "Dawn Charm"
+        },
+        {
+          "group_abbreviation": "MH1",
+          "label": "Talisman of Hierarchy [MH1]",
+          "product_id": 191058,
+          "product_name": "Talisman of Hierarchy"
+        },
+        {
+          "group_abbreviation": "SCG",
+          "label": "Long-Term Plans [SCG]",
+          "product_id": 10864,
+          "product_name": "Long-Term Plans"
+        },
+        {
+          "group_abbreviation": "M12",
+          "label": "Spirit Mantle [M12]",
+          "product_id": 47188,
+          "product_name": "Spirit Mantle"
+        },
+        {
+          "group_abbreviation": "CMR",
+          "label": "Kediss, Emberclaw Familiar [CMR]",
+          "product_id": 226634,
+          "product_name": "Kediss, Emberclaw Familiar"
+        },
+        {
+          "group_abbreviation": "LEA",
+          "label": "Grizzly Bears [LEA]",
+          "product_id": 1133,
+          "product_name": "Grizzly Bears"
+        },
+        {
+          "group_abbreviation": "M20",
+          "label": "Veil of Summer [M20]",
+          "product_id": 192543,
+          "product_name": "Veil of Summer"
+        },
+        {
+          "group_abbreviation": "SLD",
+          "label": "Dregscape Sliver (Extended Art) [SLD]",
+          "product_id": 475899,
+          "product_name": "Dregscape Sliver (Extended Art)"
+        }
+      ]
+    },
+    "git": {
+      "dirty": false,
+      "dirty_digest": "2f9e0ee867c88cc3860e1c26064e4f22e8561f3dd53f21e5097dc4bcc743f395",
+      "sha": "a39683d18d35ab7ff904f7fe7f3ab0397ca81bae"
+    },
+    "input_cache_sha256": "a434ee32c4800ffad56cf253679bb60b0576fb9a03e1d7bc0e6dbe10aae18d83",
+    "metric_version": 1,
+    "protocol_version": 1,
+    "resolved_config": {
+      "baselines": [
+        "naive",
+        "seasonal_naive",
+        "drift",
+        "ets"
+      ],
+      "cards": "configs/benchmark_pool_v2.csv",
+      "config_id": "preregistered_v2",
+      "context_lengths": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "horizons": [
+        1,
+        7,
+        28,
+        56,
+        64
+      ],
+      "make_positive": [
+        true,
+        false
+      ],
+      "max_origins": null,
+      "modes": [
+        "univariate",
+        "multivariate",
+        "multivariate_placebo"
+      ],
+      "origin_stride": 7,
+      "placebo_panel_size": 7,
+      "placebo_seed": 42,
+      "primary_horizons": [
+        28,
+        56
+      ],
+      "season_length": 7,
+      "transforms": [
+        "raw",
+        "log1p"
+      ]
+    },
+    "schema_version": 1,
+    "seed": 42
+  },
+  "run_dir": "/kaggle/tmp/tfm3lab-data/results/benchmark/preregistered_v2/0ce2e734aa44",
+  "adapter": "timesfm3",
+  "resolved_cards": [
+    "Oblivion Sower [DDP]",
+    "Breya, Etherium Shaper [C16]",
+    "Borborygmos and Fblthp [PRE]",
+    "Abyssal Persecutor [WWK]",
+    "Lightning Runner [PRE]",
+    "Ashiok, Sculptor of Fears [THB]",
+    "Balefire Dragon [ISD]",
+    "Korvold, Fae-Cursed King [ELD]",
+    "Vexing Puzzlebox [CLB]",
+    "Autumn Willow [HML]",
+    "Circu, Dimir Lobotomist [RAV]",
+    "Glen Elendra Liege [SHM]",
+    "Tempt with Immortality [C13]",
+    "Akoum Hellkite [PRE]",
+    "Palace Siege [C17]",
+    "Pir's Whim [BBD]",
+    "Epicenter [ODY]",
+    "Magus of the Vineyard [FUT]",
+    "Leyline of Vitality [M11]",
+    "Supreme Verdict [RTR]",
+    "Supplant Form [PRE]",
+    "Bonders' Enclave (Extended Art) [IKO]",
+    "Kodama of the East Tree [CMR]",
+    "Depala, Pilot Exemplar [SLD]",
+    "Balance of Power [PTK]",
+    "Bubble Matrix [WTH]",
+    "Barrin, Master Wizard [USG]",
+    "Decree of Justice [SCG]",
+    "Selvala's Stampede [CN2]",
+    "Heroic Intervention [AER]",
+    "Don't Move (Borderless) [REX]",
+    "Plague Spitter [INV]",
+    "Dawn Charm [PLC]",
+    "Talisman of Hierarchy [MH1]",
+    "Long-Term Plans [SCG]",
+    "Spirit Mantle [M12]",
+    "Kediss, Emberclaw Familiar [CMR]",
+    "Grizzly Bears [LEA]",
+    "Veil of Summer [M20]",
+    "Dregscape Sliver (Extended Art) [SLD]"
+  ],
+  "grid": {
+    "context_lengths": [
+      64,
+      128,
+      256,
+      512
+    ],
+    "horizons": [
+      1,
+      7,
+      28,
+      56,
+      64
+    ],
+    "primary_horizons": [
+      28,
+      56
+    ],
+    "transforms": [
+      "raw",
+      "log1p"
+    ],
+    "make_positive": [
+      true,
+      false
+    ],
+    "modes": [
+      "univariate",
+      "multivariate",
+      "multivariate_placebo"
+    ],
+    "origin_stride": 7,
+    "max_origins": null,
+    "placebo_seed": 42,
+    "season_length": 7,
+    "n_combos": 240,
+    "n_origins": 53,
+    "ffill_days": null,
+    "ffill_gap_drop": null
+  },
+  "baselines": [
+    "naive",
+    "seasonal_naive",
+    "drift",
+    "ets"
+  ],
+  "use_symmetric_averaging": true,
+  "summarize_origin_stride_passed": true,
+  "cells": [
+    "ctx00064-h0001-raw-mp1-univariate",
+    "ctx00064-h0001-raw-mp1-multivariate",
+    "ctx00064-h0001-raw-mp1-multivariate_placebo",
+    "ctx00064-h0001-raw-mp0-univariate",
+    "ctx00064-h0001-raw-mp0-multivariate",
+    "ctx00064-h0001-raw-mp0-multivariate_placebo",
+    "ctx00064-h0001-log1p-mp1-univariate",
+    "ctx00064-h0001-log1p-mp1-multivariate",
+    "ctx00064-h0001-log1p-mp1-multivariate_placebo",
+    "ctx00064-h0001-log1p-mp0-univariate",
+    "ctx00064-h0001-log1p-mp0-multivariate",
+    "ctx00064-h0001-log1p-mp0-multivariate_placebo",
+    "ctx00064-h0007-raw-mp1-univariate",
+    "ctx00064-h0007-raw-mp1-multivariate",
+    "ctx00064-h0007-raw-mp1-multivariate_placebo",
+    "ctx00064-h0007-raw-mp0-univariate",
+    "ctx00064-h0007-raw-mp0-multivariate",
+    "ctx00064-h0007-raw-mp0-multivariate_placebo",
+    "ctx00064-h0007-log1p-mp1-univariate",
+    "ctx00064-h0007-log1p-mp1-multivariate",
+    "ctx00064-h0007-log1p-mp1-multivariate_placebo",
+    "ctx00064-h0007-log1p-mp0-univariate",
+    "ctx00064-h0007-log1p-mp0-multivariate",
+    "ctx00064-h0007-log1p-mp0-multivariate_placebo",
+    "ctx00064-h0028-raw-mp1-univariate",
+    "ctx00064-h0028-raw-mp1-multivariate",
+    "ctx00064-h0028-raw-mp1-multivariate_placebo",
+    "ctx00064-h0028-raw-mp0-univariate",
+    "ctx00064-h0028-raw-mp0-multivariate",
+    "ctx00064-h0028-raw-mp0-multivariate_placebo",
+    "ctx00064-h0028-log1p-mp1-univariate",
+    "ctx00064-h0028-log1p-mp1-multivariate",
+    "ctx00064-h0028-log1p-mp1-multivariate_placebo",
+    "ctx00064-h0028-log1p-mp0-univariate",
+    "ctx00064-h0028-log1p-mp0-multivariate",
+    "ctx00064-h0028-log1p-mp0-multivariate_placebo",
+    "ctx00064-h0056-raw-mp1-univariate",
+    "ctx00064-h0056-raw-mp1-multivariate",
+    "ctx00064-h0056-raw-mp1-multivariate_placebo",
+    "ctx00064-h0056-raw-mp0-univariate",
+    "ctx00064-h0056-raw-mp0-multivariate",
+    "ctx00064-h0056-raw-mp0-multivariate_placebo",
+    "ctx00064-h0056-log1p-mp1-univariate",
+    "ctx00064-h0056-log1p-mp1-multivariate",
+    "ctx00064-h0056-log1p-mp1-multivariate_placebo",
+    "ctx00064-h0056-log1p-mp0-univariate",
+    "ctx00064-h0056-log1p-mp0-multivariate",
+    "ctx00064-h0056-log1p-mp0-multivariate_placebo",
+    "ctx00064-h0064-raw-mp1-univariate",
+    "ctx00064-h0064-raw-mp1-multivariate",
+    "ctx00064-h0064-raw-mp1-multivariate_placebo",
+    "ctx00064-h0064-raw-mp0-univariate",
+    "ctx00064-h0064-raw-mp0-multivariate",
+    "ctx00064-h0064-raw-mp0-multivariate_placebo",
+    "ctx00064-h0064-log1p-mp1-univariate",
+    "ctx00064-h0064-log1p-mp1-multivariate",
+    "ctx00064-h0064-log1p-mp1-multivariate_placebo",
+    "ctx00064-h0064-log1p-mp0-univariate",
+    "ctx00064-h0064-log1p-mp0-multivariate",
+    "ctx00064-h0064-log1p-mp0-multivariate_placebo",
+    "ctx00128-h0001-raw-mp1-univariate",
+    "ctx00128-h0001-raw-mp1-multivariate",
+    "ctx00128-h0001-raw-mp1-multivariate_placebo",
+    "ctx00128-h0001-raw-mp0-univariate",
+    "ctx00128-h0001-raw-mp0-multivariate",
+    "ctx00128-h0001-raw-mp0-multivariate_placebo",
+    "ctx00128-h0001-log1p-mp1-univariate",
+    "ctx00128-h0001-log1p-mp1-multivariate",
+    "ctx00128-h0001-log1p-mp1-multivariate_placebo",
+    "ctx00128-h0001-log1p-mp0-univariate",
+    "ctx00128-h0001-log1p-mp0-multivariate",
+    "ctx00128-h0001-log1p-mp0-multivariate_placebo",
+    "ctx00128-h0007-raw-mp1-univariate",
+    "ctx00128-h0007-raw-mp1-multivariate",
+    "ctx00128-h0007-raw-mp1-multivariate_placebo",
+    "ctx00128-h0007-raw-mp0-univariate",
+    "ctx00128-h0007-raw-mp0-multivariate",
+    "ctx00128-h0007-raw-mp0-multivariate_placebo",
+    "ctx00128-h0007-log1p-mp1-univariate",
+    "ctx00128-h0007-log1p-mp1-multivariate",
+    "ctx00128-h0007-log1p-mp1-multivariate_placebo",
+    "ctx00128-h0007-log1p-mp0-univariate",
+    "ctx00128-h0007-log1p-mp0-multivariate",
+    "ctx00128-h0007-log1p-mp0-multivariate_placebo",
+    "ctx00128-h0028-raw-mp1-univariate",
+    "ctx00128-h0028-raw-mp1-multivariate",
+    "ctx00128-h0028-raw-mp1-multivariate_placebo",
+    "ctx00128-h0028-raw-mp0-univariate",
+    "ctx00128-h0028-raw-mp0-multivariate",
+    "ctx00128-h0028-raw-mp0-multivariate_placebo",
+    "ctx00128-h0028-log1p-mp1-univariate",
+    "ctx00128-h0028-log1p-mp1-multivariate",
+    "ctx00128-h0028-log1p-mp1-multivariate_placebo",
+    "ctx00128-h0028-log1p-mp0-univariate",
+    "ctx00128-h0028-log1p-mp0-multivariate",
+    "ctx00128-h0028-log1p-mp0-multivariate_placebo",
+    "ctx00128-h0056-raw-mp1-univariate",
+    "ctx00128-h0056-raw-mp1-multivariate",
+    "ctx00128-h0056-raw-mp1-multivariate_placebo",
+    "ctx00128-h0056-raw-mp0-univariate",
+    "ctx00128-h0056-raw-mp0-multivariate",
+    "ctx00128-h0056-raw-mp0-multivariate_placebo",
+    "ctx00128-h0056-log1p-mp1-univariate",
+    "ctx00128-h0056-log1p-mp1-multivariate",
+    "ctx00128-h0056-log1p-mp1-multivariate_placebo",
+    "ctx00128-h0056-log1p-mp0-univariate",
+    "ctx00128-h0056-log1p-mp0-multivariate",
+    "ctx00128-h0056-log1p-mp0-multivariate_placebo",
+    "ctx00128-h0064-raw-mp1-univariate",
+    "ctx00128-h0064-raw-mp1-multivariate",
+    "ctx00128-h0064-raw-mp1-multivariate_placebo",
+    "ctx00128-h0064-raw-mp0-univariate",
+    "ctx00128-h0064-raw-mp0-multivariate",
+    "ctx00128-h0064-raw-mp0-multivariate_placebo",
+    "ctx00128-h0064-log1p-mp1-univariate",
+    "ctx00128-h0064-log1p-mp1-multivariate",
+    "ctx00128-h0064-log1p-mp1-multivariate_placebo",
+    "ctx00128-h0064-log1p-mp0-univariate",
+    "ctx00128-h0064-log1p-mp0-multivariate",
+    "ctx00128-h0064-log1p-mp0-multivariate_placebo",
+    "ctx00256-h0001-raw-mp1-univariate",
+    "ctx00256-h0001-raw-mp1-multivariate",
+    "ctx00256-h0001-raw-mp1-multivariate_placebo",
+    "ctx00256-h0001-raw-mp0-univariate",
+    "ctx00256-h0001-raw-mp0-multivariate",
+    "ctx00256-h0001-raw-mp0-multivariate_placebo",
+    "ctx00256-h0001-log1p-mp1-univariate",
+    "ctx00256-h0001-log1p-mp1-multivariate",
+    "ctx00256-h0001-log1p-mp1-multivariate_placebo",
+    "ctx00256-h0001-log1p-mp0-univariate",
+    "ctx00256-h0001-log1p-mp0-multivariate",
+    "ctx00256-h0001-log1p-mp0-multivariate_placebo",
+    "ctx00256-h0007-raw-mp1-univariate",
+    "ctx00256-h0007-raw-mp1-multivariate",
+    "ctx00256-h0007-raw-mp1-multivariate_placebo",
+    "ctx00256-h0007-raw-mp0-univariate",
+    "ctx00256-h0007-raw-mp0-multivariate",
+    "ctx00256-h0007-raw-mp0-multivariate_placebo",
+    "ctx00256-h0007-log1p-mp1-univariate",
+    "ctx00256-h0007-log1p-mp1-multivariate",
+    "ctx00256-h0007-log1p-mp1-multivariate_placebo",
+    "ctx00256-h0007-log1p-mp0-univariate",
+    "ctx00256-h0007-log1p-mp0-multivariate",
+    "ctx00256-h0007-log1p-mp0-multivariate_placebo",
+    "ctx00256-h0028-raw-mp1-univariate",
+    "ctx00256-h0028-raw-mp1-multivariate",
+    "ctx00256-h0028-raw-mp1-multivariate_placebo",
+    "ctx00256-h0028-raw-mp0-univariate",
+    "ctx00256-h0028-raw-mp0-multivariate",
+    "ctx00256-h0028-raw-mp0-multivariate_placebo",
+    "ctx00256-h0028-log1p-mp1-univariate",
+    "ctx00256-h0028-log1p-mp1-multivariate",
+    "ctx00256-h0028-log1p-mp1-multivariate_placebo",
+    "ctx00256-h0028-log1p-mp0-univariate",
+    "ctx00256-h0028-log1p-mp0-multivariate",
+    "ctx00256-h0028-log1p-mp0-multivariate_placebo",
+    "ctx00256-h0056-raw-mp1-univariate",
+    "ctx00256-h0056-raw-mp1-multivariate",
+    "ctx00256-h0056-raw-mp1-multivariate_placebo",
+    "ctx00256-h0056-raw-mp0-univariate",
+    "ctx00256-h0056-raw-mp0-multivariate",
+    "ctx00256-h0056-raw-mp0-multivariate_placebo",
+    "ctx00256-h0056-log1p-mp1-univariate",
+    "ctx00256-h0056-log1p-mp1-multivariate",
+    "ctx00256-h0056-log1p-mp1-multivariate_placebo",
+    "ctx00256-h0056-log1p-mp0-univariate",
+    "ctx00256-h0056-log1p-mp0-multivariate",
+    "ctx00256-h0056-log1p-mp0-multivariate_placebo",
+    "ctx00256-h0064-raw-mp1-univariate",
+    "ctx00256-h0064-raw-mp1-multivariate",
+    "ctx00256-h0064-raw-mp1-multivariate_placebo",
+    "ctx00256-h0064-raw-mp0-univariate",
+    "ctx00256-h0064-raw-mp0-multivariate",
+    "ctx00256-h0064-raw-mp0-multivariate_placebo",
+    "ctx00256-h0064-log1p-mp1-univariate",
+    "ctx00256-h0064-log1p-mp1-multivariate",
+    "ctx00256-h0064-log1p-mp1-multivariate_placebo",
+    "ctx00256-h0064-log1p-mp0-univariate",
+    "ctx00256-h0064-log1p-mp0-multivariate",
+    "ctx00256-h0064-log1p-mp0-multivariate_placebo",
+    "ctx00512-h0001-raw-mp1-univariate",
+    "ctx00512-h0001-raw-mp1-multivariate",
+    "ctx00512-h0001-raw-mp1-multivariate_placebo",
+    "ctx00512-h0001-raw-mp0-univariate",
+    "ctx00512-h0001-raw-mp0-multivariate",
+    "ctx00512-h0001-raw-mp0-multivariate_placebo",
+    "ctx00512-h0001-log1p-mp1-univariate",
+    "ctx00512-h0001-log1p-mp1-multivariate",
+    "ctx00512-h0001-log1p-mp1-multivariate_placebo",
+    "ctx00512-h0001-log1p-mp0-univariate",
+    "ctx00512-h0001-log1p-mp0-multivariate",
+    "ctx00512-h0001-log1p-mp0-multivariate_placebo",
+    "ctx00512-h0007-raw-mp1-univariate",
+    "ctx00512-h0007-raw-mp1-multivariate",
+    "ctx00512-h0007-raw-mp1-multivariate_placebo",
+    "ctx00512-h0007-raw-mp0-univariate",
+    "ctx00512-h0007-raw-mp0-multivariate",
+    "ctx00512-h0007-raw-mp0-multivariate_placebo",
+    "ctx00512-h0007-log1p-mp1-univariate",
+    "ctx00512-h0007-log1p-mp1-multivariate",
+    "ctx00512-h0007-log1p-mp1-multivariate_placebo",
+    "ctx00512-h0007-log1p-mp0-univariate",
+    "ctx00512-h0007-log1p-mp0-multivariate",
+    "ctx00512-h0007-log1p-mp0-multivariate_placebo",
+    "ctx00512-h0028-raw-mp1-univariate",
+    "ctx00512-h0028-raw-mp1-multivariate",
+    "ctx00512-h0028-raw-mp1-multivariate_placebo",
+    "ctx00512-h0028-raw-mp0-univariate",
+    "ctx00512-h0028-raw-mp0-multivariate",
+    "ctx00512-h0028-raw-mp0-multivariate_placebo",
+    "ctx00512-h0028-log1p-mp1-univariate",
+    "ctx00512-h0028-log1p-mp1-multivariate",
+    "ctx00512-h0028-log1p-mp1-multivariate_placebo",
+    "ctx00512-h0028-log1p-mp0-univariate",
+    "ctx00512-h0028-log1p-mp0-multivariate",
+    "ctx00512-h0028-log1p-mp0-multivariate_placebo",
+    "ctx00512-h0056-raw-mp1-univariate",
+    "ctx00512-h0056-raw-mp1-multivariate",
+    "ctx00512-h0056-raw-mp1-multivariate_placebo",
+    "ctx00512-h0056-raw-mp0-univariate",
+    "ctx00512-h0056-raw-mp0-multivariate",
+    "ctx00512-h0056-raw-mp0-multivariate_placebo",
+    "ctx00512-h0056-log1p-mp1-univariate",
+    "ctx00512-h0056-log1p-mp1-multivariate",
+    "ctx00512-h0056-log1p-mp1-multivariate_placebo",
+    "ctx00512-h0056-log1p-mp0-univariate",
+    "ctx00512-h0056-log1p-mp0-multivariate",
+    "ctx00512-h0056-log1p-mp0-multivariate_placebo",
+    "ctx00512-h0064-raw-mp1-univariate",
+    "ctx00512-h0064-raw-mp1-multivariate",
+    "ctx00512-h0064-raw-mp1-multivariate_placebo",
+    "ctx00512-h0064-raw-mp0-univariate",
+    "ctx00512-h0064-raw-mp0-multivariate",
+    "ctx00512-h0064-raw-mp0-multivariate_placebo",
+    "ctx00512-h0064-log1p-mp1-univariate",
+    "ctx00512-h0064-log1p-mp1-multivariate",
+    "ctx00512-h0064-log1p-mp1-multivariate_placebo",
+    "ctx00512-h0064-log1p-mp0-univariate",
+    "ctx00512-h0064-log1p-mp0-multivariate",
+    "ctx00512-h0064-log1p-mp0-multivariate_placebo"
+  ],
+  "committed_cells": {
+    "ctx00064-h0001-log1p-mp0-multivariate": {
+      "sha256": "caba5770a2ec67dfc8846ff619fb3aa2b9cea00ef96b24e29bfe9ef82051a9ea",
+      "row_count": 2120,
+      "byte_size": 190752
+    },
+    "ctx00064-h0001-log1p-mp0-multivariate_placebo": {
+      "sha256": "2221893c2b3609d5b2ceaa8ff2493c58d388b52bcb40f5d6e75107330ad1976e",
+      "row_count": 371,
+      "byte_size": 50960
+    },
+    "ctx00064-h0001-log1p-mp0-univariate": {
+      "sha256": "01042e5afdcf5189032bf4959a154aad39c3b9386c772799a13fafd651c5befb",
+      "row_count": 2120,
+      "byte_size": 191010
+    },
+    "ctx00064-h0001-log1p-mp1-multivariate": {
+      "sha256": "71508a285a04aaff870933983a552e0ea3e63223af665dc3e462341beef12cf3",
+      "row_count": 2120,
+      "byte_size": 190752
+    },
+    "ctx00064-h0001-log1p-mp1-multivariate_placebo": {
+      "sha256": "b4415c3d3fe6b6901cb82c948e5d163263f2a0e18e0a1dd64e88eba381bf72f1",
+      "row_count": 371,
+      "byte_size": 50961
+    },
+    "ctx00064-h0001-log1p-mp1-univariate": {
+      "sha256": "69530467a450b98f03be8d1bf89b595c5783dc6938e68aa913a7a2f6b0c8c0c9",
+      "row_count": 2120,
+      "byte_size": 191044
+    },
+    "ctx00064-h0001-raw-mp0-multivariate": {
+      "sha256": "a3772a50482a00ba9e5b7c528d27bcac8a29a8a65b85c8ec854652565f406641",
+      "row_count": 2120,
+      "byte_size": 186555
+    },
+    "ctx00064-h0001-raw-mp0-multivariate_placebo": {
+      "sha256": "bed23cb69c799cbc3c827b0b719782f2a94de29b348606133db505bf8972acb8",
+      "row_count": 371,
+      "byte_size": 50417
+    },
+    "ctx00064-h0001-raw-mp0-univariate": {
+      "sha256": "6b4e4d27c2fb0a07816b99dd38e956cb379f447c6d8843239f824ef0feff2b28",
+      "row_count": 2120,
+      "byte_size": 186240
+    },
+    "ctx00064-h0001-raw-mp1-multivariate": {
+      "sha256": "fe30139dc97722533a2856bbbf66f914262f404138cc90eab6709ab789efdada",
+      "row_count": 2120,
+      "byte_size": 186555
+    },
+    "ctx00064-h0001-raw-mp1-multivariate_placebo": {
+      "sha256": "c77bc779d6f5f5107ee706dbffe2e5e1c1eb3c1dbe89d8c743f5a7e3e24b79db",
+      "row_count": 371,
+      "byte_size": 50418
+    },
+    "ctx00064-h0001-raw-mp1-univariate": {
+      "sha256": "98667c99a7cac653184c34f1a36ddd779ef40f1a8d101514727f299299a657a8",
+      "row_count": 2120,
+      "byte_size": 186260
+    },
+    "ctx00064-h0007-log1p-mp0-multivariate": {
+      "sha256": "61e9ae4dfe188c5e85a932d9a194a22e409f809916cc07cb37d9534286a438b5",
+      "row_count": 14840,
+      "byte_size": 1087779
+    },
+    "ctx00064-h0007-log1p-mp0-multivariate_placebo": {
+      "sha256": "bc635f08d3586df2e5aa32036bd8e4062187832ba1a774e6d21b6b0c760956a2",
+      "row_count": 2597,
+      "byte_size": 215237
+    },
+    "ctx00064-h0007-log1p-mp0-univariate": {
+      "sha256": "f3c35f53ac2c139f405d88557ce0de2355d51a9fe8b35643d29de5915ca1debd",
+      "row_count": 14840,
+      "byte_size": 1085586
+    },
+    "ctx00064-h0007-log1p-mp1-multivariate": {
+      "sha256": "6a5fe019198ef8c57161782263d35126740de40a4548f9dffd0b799efe870289",
+      "row_count": 14840,
+      "byte_size": 1087779
+    },
+    "ctx00064-h0007-log1p-mp1-multivariate_placebo": {
+      "sha256": "af621e33bd4ca5553d1c36c77747abd4082b3f95714577fa9c6da2d200dff282",
+      "row_count": 2597,
+      "byte_size": 215238
+    },
+    "ctx00064-h0007-log1p-mp1-univariate": {
+      "sha256": "4970e1eff33b3cfa0f9b5ee50942904ce149d7380d554f41de02a197fbe4df75",
+      "row_count": 14840,
+      "byte_size": 1085587
+    },
+    "ctx00064-h0007-raw-mp0-multivariate": {
+      "sha256": "55a56d3fd64dad734868823ee0c8a14dfdd67777e27e67f1c4d309566e1d0b11",
+      "row_count": 14840,
+      "byte_size": 1052260
+    },
+    "ctx00064-h0007-raw-mp0-multivariate_placebo": {
+      "sha256": "2ad2e3b86cafda1497763ed684671a201e488bce31b70bdcdd884e023d3dac66",
+      "row_count": 2597,
+      "byte_size": 211053
+    },
+    "ctx00064-h0007-raw-mp0-univariate": {
+      "sha256": "5ae20fcdd23b757cd639433833ec35bac6940c8b4edf32a1dc00d3dbbf3acd94",
+      "row_count": 14840,
+      "byte_size": 1052148
+    },
+    "ctx00064-h0007-raw-mp1-multivariate": {
+      "sha256": "ba73422f8162bdef84627107e57b9c2ce6409f2d9ec860f047f89626f3763359",
+      "row_count": 14840,
+      "byte_size": 1052203
+    },
+    "ctx00064-h0007-raw-mp1-multivariate_placebo": {
+      "sha256": "44100a7f2a09a581a37788cfa37d468433f0a56e2ef40f4fb66a00dcedaba9cc",
+      "row_count": 2597,
+      "byte_size": 211054
+    },
+    "ctx00064-h0007-raw-mp1-univariate": {
+      "sha256": "11156da2e5c58bec79d8319bb87d64890902360a228db7236989f83a1be3c5b9",
+      "row_count": 14840,
+      "byte_size": 1051851
+    },
+    "ctx00064-h0028-log1p-mp0-multivariate": {
+      "sha256": "653b95ffb9690a119edf061a6892ae1516ff7e8f1213a820485872b3742b442a",
+      "row_count": 59360,
+      "byte_size": 4454617
+    },
+    "ctx00064-h0028-log1p-mp0-multivariate_placebo": {
+      "sha256": "3b4e73547a32b61a4014a7d26137ed5db83c2a60db1f0a45dfc6edf5cf96ec44",
+      "row_count": 10388,
+      "byte_size": 757978
+    },
+    "ctx00064-h0028-log1p-mp0-univariate": {
+      "sha256": "f97eefe36d441dc89e4a7d7f1c37395218f64c171023c64ea769e7b0e4dac15c",
+      "row_count": 59360,
+      "byte_size": 4426032
+    },
+    "ctx00064-h0028-log1p-mp1-multivariate": {
+      "sha256": "4662b725173df4a2f7451589818775c63405097364a2c729e8337004ce62309f",
+      "row_count": 59360,
+      "byte_size": 4454617
+    },
+    "ctx00064-h0028-log1p-mp1-multivariate_placebo": {
+      "sha256": "ca54c09aebe30e083658c3e88f3f1e88cd3316de3c58c9a5f8823e4ae66b5f34",
+      "row_count": 10388,
+      "byte_size": 757979
+    },
+    "ctx00064-h0028-log1p-mp1-univariate": {
+      "sha256": "71ac00f57ea3b88cbfd4dce18809e3d69e134663b217d72a9738bd99180c197b",
+      "row_count": 59360,
+      "byte_size": 4426341
+    },
+    "ctx00064-h0028-raw-mp0-multivariate": {
+      "sha256": "dd51a5f182c9ca49678090d50a255d4c1a544da4ca0b17440f31015feb46c66c",
+      "row_count": 59360,
+      "byte_size": 4268262
+    },
+    "ctx00064-h0028-raw-mp0-multivariate_placebo": {
+      "sha256": "c65d480c96858efa268e14bf5bdc56f0bce948cd94ff44fb988974aba1d045d6",
+      "row_count": 10388,
+      "byte_size": 733306
+    },
+    "ctx00064-h0028-raw-mp0-univariate": {
+      "sha256": "48c1761d56a93122279df7ccc659f923392a3d4460d1268053d498abb190c444",
+      "row_count": 59360,
+      "byte_size": 4246307
+    },
+    "ctx00064-h0028-raw-mp1-multivariate": {
+      "sha256": "66d8523e71c1a19f9bfb227a6920399d122031a5994a32744d08dd91aacb8c64",
+      "row_count": 59360,
+      "byte_size": 4268219
+    },
+    "ctx00064-h0028-raw-mp1-multivariate_placebo": {
+      "sha256": "db0aeb413b7e00ba8d3b9f3c5c0731e0d8fdcb297ee50613be456a30f0b73763",
+      "row_count": 10388,
+      "byte_size": 733307
+    },
+    "ctx00064-h0028-raw-mp1-univariate": {
+      "sha256": "33d9817e246fae9da169457cb843cfd0d57b3b726ff43d98be3b68039f0e59c2",
+      "row_count": 59360,
+      "byte_size": 4245374
+    },
+    "ctx00064-h0056-log1p-mp0-multivariate": {
+      "sha256": "ee57ab905c394cc55a39b6e1f4da1f36aa61d6d1397f0444ffbca23f84573bad",
+      "row_count": 118720,
+      "byte_size": 8853968
+    },
+    "ctx00064-h0056-log1p-mp0-multivariate_placebo": {
+      "sha256": "3479e0274ffadcd563cdc7915c2b736c63a6681393c99f793564edfc3f206a1f",
+      "row_count": 20776,
+      "byte_size": 1491121
+    },
+    "ctx00064-h0056-log1p-mp0-univariate": {
+      "sha256": "ead1449c2c30d0b71d344eeddd8a2895a2a5123aa0d4298a218d4c3c429a5fe6",
+      "row_count": 118720,
+      "byte_size": 8868604
+    },
+    "ctx00064-h0056-log1p-mp1-multivariate": {
+      "sha256": "ab83179e7aa479258bb541008993e6cd8efc4f0fb9d48e730468cc40214fc9fe",
+      "row_count": 118720,
+      "byte_size": 8853968
+    },
+    "ctx00064-h0056-log1p-mp1-multivariate_placebo": {
+      "sha256": "9b0e46ac5ba1350a8042369f82103ad4b99a171691ac6139ed4c50d7f74ab437",
+      "row_count": 20776,
+      "byte_size": 1491121
+    },
+    "ctx00064-h0056-log1p-mp1-univariate": {
+      "sha256": "d64434662d64bdde55e72e7a0a487f377c3474a7a5faefb69dd63ee0030d90bd",
+      "row_count": 118720,
+      "byte_size": 8866648
+    },
+    "ctx00064-h0056-raw-mp0-multivariate": {
+      "sha256": "ea167c544c76b28044d1d21003c1cae78e99364f3150f82f138037239c7a8e32",
+      "row_count": 118720,
+      "byte_size": 8445400
+    },
+    "ctx00064-h0056-raw-mp0-multivariate_placebo": {
+      "sha256": "4cbfff58bdce9c6307b3c6a25e86fa198abf45a300c70d2b152c48dd04afc1fe",
+      "row_count": 20776,
+      "byte_size": 1427088
+    },
+    "ctx00064-h0056-raw-mp0-univariate": {
+      "sha256": "084c0fbcbe6192d57517ec23b256e2ecb4c0bb09e3b3216311839dd86770a41d",
+      "row_count": 118720,
+      "byte_size": 8443778
+    },
+    "ctx00064-h0056-raw-mp1-multivariate": {
+      "sha256": "ed1f1ed65d5ce0f46a7b23debfb36219931e760efe71c3cdd9e20f628f585915",
+      "row_count": 118720,
+      "byte_size": 8438024
+    },
+    "ctx00064-h0056-raw-mp1-multivariate_placebo": {
+      "sha256": "0361ed517be901413ef1c7bb01721b8c13226b31a6e0863b00861935eb86934b",
+      "row_count": 20776,
+      "byte_size": 1427088
+    },
+    "ctx00064-h0056-raw-mp1-univariate": {
+      "sha256": "27204d420c2e3a496f607341857ff7631334af0e73c60b3fb981c2f877e16443",
+      "row_count": 118720,
+      "byte_size": 8434220
+    },
+    "ctx00064-h0064-log1p-mp0-multivariate": {
+      "sha256": "91da2cd186a02ddee1918b3521359bd0016227e4559f2cba4a145988c3c3617f",
+      "row_count": 135680,
+      "byte_size": 10027435
+    },
+    "ctx00064-h0064-log1p-mp0-multivariate_placebo": {
+      "sha256": "3dca1206a5521580bf7820ae3b186994f6f4ccc96c33bcb0358c0db326f0160a",
+      "row_count": 23744,
+      "byte_size": 1702610
+    },
+    "ctx00064-h0064-log1p-mp0-univariate": {
+      "sha256": "c1814cc4349d52b0bb908d32f215994b7db50f4e47acc8c6694054de7d650a65",
+      "row_count": 135680,
+      "byte_size": 10079613
+    },
+    "ctx00064-h0064-log1p-mp1-multivariate": {
+      "sha256": "8fcbcc26747deb3d38465a310b3b434da14638e52cda98a56d63e3aea0f89bb9",
+      "row_count": 135680,
+      "byte_size": 10027506
+    },
+    "ctx00064-h0064-log1p-mp1-multivariate_placebo": {
+      "sha256": "5499e0499c965bbb48b420ddecac4c654dd6e9dbfe2463ce0fd5244b327b2c60",
+      "row_count": 23744,
+      "byte_size": 1702610
+    },
+    "ctx00064-h0064-log1p-mp1-univariate": {
+      "sha256": "e94d0f7e255f2c5438deee52958f327936d3f56e084e268ba8738549a7d29d24",
+      "row_count": 135680,
+      "byte_size": 10078294
+    },
+    "ctx00064-h0064-raw-mp0-multivariate": {
+      "sha256": "119bab3a3a1b8edb3a15be932cd475704118e2ace3c567b173cebd90bb08975b",
+      "row_count": 135680,
+      "byte_size": 9534336
+    },
+    "ctx00064-h0064-raw-mp0-multivariate_placebo": {
+      "sha256": "94730c712d82da4e0407b57f7e80563217eb9e93882374bcd0e6ba4d8d1a4537",
+      "row_count": 23744,
+      "byte_size": 1631850
+    },
+    "ctx00064-h0064-raw-mp0-univariate": {
+      "sha256": "9fcbf655250be9b2c7ce92740350cf3398de6dead5a70fd1a19a1ce934647963",
+      "row_count": 135680,
+      "byte_size": 9555216
+    },
+    "ctx00064-h0064-raw-mp1-multivariate": {
+      "sha256": "6371121743c4d0c7669cbc6752f6a0f87cf1a1af24cf79beb8b6e9911aed0373",
+      "row_count": 135680,
+      "byte_size": 9530542
+    },
+    "ctx00064-h0064-raw-mp1-multivariate_placebo": {
+      "sha256": "9dd10bf2733701f2ae2dd635f8749a605828b6532f30fc24e766a4ff6841a66f",
+      "row_count": 23744,
+      "byte_size": 1631841
+    },
+    "ctx00064-h0064-raw-mp1-univariate": {
+      "sha256": "240f1af27c5a9563d678b4d0e939c16cb213af4692d096c1cb514cdcc956677d",
+      "row_count": 135680,
+      "byte_size": 9546108
+    },
+    "ctx00128-h0001-log1p-mp0-multivariate": {
+      "sha256": "541a0dd904a34d792026c631237a2cb7490b586ecd0c7fba89d77e6e34a77e23",
+      "row_count": 2120,
+      "byte_size": 191853
+    },
+    "ctx00128-h0001-log1p-mp0-multivariate_placebo": {
+      "sha256": "1b4cc0db23c8d1a5c78f23dc5f95474aad2e637cf2765971f9c9a541a0e5d274",
+      "row_count": 371,
+      "byte_size": 50868
+    },
+    "ctx00128-h0001-log1p-mp0-univariate": {
+      "sha256": "6f5e78c2c01a2df1b65550f9cfe8bf2da2161cbb8e1b8485799ba3ac3253b16d",
+      "row_count": 2120,
+      "byte_size": 191202
+    },
+    "ctx00128-h0001-log1p-mp1-multivariate": {
+      "sha256": "08095571b9f3edcd7af36db2a8e22503d2d1245d8ca9a84d9669dae6b8dc093d",
+      "row_count": 2120,
+      "byte_size": 191853
+    },
+    "ctx00128-h0001-log1p-mp1-multivariate_placebo": {
+      "sha256": "427f271c8e3e435cdbabacef70e925895d60bef1f83fe7c9bf0c801705ca6835",
+      "row_count": 371,
+      "byte_size": 50869
+    },
+    "ctx00128-h0001-log1p-mp1-univariate": {
+      "sha256": "428aa0ef5f3c593a7561ba4c4e15bb5be028699c0b84508171f605faed758880",
+      "row_count": 2120,
+      "byte_size": 191202
+    },
+    "ctx00128-h0001-raw-mp0-multivariate": {
+      "sha256": "27e9232c46230a26fda7742f1f0cfddcb269d3a6ba49acf38ce66138ed101e15",
+      "row_count": 2120,
+      "byte_size": 187990
+    },
+    "ctx00128-h0001-raw-mp0-multivariate_placebo": {
+      "sha256": "a61c7cf8b4517b88151aa9a69a541db8db5d6a16bc383f1db9884e33b62be260",
+      "row_count": 371,
+      "byte_size": 50471
+    },
+    "ctx00128-h0001-raw-mp0-univariate": {
+      "sha256": "f204890e336bc6b220bfcf821ca757f4bef78f0524444889178d38d49803cf26",
+      "row_count": 2120,
+      "byte_size": 187914
+    },
+    "ctx00128-h0001-raw-mp1-multivariate": {
+      "sha256": "fffe2a0f2a7431dd1e13c00a64c2d573b844a0f1eb9a67c4520ff7f262733197",
+      "row_count": 2120,
+      "byte_size": 187990
+    },
+    "ctx00128-h0001-raw-mp1-multivariate_placebo": {
+      "sha256": "9b6b66360394b25281f982c8ccb43ad81c6c9a947c2c179b86f0a390d3d3b15d",
+      "row_count": 371,
+      "byte_size": 50472
+    },
+    "ctx00128-h0001-raw-mp1-univariate": {
+      "sha256": "b1cacbbec4b2a966bf3adb5a1e42b55fad2c1805de372191eb027500648318be",
+      "row_count": 2120,
+      "byte_size": 187914
+    },
+    "ctx00128-h0007-log1p-mp0-multivariate": {
+      "sha256": "93f1b8a48e1145bb393739f30fae76fa7279fe273df685045c7e06db5d66b1ca",
+      "row_count": 14840,
+      "byte_size": 1092060
+    },
+    "ctx00128-h0007-log1p-mp0-multivariate_placebo": {
+      "sha256": "788bd3bc888c8c3cd1821d452df8c920efbaed1eba3e5e555442082a4cd23155",
+      "row_count": 2597,
+      "byte_size": 215232
+    },
+    "ctx00128-h0007-log1p-mp0-univariate": {
+      "sha256": "7548c9d90f8f20e7396f44d2ef9e22ccd3d50ef290c64acf18446be23a8e8a5a",
+      "row_count": 14840,
+      "byte_size": 1095259
+    },
+    "ctx00128-h0007-log1p-mp1-multivariate": {
+      "sha256": "23abfcb331aa02cc1214983112f1d9af9192b8256c8222c7812a98d166d4cd86",
+      "row_count": 14840,
+      "byte_size": 1092060
+    },
+    "ctx00128-h0007-log1p-mp1-multivariate_placebo": {
+      "sha256": "82c513a0a1b2667a42eb36ff33cbe4e9c6a4923a58fd1ec5413a10746f7f3c8d",
+      "row_count": 2597,
+      "byte_size": 215233
+    },
+    "ctx00128-h0007-log1p-mp1-univariate": {
+      "sha256": "21a7157c32c8263fdc62ec2559f149d7e7529a97625980dd80d042972e557e18",
+      "row_count": 14840,
+      "byte_size": 1095253
+    },
+    "ctx00128-h0007-raw-mp0-multivariate": {
+      "sha256": "afeaa23ee63d1a7e230744cf75fbe66902ac99095eff98a5ce4f5267beb64aa3",
+      "row_count": 14840,
+      "byte_size": 1069481
+    },
+    "ctx00128-h0007-raw-mp0-multivariate_placebo": {
+      "sha256": "ece54724df5724147969c918d8192f9c13250b6460a6ecdacc709ca8b30a484a",
+      "row_count": 2597,
+      "byte_size": 211417
+    },
+    "ctx00128-h0007-raw-mp0-univariate": {
+      "sha256": "1cf4b0197cb2d2c0579752b632af8280d02ca53ac8e8167557992c75b426e72d",
+      "row_count": 14840,
+      "byte_size": 1073321
+    },
+    "ctx00128-h0007-raw-mp1-multivariate": {
+      "sha256": "f6f47fd7525e544ab7fea2f9f3adfc9f83268c93a06756e2d14685f33133445a",
+      "row_count": 14840,
+      "byte_size": 1069481
+    },
+    "ctx00128-h0007-raw-mp1-multivariate_placebo": {
+      "sha256": "154ce62dad0935997535f2f8651097d79cd6c6beb2c3283b0de4fd07361b5078",
+      "row_count": 2597,
+      "byte_size": 211418
+    },
+    "ctx00128-h0007-raw-mp1-univariate": {
+      "sha256": "79df53cafe93cf57ce12fbb02c68016243e3771c62af200b273ea8bb188c72f3",
+      "row_count": 14840,
+      "byte_size": 1073305
+    },
+    "ctx00128-h0028-log1p-mp0-multivariate": {
+      "sha256": "0c4a405067b50805d0016078754f4354be4d75867893047cd31a0cea2b5e9506",
+      "row_count": 59360,
+      "byte_size": 4477903
+    },
+    "ctx00128-h0028-log1p-mp0-multivariate_placebo": {
+      "sha256": "67defa31ed4e7d6b8fa12cf4475e02593c3878458e674cbf6ecc0f01c16405ed",
+      "row_count": 10388,
+      "byte_size": 755163
+    },
+    "ctx00128-h0028-log1p-mp0-univariate": {
+      "sha256": "a1f867920d973056c012bacf7e9a83ad3072b69c1720f25e5b83d2690c7932c8",
+      "row_count": 59360,
+      "byte_size": 4477674
+    },
+    "ctx00128-h0028-log1p-mp1-multivariate": {
+      "sha256": "44701394d447e71a7bdf6a23b2701021baf2beeb6712fa13251e3903e54af411",
+      "row_count": 59360,
+      "byte_size": 4477903
+    },
+    "ctx00128-h0028-log1p-mp1-multivariate_placebo": {
+      "sha256": "7fb6735fc002c42566b1d98a26ef1cccccd102c66c6ec20a3c43d56418ace2ca",
+      "row_count": 10388,
+      "byte_size": 755164
+    },
+    "ctx00128-h0028-log1p-mp1-univariate": {
+      "sha256": "dcb52357bceff11c5622556f503fe5dc0292562f68968b8b0babd0033ed7c5fa",
+      "row_count": 59360,
+      "byte_size": 4477248
+    },
+    "ctx00128-h0028-raw-mp0-multivariate": {
+      "sha256": "c978c2beac0a794ce9b7701551c9c9b0ccf210005d7bd388f18b36228392bd93",
+      "row_count": 59360,
+      "byte_size": 4356732
+    },
+    "ctx00128-h0028-raw-mp0-multivariate_placebo": {
+      "sha256": "3c7e74bee497bece70e00978a1f8b80aba63acc927dec55a2513ad3da2e176cb",
+      "row_count": 10388,
+      "byte_size": 738608
+    },
+    "ctx00128-h0028-raw-mp0-univariate": {
+      "sha256": "afcf7cd7105751bc0e9b4c909de917fe32ef31c4874dc51e59fd8e5b1395c9d3",
+      "row_count": 59360,
+      "byte_size": 4358253
+    },
+    "ctx00128-h0028-raw-mp1-multivariate": {
+      "sha256": "854ab5fc52fdaf0290e7fcdbe40daebac76c60653c75b33c57d9f156fd6b698e",
+      "row_count": 59360,
+      "byte_size": 4356732
+    },
+    "ctx00128-h0028-raw-mp1-multivariate_placebo": {
+      "sha256": "5397b3decad3de1692d45f76dc5316684bea1f578dca63d686bab12ecc3e6985",
+      "row_count": 10388,
+      "byte_size": 738609
+    },
+    "ctx00128-h0028-raw-mp1-univariate": {
+      "sha256": "cd7907ce42b05bb23930342092c2f64a502c07c50918f1032769d8411e9e9b91",
+      "row_count": 59360,
+      "byte_size": 4357293
+    },
+    "ctx00128-h0056-log1p-mp0-multivariate": {
+      "sha256": "18a30fcba05a160ba6e0527434c391814b7521c553b64c5c669f2d743b70f97f",
+      "row_count": 118720,
+      "byte_size": 8940169
+    },
+    "ctx00128-h0056-log1p-mp0-multivariate_placebo": {
+      "sha256": "d6d75746697df509ac359f7a73c3ff40a1b9c7b27218086babf3770cd60319cb",
+      "row_count": 20776,
+      "byte_size": 1486937
+    },
+    "ctx00128-h0056-log1p-mp0-univariate": {
+      "sha256": "38b949dc3fc5fdb88a4afdc17b7a78b4b7a04652f83f0b029058690465180cee",
+      "row_count": 118720,
+      "byte_size": 8950544
+    },
+    "ctx00128-h0056-log1p-mp1-multivariate": {
+      "sha256": "3e776aae26012a6da897f6967274b020ed121d2473f11e2bd247eb5d73c301dd",
+      "row_count": 118720,
+      "byte_size": 8940169
+    },
+    "ctx00128-h0056-log1p-mp1-multivariate_placebo": {
+      "sha256": "8432954dc259644a873d4753c9af55ff0dd4c63365772ef561fe54f081872492",
+      "row_count": 20776,
+      "byte_size": 1486937
+    },
+    "ctx00128-h0056-log1p-mp1-univariate": {
+      "sha256": "c2e0d1349f9a9b8a0ef9e5517442925ce368d02b28ee69ed0c8cd1374e895096",
+      "row_count": 118720,
+      "byte_size": 8949385
+    },
+    "ctx00128-h0056-raw-mp0-multivariate": {
+      "sha256": "5336b505f1176de70abf2b531f05197e5edbd9079c0773eeaa8d1905765f66bd",
+      "row_count": 118720,
+      "byte_size": 8676136
+    },
+    "ctx00128-h0056-raw-mp0-multivariate_placebo": {
+      "sha256": "99e83d03c4d09b53c355c60552beea0b0d5b86887da157ac5d929aca581da741",
+      "row_count": 20776,
+      "byte_size": 1445339
+    },
+    "ctx00128-h0056-raw-mp0-univariate": {
+      "sha256": "de24a5c7304d8d6cac710468265f5c8149dda22140bd09e3d52fa1ed5cc8fd4b",
+      "row_count": 118720,
+      "byte_size": 8673611
+    },
+    "ctx00128-h0056-raw-mp1-multivariate": {
+      "sha256": "0a65c855283591502c0fb5aff8295404b32758a9a7a6a409ebb4e0f2f9187e17",
+      "row_count": 118720,
+      "byte_size": 8675932
+    },
+    "ctx00128-h0056-raw-mp1-multivariate_placebo": {
+      "sha256": "3a9e14705e30b269b1bfb24b08f2b71ac0cb03560129c14a16cd8f29fdfdd03c",
+      "row_count": 20776,
+      "byte_size": 1445339
+    },
+    "ctx00128-h0056-raw-mp1-univariate": {
+      "sha256": "4be654f335153322c7fa4a208ab900b61b6585be2e9f22c97b4a8f7370650e0d",
+      "row_count": 118720,
+      "byte_size": 8669819
+    },
+    "ctx00128-h0064-log1p-mp0-multivariate": {
+      "sha256": "1d3506904cb460bc850f9559b711fb667c13538906d9d710a69ad81ef318eef1",
+      "row_count": 135680,
+      "byte_size": 10127232
+    },
+    "ctx00128-h0064-log1p-mp0-multivariate_placebo": {
+      "sha256": "69a377a2ec06ece3f4551b195332bc56de47c1c29da1c277baec5d8560168b28",
+      "row_count": 23744,
+      "byte_size": 1701747
+    },
+    "ctx00128-h0064-log1p-mp0-univariate": {
+      "sha256": "fbdfc8bfdc3ac0705d165087864f5aa9656aa8b22fe4995043d300c591143171",
+      "row_count": 135680,
+      "byte_size": 10129649
+    },
+    "ctx00128-h0064-log1p-mp1-multivariate": {
+      "sha256": "7b7b434f716f4428723ba6bd04707dc0256e2455d2a69ee689ccd30d94f04089",
+      "row_count": 135680,
+      "byte_size": 10127232
+    },
+    "ctx00128-h0064-log1p-mp1-multivariate_placebo": {
+      "sha256": "e730e8056d11301e953539323ea76420cc857bb2175cebc93dc2e4f91a7ea534",
+      "row_count": 23744,
+      "byte_size": 1701747
+    },
+    "ctx00128-h0064-log1p-mp1-univariate": {
+      "sha256": "3e970d4bc37f102722dfe47b4050fd9567e98ebf3cbab327f0a2494a361e20b2",
+      "row_count": 135680,
+      "byte_size": 10128415
+    },
+    "ctx00128-h0064-raw-mp0-multivariate": {
+      "sha256": "a3fce36a00c725a355a2352ff6f8c5bac343ba23db9e9209851d8e9ed57fab5f",
+      "row_count": 135680,
+      "byte_size": 9778944
+    },
+    "ctx00128-h0064-raw-mp0-multivariate_placebo": {
+      "sha256": "6f8cdee37e5a188d1af1ecb49c820283f9f3af4d1f78c08de4efdd5c14326a0c",
+      "row_count": 23744,
+      "byte_size": 1652754
+    },
+    "ctx00128-h0064-raw-mp0-univariate": {
+      "sha256": "8c753e950e695d991a19a1705c80768d5aec96a4efe1430ed2f1a783c217c41e",
+      "row_count": 135680,
+      "byte_size": 9773131
+    },
+    "ctx00128-h0064-raw-mp1-multivariate": {
+      "sha256": "b97e17f8ac60b298e1ca1a03c1d2028967003fc1a2da1d6fa939f3b0acbcab09",
+      "row_count": 135680,
+      "byte_size": 9778228
+    },
+    "ctx00128-h0064-raw-mp1-multivariate_placebo": {
+      "sha256": "776861453de63ff6b6cfa12445e6c647496a85ae0519270a1612c9efb3c5bbc9",
+      "row_count": 23744,
+      "byte_size": 1652754
+    },
+    "ctx00128-h0064-raw-mp1-univariate": {
+      "sha256": "1fefbc301ff2490fab111252580788e50aed5ccb0d3ba28edecc925e9a160b2b",
+      "row_count": 135680,
+      "byte_size": 9774467
+    },
+    "ctx00256-h0001-log1p-mp0-multivariate": {
+      "sha256": "a81935dfd1dbd502595ad5ed5b8d7c6329da5332ab286341e25da00416572a5c",
+      "row_count": 2120,
+      "byte_size": 191476
+    },
+    "ctx00256-h0001-log1p-mp0-multivariate_placebo": {
+      "sha256": "bbddd6db9dcbe2cacbc4dd6fe47b1770fbb0e450e6fd40feb21fe602c1382edf",
+      "row_count": 371,
+      "byte_size": 50930
+    },
+    "ctx00256-h0001-log1p-mp0-univariate": {
+      "sha256": "457781686163bb745084307338f703dcb199d726242fb3645ba8e1d1c6771b2e",
+      "row_count": 2120,
+      "byte_size": 191061
+    },
+    "ctx00256-h0001-log1p-mp1-multivariate": {
+      "sha256": "db8f0c51d2ca181ce2a10ab8da20ad5920cf0008fcd7b824ee8df8fd64a3e735",
+      "row_count": 2120,
+      "byte_size": 191476
+    },
+    "ctx00256-h0001-log1p-mp1-multivariate_placebo": {
+      "sha256": "8c85f1d82a0399f243da3ff96f8587c1ff8ba1a52bea99d2027ea4cec80b3ea4",
+      "row_count": 371,
+      "byte_size": 50931
+    },
+    "ctx00256-h0001-log1p-mp1-univariate": {
+      "sha256": "bd8219638ee427c5ee81f27a1f5b65ae951ffc919bffe3b946e017cee5c8fd94",
+      "row_count": 2120,
+      "byte_size": 191061
+    },
+    "ctx00256-h0001-raw-mp0-multivariate": {
+      "sha256": "361e6967ed8ea2533291723f44a28b61070fe098a78b4422a9b6cafa3a5af4bf",
+      "row_count": 2120,
+      "byte_size": 188560
+    },
+    "ctx00256-h0001-raw-mp0-multivariate_placebo": {
+      "sha256": "d28c19f1719d9b98071b984347ac421d068ecb6857c61dd3a68bf12c5dd68178",
+      "row_count": 371,
+      "byte_size": 50510
+    },
+    "ctx00256-h0001-raw-mp0-univariate": {
+      "sha256": "1cb1bd70c8f263944139652efeac5afcd657e6b376ace3a7dc3e809b0039e03f",
+      "row_count": 2120,
+      "byte_size": 188726
+    },
+    "ctx00256-h0001-raw-mp1-multivariate": {
+      "sha256": "32b840f4bdbf51e3fb461d46887ea07376d2c4aa43623d56445e2155a50ef02f",
+      "row_count": 2120,
+      "byte_size": 188560
+    },
+    "ctx00256-h0001-raw-mp1-multivariate_placebo": {
+      "sha256": "04799ee7b1721802c5331815907d0c02c24983825b1686cbb19699a4e2559950",
+      "row_count": 371,
+      "byte_size": 50511
+    },
+    "ctx00256-h0001-raw-mp1-univariate": {
+      "sha256": "3c0d9362d56beab2a43875640142f2797b8fcc4e1d22cbaeb9dbfcc9c78a3fe8",
+      "row_count": 2120,
+      "byte_size": 188758
+    },
+    "ctx00256-h0007-log1p-mp0-multivariate": {
+      "sha256": "09a58fd39a5cb56f573e8b0640394662f2386e19cb805bb5e6ac499915750bb0",
+      "row_count": 14840,
+      "byte_size": 1092811
+    },
+    "ctx00256-h0007-log1p-mp0-multivariate_placebo": {
+      "sha256": "0db8078cb1ee34fbdf811bf2aa154cde57b82c1b3d2458dce1a06b1a571028ea",
+      "row_count": 2597,
+      "byte_size": 214078
+    },
+    "ctx00256-h0007-log1p-mp0-univariate": {
+      "sha256": "f5b9493c8e0e83de5b98a5efe2ee216afbd4488976e242bea46eedeac471e5ba",
+      "row_count": 14840,
+      "byte_size": 1094907
+    },
+    "ctx00256-h0007-log1p-mp1-multivariate": {
+      "sha256": "798d872d9405dbbef840af8cb9e216df03692f78678ded6f10f88ee5c761a9a4",
+      "row_count": 14840,
+      "byte_size": 1092811
+    },
+    "ctx00256-h0007-log1p-mp1-multivariate_placebo": {
+      "sha256": "355968b147c0a2de837247624a814273839ed31f5b2d5639921bd70730264b1c",
+      "row_count": 2597,
+      "byte_size": 214079
+    },
+    "ctx00256-h0007-log1p-mp1-univariate": {
+      "sha256": "cd6f3ff5a3e39cbf1888cde72857f39c193159a7d0266a6fa036e0326b34dd10",
+      "row_count": 14840,
+      "byte_size": 1094910
+    },
+    "ctx00256-h0007-raw-mp0-multivariate": {
+      "sha256": "653f88e41761fe2a6c91ef5b48bbe27bfce0c129aaf42befefe92a3e48ebebca",
+      "row_count": 14840,
+      "byte_size": 1075256
+    },
+    "ctx00256-h0007-raw-mp0-multivariate_placebo": {
+      "sha256": "4620ea03fdaa2fc5e6e55e257946b17af57f9dad12fb99c65db4e01cc6b0152c",
+      "row_count": 2597,
+      "byte_size": 210799
+    },
+    "ctx00256-h0007-raw-mp0-univariate": {
+      "sha256": "11787bb40d02c56e4b974048c630b3d705784867c64cb276a60860add20d65cb",
+      "row_count": 14840,
+      "byte_size": 1076888
+    },
+    "ctx00256-h0007-raw-mp1-multivariate": {
+      "sha256": "d55bcefb2c452016b4e0417abfb87df75d299ec3e1857aaaba06fee526301766",
+      "row_count": 14840,
+      "byte_size": 1075250
+    },
+    "ctx00256-h0007-raw-mp1-multivariate_placebo": {
+      "sha256": "8eccca196443c93bd33507862b3de9d09ef542a6c45c33fe4fd9f18f547f4258",
+      "row_count": 2597,
+      "byte_size": 210800
+    },
+    "ctx00256-h0007-raw-mp1-univariate": {
+      "sha256": "cb4aa596caaa8603b32f95521b653baf19e44e41eeb84755a3bf274b27ec9c7b",
+      "row_count": 14840,
+      "byte_size": 1076677
+    },
+    "ctx00256-h0028-log1p-mp0-multivariate": {
+      "sha256": "8db95a30a0f139dcce34d33d73b768093937810cfd4a58fa0f54691ea8b6d4ff",
+      "row_count": 59360,
+      "byte_size": 4480021
+    },
+    "ctx00256-h0028-log1p-mp0-multivariate_placebo": {
+      "sha256": "fabcac8d5d5f63db96544a91d83b8385b21c8403a28a4086137cfb1e28d50caf",
+      "row_count": 10388,
+      "byte_size": 754489
+    },
+    "ctx00256-h0028-log1p-mp0-univariate": {
+      "sha256": "2efb4529a03d21f097b429b66344090973209dbffaf268c01cafa819d9cdd62c",
+      "row_count": 59360,
+      "byte_size": 4482356
+    },
+    "ctx00256-h0028-log1p-mp1-multivariate": {
+      "sha256": "e734ed0909e9d7c7d132a3f706ba3cd7791741c5e6b562c93bb071c0ae08af97",
+      "row_count": 59360,
+      "byte_size": 4480021
+    },
+    "ctx00256-h0028-log1p-mp1-multivariate_placebo": {
+      "sha256": "55c51975606015c0124afc53eb5a5f3d55eb8566986f9669dda281f1f34d9777",
+      "row_count": 10388,
+      "byte_size": 754490
+    },
+    "ctx00256-h0028-log1p-mp1-univariate": {
+      "sha256": "a12cc1d947bd10a26d85bcc785b89288760e32af0c2b78d45c48f5dda77b0f0e",
+      "row_count": 59360,
+      "byte_size": 4482361
+    },
+    "ctx00256-h0028-raw-mp0-multivariate": {
+      "sha256": "55dc1230bb3b6c2941effb6b2bee605cbcea630bcec6fb07174137eab128ce83",
+      "row_count": 59360,
+      "byte_size": 4397891
+    },
+    "ctx00256-h0028-raw-mp0-multivariate_placebo": {
+      "sha256": "8c456d0faaba94b14298b4c595e31b9216e222288e0c1797ae21255787831dc6",
+      "row_count": 10388,
+      "byte_size": 739951
+    },
+    "ctx00256-h0028-raw-mp0-univariate": {
+      "sha256": "72314800aa1cf3effe5b2020a8991b09e2b2c36ca079787be19898c9caf5ebd6",
+      "row_count": 59360,
+      "byte_size": 4372750
+    },
+    "ctx00256-h0028-raw-mp1-multivariate": {
+      "sha256": "bcb7cb7f63b8f851078c43cc1c76cc78fa219c5df9ae7f3e1877489bda13ed67",
+      "row_count": 59360,
+      "byte_size": 4397351
+    },
+    "ctx00256-h0028-raw-mp1-multivariate_placebo": {
+      "sha256": "3348ffd9a68e29d7898ddfd5824c08c5dbe59627544236928761fe978cf10b7a",
+      "row_count": 10388,
+      "byte_size": 739952
+    },
+    "ctx00256-h0028-raw-mp1-univariate": {
+      "sha256": "d518458c2fb1f8f5971bbdf675481a7f4687043d6198cbb1c21b69b76a505ab9",
+      "row_count": 59360,
+      "byte_size": 4371920
+    },
+    "ctx00256-h0056-log1p-mp0-multivariate": {
+      "sha256": "8ee452b0430678f5258e6fec28482a7a1904670c08578b6bf58af5503d99fb7a",
+      "row_count": 118720,
+      "byte_size": 8935899
+    },
+    "ctx00256-h0056-log1p-mp0-multivariate_placebo": {
+      "sha256": "176f68bd688f13bd5ee68af10c8c401a6079fcb56138ce738832c9f65730f739",
+      "row_count": 20776,
+      "byte_size": 1488228
+    },
+    "ctx00256-h0056-log1p-mp0-univariate": {
+      "sha256": "30ff66cb880e422bd9e3cc0255519519fdb5470084acb5fb7d9c1ec154050c05",
+      "row_count": 118720,
+      "byte_size": 8923310
+    },
+    "ctx00256-h0056-log1p-mp1-multivariate": {
+      "sha256": "96fe638ea1d3cd36a290d27da712786fc40f3bba23bbb23ac87a41539f5f163c",
+      "row_count": 118720,
+      "byte_size": 8935899
+    },
+    "ctx00256-h0056-log1p-mp1-multivariate_placebo": {
+      "sha256": "ff60d0e58419e1b2eb9ba708edd62093c2843f244ea0f1b83a81d26c2e716b52",
+      "row_count": 20776,
+      "byte_size": 1488228
+    },
+    "ctx00256-h0056-log1p-mp1-univariate": {
+      "sha256": "429ec5b81e347a98f20a38654b71290bf53672af55479fc2b0a6b1b7e535bb67",
+      "row_count": 118720,
+      "byte_size": 8923968
+    },
+    "ctx00256-h0056-raw-mp0-multivariate": {
+      "sha256": "533e79a9817bef599cad144c19032c99d264d595a66126601043103f1a51a178",
+      "row_count": 118720,
+      "byte_size": 8715116
+    },
+    "ctx00256-h0056-raw-mp0-multivariate_placebo": {
+      "sha256": "99ff8a2031e5510ca7588375ce4f1be9cecd698a8736ee51d9b59e7d44d12c83",
+      "row_count": 20776,
+      "byte_size": 1453129
+    },
+    "ctx00256-h0056-raw-mp0-univariate": {
+      "sha256": "fa795264a1a0a1b40f98c3e5151250d687d422dfbbf9ffbfce0af4f3bf94c61a",
+      "row_count": 118720,
+      "byte_size": 8671817
+    },
+    "ctx00256-h0056-raw-mp1-multivariate": {
+      "sha256": "783b9521c79d928d8bec81f83275d6940263a5e57e7a6e6fde788d0ceda78215",
+      "row_count": 118720,
+      "byte_size": 8712687
+    },
+    "ctx00256-h0056-raw-mp1-multivariate_placebo": {
+      "sha256": "6163f6b572c71955a368673b4ef6b9b457240ee404835e303299442c170174de",
+      "row_count": 20776,
+      "byte_size": 1453129
+    },
+    "ctx00256-h0056-raw-mp1-univariate": {
+      "sha256": "53ae923736e3f55564df65c453c94bdf521fc551346757552a606b79d0ce084e",
+      "row_count": 118720,
+      "byte_size": 8669409
+    },
+    "ctx00256-h0064-log1p-mp0-multivariate": {
+      "sha256": "8ceb0dd2f02cc5a4d74ef81d9822dd2bb045c03099c4f962d47cdac26b3067bf",
+      "row_count": 135680,
+      "byte_size": 10070540
+    },
+    "ctx00256-h0064-log1p-mp0-multivariate_placebo": {
+      "sha256": "f8644e4f143e686374d9a6e398b12c4ad14772afce9f60bfd203143000aa1b81",
+      "row_count": 23744,
+      "byte_size": 1702166
+    },
+    "ctx00256-h0064-log1p-mp0-univariate": {
+      "sha256": "0bc96060efa6910403c8b5d3e6479d8a24b9b13a0f5714d0f6911cf77936449e",
+      "row_count": 135680,
+      "byte_size": 10073596
+    },
+    "ctx00256-h0064-log1p-mp1-multivariate": {
+      "sha256": "40965800716ceacaf486ec9d7e25cc675a43ea5da7cc186d8ac8fff36972e34f",
+      "row_count": 135680,
+      "byte_size": 10070540
+    },
+    "ctx00256-h0064-log1p-mp1-multivariate_placebo": {
+      "sha256": "78c5d3b28bfc2a4dbd97c7fb855898056548b2d3182a34b1a084fd028ed4314e",
+      "row_count": 23744,
+      "byte_size": 1702166
+    },
+    "ctx00256-h0064-log1p-mp1-univariate": {
+      "sha256": "6304b20da605f6f83b8729ea907476369e5af4a77d7dc8ee8ad9439d4bebb638",
+      "row_count": 135680,
+      "byte_size": 10073291
+    },
+    "ctx00256-h0064-raw-mp0-multivariate": {
+      "sha256": "294c50e6fd628867ae42392630f5393d5183d02530b72853d07a3bdf8be8c390",
+      "row_count": 135680,
+      "byte_size": 9809578
+    },
+    "ctx00256-h0064-raw-mp0-multivariate_placebo": {
+      "sha256": "16926e7e8126307394d1c6656290f337e4360f4f4b086897f9a22d1e82a88a94",
+      "row_count": 23744,
+      "byte_size": 1663295
+    },
+    "ctx00256-h0064-raw-mp0-univariate": {
+      "sha256": "e9aa0bbb358a5ad0eaa4faed6924d91f42a998fe54c28e676cbbe197d39c7ea4",
+      "row_count": 135680,
+      "byte_size": 9803807
+    },
+    "ctx00256-h0064-raw-mp1-multivariate": {
+      "sha256": "ce58bb334c71b4419cdef4140aad1db834b140e2b6ae58ed7173a8f15df9cb71",
+      "row_count": 135680,
+      "byte_size": 9807167
+    },
+    "ctx00256-h0064-raw-mp1-multivariate_placebo": {
+      "sha256": "4dc930c1a324f0ca0f9c7d18353b5e436579c6a1ac37ecd83e3adb0d18372582",
+      "row_count": 23744,
+      "byte_size": 1663888
+    },
+    "ctx00256-h0064-raw-mp1-univariate": {
+      "sha256": "9c08c8931f8df3143fd3ff56177e9eb13edf918b0303b6c41add399aea9323f6",
+      "row_count": 135680,
+      "byte_size": 9797318
+    },
+    "ctx00512-h0001-log1p-mp0-multivariate": {
+      "sha256": "9f3ca9bb21e345bb1406a3452085049ea8c5f3b0ec2e94035318b73ee76a86cc",
+      "row_count": 2120,
+      "byte_size": 192033
+    },
+    "ctx00512-h0001-log1p-mp0-multivariate_placebo": {
+      "sha256": "6c3776693e22aecef94e81098d04cfbad657fcb10cc3f2953f0820594e32fec8",
+      "row_count": 371,
+      "byte_size": 50919
+    },
+    "ctx00512-h0001-log1p-mp0-univariate": {
+      "sha256": "0d2833ea1753f2d9cf1581367e4b06f374b4cba84b09178de0649c4b66470cd8",
+      "row_count": 2120,
+      "byte_size": 191731
+    },
+    "ctx00512-h0001-log1p-mp1-multivariate": {
+      "sha256": "dbc2008dea17f08fc6656b3f0a3459c734ed58a67a5126776d8c921c51f583f6",
+      "row_count": 2120,
+      "byte_size": 192033
+    },
+    "ctx00512-h0001-log1p-mp1-multivariate_placebo": {
+      "sha256": "7436d406d64499e1ac551e685a98eff69d9beef70b407185a61b631742c36012",
+      "row_count": 371,
+      "byte_size": 50920
+    },
+    "ctx00512-h0001-log1p-mp1-univariate": {
+      "sha256": "24ff92d57decdb900a12e39d576003e0d0463be0bf553b75b30c6caaa09bc402",
+      "row_count": 2120,
+      "byte_size": 191731
+    },
+    "ctx00512-h0001-raw-mp0-multivariate": {
+      "sha256": "02095d2e94fac1b349e35914c543a9e00fa606bd56b9f0002fa7f04f2f69dce3",
+      "row_count": 2120,
+      "byte_size": 189614
+    },
+    "ctx00512-h0001-raw-mp0-multivariate_placebo": {
+      "sha256": "7683cf9c8455f7c527d46df769b21c3c9407af1d3ebdda0a5d9cc834046331fc",
+      "row_count": 371,
+      "byte_size": 50586
+    },
+    "ctx00512-h0001-raw-mp0-univariate": {
+      "sha256": "d4df1747717186568ca0abcdbd8adcce886f8ca031233f8b7073aae63c25e903",
+      "row_count": 2120,
+      "byte_size": 189548
+    },
+    "ctx00512-h0001-raw-mp1-multivariate": {
+      "sha256": "214757a48e1f0c208e49bf619c14c163bc7ce310a27f1bd2b0c66400c428b5e4",
+      "row_count": 2120,
+      "byte_size": 189614
+    },
+    "ctx00512-h0001-raw-mp1-multivariate_placebo": {
+      "sha256": "9a6d4bc50f1b38a80e948158306ab08bd14c9449f83625013b4b97d75c10cf2e",
+      "row_count": 371,
+      "byte_size": 50587
+    },
+    "ctx00512-h0001-raw-mp1-univariate": {
+      "sha256": "7fcd331be646f6fbb23b41b13ca78e5edbe0f7350a5ec6976c9ad38a094dacf6",
+      "row_count": 2120,
+      "byte_size": 189548
+    },
+    "ctx00512-h0007-log1p-mp0-multivariate": {
+      "sha256": "829e6c5c6df4d5a5ba1f1d787b56b7b493322d5267c416c91731efe6efae4899",
+      "row_count": 14840,
+      "byte_size": 1094617
+    },
+    "ctx00512-h0007-log1p-mp0-multivariate_placebo": {
+      "sha256": "9a50036f4648c67678bacfc65a6916f6ff88b856177fbe05fa93c9e37f4e3c2a",
+      "row_count": 2597,
+      "byte_size": 214001
+    },
+    "ctx00512-h0007-log1p-mp0-univariate": {
+      "sha256": "032d1bc119344f1607889b350c62a716e83b2494dbc6aeb65cc888fddd94bae6",
+      "row_count": 14840,
+      "byte_size": 1096164
+    },
+    "ctx00512-h0007-log1p-mp1-multivariate": {
+      "sha256": "06953eb5b4ddefcd4cbfc95b77113b6208cf7087d07d6573df1b24cf9fbed134",
+      "row_count": 14840,
+      "byte_size": 1094617
+    },
+    "ctx00512-h0007-log1p-mp1-multivariate_placebo": {
+      "sha256": "c479a07c6fb65f607afa837e80cd7dbb01e22fefe51234743f7f4739b7fb2ed5",
+      "row_count": 2597,
+      "byte_size": 214002
+    },
+    "ctx00512-h0007-log1p-mp1-univariate": {
+      "sha256": "794201edb58f1731dc2b5698978324163c4a0c17b24633f8c73a3616caad301d",
+      "row_count": 14840,
+      "byte_size": 1096164
+    },
+    "ctx00512-h0007-raw-mp0-multivariate": {
+      "sha256": "89fe4a5955029887130c21f091a8192be6051d2cb873a2bf24adc975798929d5",
+      "row_count": 14840,
+      "byte_size": 1087941
+    },
+    "ctx00512-h0007-raw-mp0-multivariate_placebo": {
+      "sha256": "ad27c38764a6df7481447adcb84111034e46e095d4ceb4ce45e1110a958e4468",
+      "row_count": 2597,
+      "byte_size": 212678
+    },
+    "ctx00512-h0007-raw-mp0-univariate": {
+      "sha256": "7d6bd39e48f4855d8d6082689df35c6e5107c6b808fdea7d092ae2d8700b4cfe",
+      "row_count": 14840,
+      "byte_size": 1087055
+    },
+    "ctx00512-h0007-raw-mp1-multivariate": {
+      "sha256": "a6f1125567bccfba8d2aa798b7a563b5b4f54bf17f0de874b834e22b8a55b5e7",
+      "row_count": 14840,
+      "byte_size": 1087941
+    },
+    "ctx00512-h0007-raw-mp1-multivariate_placebo": {
+      "sha256": "d400112379720833cdccc448cdd751c6e6d585c1f4924e026c324e7f49dd2cf3",
+      "row_count": 2597,
+      "byte_size": 212679
+    },
+    "ctx00512-h0007-raw-mp1-univariate": {
+      "sha256": "c9624ac51f088a98f9877dda4f0067d93c59601146168e5f3e795618149dce41",
+      "row_count": 14840,
+      "byte_size": 1087055
+    },
+    "ctx00512-h0028-log1p-mp0-multivariate": {
+      "sha256": "47b58cdb5a18dc1d3bef966b0534632a4f2dad69122ec7cff07d6a8840155be6",
+      "row_count": 59360,
+      "byte_size": 4484904
+    },
+    "ctx00512-h0028-log1p-mp0-multivariate_placebo": {
+      "sha256": "8afa94c3c2f3a976ea69d7c56ef3867980914581a2df112284974108c887553e",
+      "row_count": 10388,
+      "byte_size": 754941
+    },
+    "ctx00512-h0028-log1p-mp0-univariate": {
+      "sha256": "ab88e5304629b35b80a57b0983ea3436590a3daf0eced0a97af50b30e6655a09",
+      "row_count": 59360,
+      "byte_size": 4470254
+    },
+    "ctx00512-h0028-log1p-mp1-multivariate": {
+      "sha256": "af479d279600f8886422c9e9fb202c3eeb78b903e0209810358189d7a4272c44",
+      "row_count": 59360,
+      "byte_size": 4484904
+    },
+    "ctx00512-h0028-log1p-mp1-multivariate_placebo": {
+      "sha256": "21635d1b7f652e88a2d63f571fec90f096b5885fcc1ab4b7de07d7fd1bfe6780",
+      "row_count": 10388,
+      "byte_size": 754942
+    },
+    "ctx00512-h0028-log1p-mp1-univariate": {
+      "sha256": "2736ccef37d4dd8299b6fa9bf371171ad3f9d5c1c6f5f0dc1a4e94a7c0c91af6",
+      "row_count": 59360,
+      "byte_size": 4470254
+    },
+    "ctx00512-h0028-raw-mp0-multivariate": {
+      "sha256": "25d71f76f0dbaa7739aa6afa9155333eb2cd373a145479fde0502c1174a88846",
+      "row_count": 59360,
+      "byte_size": 4428390
+    },
+    "ctx00512-h0028-raw-mp0-multivariate_placebo": {
+      "sha256": "0667e25cc9310e3496461e1414281dc90482a907056652553ffc5d84a920fa41",
+      "row_count": 10388,
+      "byte_size": 747877
+    },
+    "ctx00512-h0028-raw-mp0-univariate": {
+      "sha256": "0232a62569cc63bcde4c12fafe959ffa4468de5f8a0037a4184b7cb8ef59708c",
+      "row_count": 59360,
+      "byte_size": 4423634
+    },
+    "ctx00512-h0028-raw-mp1-multivariate": {
+      "sha256": "74b7e948d49cd6d3fd3b3e8005499893a81c496e568913f43054e696117e52b3",
+      "row_count": 59360,
+      "byte_size": 4428390
+    },
+    "ctx00512-h0028-raw-mp1-multivariate_placebo": {
+      "sha256": "f03c435cd651922d8162f41657530d82d736d69e8b8694899152463341e47162",
+      "row_count": 10388,
+      "byte_size": 747878
+    },
+    "ctx00512-h0028-raw-mp1-univariate": {
+      "sha256": "c5b1cc3903aad45f2be805d7ea89f75f6fecc508a52acf3eb734aea370f89cf5",
+      "row_count": 59360,
+      "byte_size": 4423634
+    },
+    "ctx00512-h0056-log1p-mp0-multivariate": {
+      "sha256": "0637ac296b8993c5f70b7c31e0ce32c6e5723f217e63e6ca6a4634bb55ca8754",
+      "row_count": 118720,
+      "byte_size": 8934300
+    },
+    "ctx00512-h0056-log1p-mp0-multivariate_placebo": {
+      "sha256": "e531f39768cf23c0707d6be41cc88e0dc58fd30e785ed3352805a38b392c4092",
+      "row_count": 20776,
+      "byte_size": 1489205
+    },
+    "ctx00512-h0056-log1p-mp0-univariate": {
+      "sha256": "9f1b524c3fb292dc2f31624db618d9ff21c72f2c453227fa8ee54af2f90d8d35",
+      "row_count": 118720,
+      "byte_size": 8935276
+    },
+    "ctx00512-h0056-log1p-mp1-multivariate": {
+      "sha256": "2266e4a83f2e8712021654a6bc88d65cda01868e9c69b8b45c0bbd8f9dfc6fa3",
+      "row_count": 118720,
+      "byte_size": 8934300
+    },
+    "ctx00512-h0056-log1p-mp1-multivariate_placebo": {
+      "sha256": "e3e328a2b604e06981cf365c396cf4c26129ac6953e6352640ac0b7441d835c7",
+      "row_count": 20776,
+      "byte_size": 1489205
+    },
+    "ctx00512-h0056-log1p-mp1-univariate": {
+      "sha256": "0550aa4ab815fa06cb2f2baf7c2922d235e4d7dfae541ec2f381e25bc268d0e8",
+      "row_count": 118720,
+      "byte_size": 8935276
+    },
+    "ctx00512-h0056-raw-mp0-multivariate": {
+      "sha256": "fb3e9e2956aa26571e100e8aaae96be178b07939ce81523014de5117a552e08b",
+      "row_count": 118720,
+      "byte_size": 8807533
+    },
+    "ctx00512-h0056-raw-mp0-multivariate_placebo": {
+      "sha256": "07af39fd94c4d521a73972b430149d5bf079c3ba49202322b8c124a9766d6aad",
+      "row_count": 20776,
+      "byte_size": 1475390
+    },
+    "ctx00512-h0056-raw-mp0-univariate": {
+      "sha256": "bf12f8cd75490682c53a65e4261a8f7ced9cfcbc7757aaff861cd536a6110fea",
+      "row_count": 118720,
+      "byte_size": 8814296
+    },
+    "ctx00512-h0056-raw-mp1-multivariate": {
+      "sha256": "e5e78e8a6b49e98cfdd27ad1874c40c789220995766774ad8c9e47dd64d2ac96",
+      "row_count": 118720,
+      "byte_size": 8807266
+    },
+    "ctx00512-h0056-raw-mp1-multivariate_placebo": {
+      "sha256": "5ba1d7704adff1ea87cf179b9cb794c0251661906746fcae86183d282ee596a0",
+      "row_count": 20776,
+      "byte_size": 1474768
+    },
+    "ctx00512-h0056-raw-mp1-univariate": {
+      "sha256": "e2a1a6d8f7bd3688c1a47087c259cfae70eb36fcc5277212a23618598e4c55c9",
+      "row_count": 118720,
+      "byte_size": 8812585
+    },
+    "ctx00512-h0064-log1p-mp0-multivariate": {
+      "sha256": "37c88d95268657bb2382e9ce7330d8a7c5251fe3b09aeacd8733e49aa03ece4e",
+      "row_count": 135680,
+      "byte_size": 10087814
+    },
+    "ctx00512-h0064-log1p-mp0-multivariate_placebo": {
+      "sha256": "185c789e97f2f7a18eefdb18fe136171d6eccd794df4e4b52c7d2e94f82e382d",
+      "row_count": 23744,
+      "byte_size": 1704644
+    },
+    "ctx00512-h0064-log1p-mp0-univariate": {
+      "sha256": "3dd99104d9a45bf69f7bbc4265ae530d75dbc006184617bd1ca29f4f03b30c82",
+      "row_count": 135680,
+      "byte_size": 10088814
+    },
+    "ctx00512-h0064-log1p-mp1-multivariate": {
+      "sha256": "a87847ef3007a504af0249625163598b0933e708595facb9099389f3cd331e35",
+      "row_count": 135680,
+      "byte_size": 10087814
+    },
+    "ctx00512-h0064-log1p-mp1-multivariate_placebo": {
+      "sha256": "4a59b9d09ef02904edf4eb1bc2c058419999b81fee9a0e990ad5a6fef651a039",
+      "row_count": 23744,
+      "byte_size": 1704644
+    },
+    "ctx00512-h0064-log1p-mp1-univariate": {
+      "sha256": "90832fa20a60f308f8f077b710a4fd7f60a414dd56b4f0394a0753a9f6198c79",
+      "row_count": 135680,
+      "byte_size": 10088814
+    },
+    "ctx00512-h0064-raw-mp0-multivariate": {
+      "sha256": "46ba15a9aefa9cd55aee176d08e4b0075ef8911fd0f7b95e7dd7618b9bc89b2f",
+      "row_count": 135680,
+      "byte_size": 9927868
+    },
+    "ctx00512-h0064-raw-mp0-multivariate_placebo": {
+      "sha256": "d9bc70742ce5f15e5052b8968b1b35461a1005a00f28b4a1cc6b416f3cc4268b",
+      "row_count": 23744,
+      "byte_size": 1687510
+    },
+    "ctx00512-h0064-raw-mp0-univariate": {
+      "sha256": "5622360ef88817e4670394dca9104e2a849d19b5e2d7b48d512376f0d556e20c",
+      "row_count": 135680,
+      "byte_size": 9943871
+    },
+    "ctx00512-h0064-raw-mp1-multivariate": {
+      "sha256": "4f11896975d26be1de76edec1a81d20c11a11bc0e764fdac01aa08bef7f2e1bb",
+      "row_count": 135680,
+      "byte_size": 9926240
+    },
+    "ctx00512-h0064-raw-mp1-multivariate_placebo": {
+      "sha256": "1f0858f7ddc08ecbfcfad2fcb0f09910d2373cdd197c367c4c3f854f69f9cd88",
+      "row_count": 23744,
+      "byte_size": 1685723
+    },
+    "ctx00512-h0064-raw-mp1-univariate": {
+      "sha256": "5fbec118057bd2360c77c1897fddb0bd481582935b9c6f7a3f55f61d75b12d04",
+      "row_count": 135680,
+      "byte_size": 9941612
+    }
+  },
+  "session": {
+    "computed": [
+      "ctx00512-h0001-log1p-mp1-multivariate",
+      "ctx00512-h0001-log1p-mp1-multivariate_placebo",
+      "ctx00512-h0001-log1p-mp0-univariate",
+      "ctx00512-h0001-log1p-mp0-multivariate",
+      "ctx00512-h0001-log1p-mp0-multivariate_placebo",
+      "ctx00512-h0007-raw-mp1-univariate",
+      "ctx00512-h0007-raw-mp1-multivariate",
+      "ctx00512-h0007-raw-mp1-multivariate_placebo",
+      "ctx00512-h0007-raw-mp0-univariate",
+      "ctx00512-h0007-raw-mp0-multivariate",
+      "ctx00512-h0007-raw-mp0-multivariate_placebo",
+      "ctx00512-h0007-log1p-mp1-univariate",
+      "ctx00512-h0007-log1p-mp1-multivariate",
+      "ctx00512-h0007-log1p-mp1-multivariate_placebo",
+      "ctx00512-h0007-log1p-mp0-univariate",
+      "ctx00512-h0007-log1p-mp0-multivariate",
+      "ctx00512-h0007-log1p-mp0-multivariate_placebo",
+      "ctx00512-h0028-raw-mp1-univariate",
+      "ctx00512-h0028-raw-mp1-multivariate",
+      "ctx00512-h0028-raw-mp1-multivariate_placebo",
+      "ctx00512-h0028-raw-mp0-univariate",
+      "ctx00512-h0028-raw-mp0-multivariate",
+      "ctx00512-h0028-raw-mp0-multivariate_placebo",
+      "ctx00512-h0028-log1p-mp1-univariate",
+      "ctx00512-h0028-log1p-mp1-multivariate",
+      "ctx00512-h0028-log1p-mp1-multivariate_placebo",
+      "ctx00512-h0028-log1p-mp0-univariate",
+      "ctx00512-h0028-log1p-mp0-multivariate",
+      "ctx00512-h0028-log1p-mp0-multivariate_placebo",
+      "ctx00512-h0056-raw-mp1-univariate",
+      "ctx00512-h0056-raw-mp1-multivariate",
+      "ctx00512-h0056-raw-mp1-multivariate_placebo",
+      "ctx00512-h0056-raw-mp0-univariate",
+      "ctx00512-h0056-raw-mp0-multivariate",
+      "ctx00512-h0056-raw-mp0-multivariate_placebo",
+      "ctx00512-h0056-log1p-mp1-univariate",
+      "ctx00512-h0056-log1p-mp1-multivariate",
+      "ctx00512-h0056-log1p-mp1-multivariate_placebo",
+      "ctx00512-h0056-log1p-mp0-univariate",
+      "ctx00512-h0056-log1p-mp0-multivariate",
+      "ctx00512-h0056-log1p-mp0-multivariate_placebo",
+      "ctx00512-h0064-raw-mp1-univariate",
+      "ctx00512-h0064-raw-mp1-multivariate",
+      "ctx00512-h0064-raw-mp1-multivariate_placebo",
+      "ctx00512-h0064-raw-mp0-univariate",
+      "ctx00512-h0064-raw-mp0-multivariate",
+      "ctx00512-h0064-raw-mp0-multivariate_placebo",
+      "ctx00512-h0064-log1p-mp1-univariate",
+      "ctx00512-h0064-log1p-mp1-multivariate",
+      "ctx00512-h0064-log1p-mp1-multivariate_placebo",
+      "ctx00512-h0064-log1p-mp0-univariate",
+      "ctx00512-h0064-log1p-mp0-multivariate",
+      "ctx00512-h0064-log1p-mp0-multivariate_placebo"
+    ],
+    "skipped_committed": [
+      "ctx00064-h0001-log1p-mp0-multivariate",
+      "ctx00064-h0001-log1p-mp0-multivariate_placebo",
+      "ctx00064-h0001-log1p-mp0-univariate",
+      "ctx00064-h0001-log1p-mp1-multivariate",
+      "ctx00064-h0001-log1p-mp1-multivariate_placebo",
+      "ctx00064-h0001-log1p-mp1-univariate",
+      "ctx00064-h0001-raw-mp0-multivariate",
+      "ctx00064-h0001-raw-mp0-multivariate_placebo",
+      "ctx00064-h0001-raw-mp0-univariate",
+      "ctx00064-h0001-raw-mp1-multivariate",
+      "ctx00064-h0001-raw-mp1-multivariate_placebo",
+      "ctx00064-h0001-raw-mp1-univariate",
+      "ctx00064-h0007-log1p-mp0-multivariate",
+      "ctx00064-h0007-log1p-mp0-multivariate_placebo",
+      "ctx00064-h0007-log1p-mp0-univariate",
+      "ctx00064-h0007-log1p-mp1-multivariate",
+      "ctx00064-h0007-log1p-mp1-multivariate_placebo",
+      "ctx00064-h0007-log1p-mp1-univariate",
+      "ctx00064-h0007-raw-mp0-multivariate",
+      "ctx00064-h0007-raw-mp0-multivariate_placebo",
+      "ctx00064-h0007-raw-mp0-univariate",
+      "ctx00064-h0007-raw-mp1-multivariate",
+      "ctx00064-h0007-raw-mp1-multivariate_placebo",
+      "ctx00064-h0007-raw-mp1-univariate",
+      "ctx00064-h0028-log1p-mp0-multivariate",
+      "ctx00064-h0028-log1p-mp0-multivariate_placebo",
+      "ctx00064-h0028-log1p-mp0-univariate",
+      "ctx00064-h0028-log1p-mp1-multivariate",
+      "ctx00064-h0028-log1p-mp1-multivariate_placebo",
+      "ctx00064-h0028-log1p-mp1-univariate",
+      "ctx00064-h0028-raw-mp0-multivariate",
+      "ctx00064-h0028-raw-mp0-multivariate_placebo",
+      "ctx00064-h0028-raw-mp0-univariate",
+      "ctx00064-h0028-raw-mp1-multivariate",
+      "ctx00064-h0028-raw-mp1-multivariate_placebo",
+      "ctx00064-h0028-raw-mp1-univariate",
+      "ctx00064-h0056-log1p-mp0-multivariate",
+      "ctx00064-h0056-log1p-mp0-multivariate_placebo",
+      "ctx00064-h0056-log1p-mp0-univariate",
+      "ctx00064-h0056-log1p-mp1-multivariate",
+      "ctx00064-h0056-log1p-mp1-multivariate_placebo",
+      "ctx00064-h0056-log1p-mp1-univariate",
+      "ctx00064-h0056-raw-mp0-multivariate",
+      "ctx00064-h0056-raw-mp0-multivariate_placebo",
+      "ctx00064-h0056-raw-mp0-univariate",
+      "ctx00064-h0056-raw-mp1-multivariate",
+      "ctx00064-h0056-raw-mp1-multivariate_placebo",
+      "ctx00064-h0056-raw-mp1-univariate",
+      "ctx00064-h0064-log1p-mp0-multivariate",
+      "ctx00064-h0064-log1p-mp0-multivariate_placebo",
+      "ctx00064-h0064-log1p-mp0-univariate",
+      "ctx00064-h0064-log1p-mp1-multivariate",
+      "ctx00064-h0064-log1p-mp1-multivariate_placebo",
+      "ctx00064-h0064-log1p-mp1-univariate",
+      "ctx00064-h0064-raw-mp0-multivariate",
+      "ctx00064-h0064-raw-mp0-multivariate_placebo",
+      "ctx00064-h0064-raw-mp0-univariate",
+      "ctx00064-h0064-raw-mp1-multivariate",
+      "ctx00064-h0064-raw-mp1-multivariate_placebo",
+      "ctx00064-h0064-raw-mp1-univariate",
+      "ctx00128-h0001-log1p-mp0-multivariate",
+      "ctx00128-h0001-log1p-mp0-multivariate_placebo",
+      "ctx00128-h0001-log1p-mp0-univariate",
+      "ctx00128-h0001-log1p-mp1-multivariate",
+      "ctx00128-h0001-log1p-mp1-multivariate_placebo",
+      "ctx00128-h0001-log1p-mp1-univariate",
+      "ctx00128-h0001-raw-mp0-multivariate",
+      "ctx00128-h0001-raw-mp0-multivariate_placebo",
+      "ctx00128-h0001-raw-mp0-univariate",
+      "ctx00128-h0001-raw-mp1-multivariate",
+      "ctx00128-h0001-raw-mp1-multivariate_placebo",
+      "ctx00128-h0001-raw-mp1-univariate",
+      "ctx00128-h0007-log1p-mp0-multivariate",
+      "ctx00128-h0007-log1p-mp0-multivariate_placebo",
+      "ctx00128-h0007-log1p-mp0-univariate",
+      "ctx00128-h0007-log1p-mp1-multivariate",
+      "ctx00128-h0007-log1p-mp1-multivariate_placebo",
+      "ctx00128-h0007-log1p-mp1-univariate",
+      "ctx00128-h0007-raw-mp0-multivariate",
+      "ctx00128-h0007-raw-mp0-multivariate_placebo",
+      "ctx00128-h0007-raw-mp0-univariate",
+      "ctx00128-h0007-raw-mp1-multivariate",
+      "ctx00128-h0007-raw-mp1-multivariate_placebo",
+      "ctx00128-h0007-raw-mp1-univariate",
+      "ctx00128-h0028-log1p-mp0-multivariate",
+      "ctx00128-h0028-log1p-mp0-multivariate_placebo",
+      "ctx00128-h0028-log1p-mp0-univariate",
+      "ctx00128-h0028-log1p-mp1-multivariate",
+      "ctx00128-h0028-log1p-mp1-multivariate_placebo",
+      "ctx00128-h0028-log1p-mp1-univariate",
+      "ctx00128-h0028-raw-mp0-multivariate",
+      "ctx00128-h0028-raw-mp0-multivariate_placebo",
+      "ctx00128-h0028-raw-mp0-univariate",
+      "ctx00128-h0028-raw-mp1-multivariate",
+      "ctx00128-h0028-raw-mp1-multivariate_placebo",
+      "ctx00128-h0028-raw-mp1-univariate",
+      "ctx00128-h0056-log1p-mp0-multivariate",
+      "ctx00128-h0056-log1p-mp0-multivariate_placebo",
+      "ctx00128-h0056-log1p-mp0-univariate",
+      "ctx00128-h0056-log1p-mp1-multivariate",
+      "ctx00128-h0056-log1p-mp1-multivariate_placebo",
+      "ctx00128-h0056-log1p-mp1-univariate",
+      "ctx00128-h0056-raw-mp0-multivariate",
+      "ctx00128-h0056-raw-mp0-multivariate_placebo",
+      "ctx00128-h0056-raw-mp0-univariate",
+      "ctx00128-h0056-raw-mp1-multivariate",
+      "ctx00128-h0056-raw-mp1-multivariate_placebo",
+      "ctx00128-h0056-raw-mp1-univariate",
+      "ctx00128-h0064-log1p-mp0-multivariate",
+      "ctx00128-h0064-log1p-mp0-multivariate_placebo",
+      "ctx00128-h0064-log1p-mp0-univariate",
+      "ctx00128-h0064-log1p-mp1-multivariate",
+      "ctx00128-h0064-log1p-mp1-multivariate_placebo",
+      "ctx00128-h0064-log1p-mp1-univariate",
+      "ctx00128-h0064-raw-mp0-multivariate",
+      "ctx00128-h0064-raw-mp0-multivariate_placebo",
+      "ctx00128-h0064-raw-mp0-univariate",
+      "ctx00128-h0064-raw-mp1-multivariate",
+      "ctx00128-h0064-raw-mp1-multivariate_placebo",
+      "ctx00128-h0064-raw-mp1-univariate",
+      "ctx00256-h0001-log1p-mp0-multivariate",
+      "ctx00256-h0001-log1p-mp0-multivariate_placebo",
+      "ctx00256-h0001-log1p-mp0-univariate",
+      "ctx00256-h0001-log1p-mp1-multivariate",
+      "ctx00256-h0001-log1p-mp1-multivariate_placebo",
+      "ctx00256-h0001-log1p-mp1-univariate",
+      "ctx00256-h0001-raw-mp0-multivariate",
+      "ctx00256-h0001-raw-mp0-multivariate_placebo",
+      "ctx00256-h0001-raw-mp0-univariate",
+      "ctx00256-h0001-raw-mp1-multivariate",
+      "ctx00256-h0001-raw-mp1-multivariate_placebo",
+      "ctx00256-h0001-raw-mp1-univariate",
+      "ctx00256-h0007-log1p-mp0-multivariate",
+      "ctx00256-h0007-log1p-mp0-multivariate_placebo",
+      "ctx00256-h0007-log1p-mp0-univariate",
+      "ctx00256-h0007-log1p-mp1-multivariate",
+      "ctx00256-h0007-log1p-mp1-multivariate_placebo",
+      "ctx00256-h0007-log1p-mp1-univariate",
+      "ctx00256-h0007-raw-mp0-multivariate",
+      "ctx00256-h0007-raw-mp0-multivariate_placebo",
+      "ctx00256-h0007-raw-mp0-univariate",
+      "ctx00256-h0007-raw-mp1-multivariate",
+      "ctx00256-h0007-raw-mp1-multivariate_placebo",
+      "ctx00256-h0007-raw-mp1-univariate",
+      "ctx00256-h0028-log1p-mp0-multivariate",
+      "ctx00256-h0028-log1p-mp0-multivariate_placebo",
+      "ctx00256-h0028-log1p-mp0-univariate",
+      "ctx00256-h0028-log1p-mp1-multivariate",
+      "ctx00256-h0028-log1p-mp1-multivariate_placebo",
+      "ctx00256-h0028-log1p-mp1-univariate",
+      "ctx00256-h0028-raw-mp0-multivariate",
+      "ctx00256-h0028-raw-mp0-multivariate_placebo",
+      "ctx00256-h0028-raw-mp0-univariate",
+      "ctx00256-h0028-raw-mp1-multivariate",
+      "ctx00256-h0028-raw-mp1-multivariate_placebo",
+      "ctx00256-h0028-raw-mp1-univariate",
+      "ctx00256-h0056-log1p-mp0-multivariate",
+      "ctx00256-h0056-log1p-mp0-multivariate_placebo",
+      "ctx00256-h0056-log1p-mp0-univariate",
+      "ctx00256-h0056-log1p-mp1-multivariate",
+      "ctx00256-h0056-log1p-mp1-multivariate_placebo",
+      "ctx00256-h0056-log1p-mp1-univariate",
+      "ctx00256-h0056-raw-mp0-multivariate",
+      "ctx00256-h0056-raw-mp0-multivariate_placebo",
+      "ctx00256-h0056-raw-mp0-univariate",
+      "ctx00256-h0056-raw-mp1-multivariate",
+      "ctx00256-h0056-raw-mp1-multivariate_placebo",
+      "ctx00256-h0056-raw-mp1-univariate",
+      "ctx00256-h0064-log1p-mp0-multivariate",
+      "ctx00256-h0064-log1p-mp0-multivariate_placebo",
+      "ctx00256-h0064-log1p-mp0-univariate",
+      "ctx00256-h0064-log1p-mp1-multivariate",
+      "ctx00256-h0064-log1p-mp1-multivariate_placebo",
+      "ctx00256-h0064-log1p-mp1-univariate",
+      "ctx00256-h0064-raw-mp0-multivariate",
+      "ctx00256-h0064-raw-mp0-multivariate_placebo",
+      "ctx00256-h0064-raw-mp0-univariate",
+      "ctx00256-h0064-raw-mp1-multivariate",
+      "ctx00256-h0064-raw-mp1-multivariate_placebo",
+      "ctx00256-h0064-raw-mp1-univariate",
+      "ctx00512-h0001-log1p-mp1-univariate",
+      "ctx00512-h0001-raw-mp0-multivariate",
+      "ctx00512-h0001-raw-mp0-multivariate_placebo",
+      "ctx00512-h0001-raw-mp0-univariate",
+      "ctx00512-h0001-raw-mp1-multivariate",
+      "ctx00512-h0001-raw-mp1-multivariate_placebo",
+      "ctx00512-h0001-raw-mp1-univariate"
+    ],
+    "quarantined": [],
+    "summary_complete": true,
+    "n_cells_committed": 240,
+    "n_cells_expected": 240
+  },
+  "outputs": [
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_mtg_benchmark_leaderboard.parquet",
+      "bytes": 16935184,
+      "sha256": "641f52931899772c4e80ca1fdcb310a910966a28b044736788a957208220b249"
+    },
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_mtg_benchmark_leaderboard_aggregate.parquet",
+      "bytes": 268710,
+      "sha256": "82bb13d785d9f0f096a7c84718ba15d14da0ea22419d295dbdc0c1c1c3e458fb"
+    },
+    {
+      "path": "/kaggle/tmp/tfm3lab-data/results/exp_mtg_benchmark_primary.parquet",
+      "bytes": 706029,
+      "sha256": "5a9313d3a11b85419680fa16ceea3bc3014b2ad1b50ee2e5700875ba70f71d8e"
+    }
+  ]
+}

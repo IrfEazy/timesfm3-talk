@@ -1,0 +1,27 @@
+{
+  "environment": {
+    "gpu_name": "Tesla T4",
+    "cuda_version": "12.4",
+    "torch_version": "2.6.0+cu124",
+    "device_count": 2
+  },
+  "hf_token_present": true,
+  "checkpoints": {
+    "timesfm3": {
+      "repo_id": "google/timesfm-3.0-pytorch",
+      "revision_requested": "43046b85ec22d584a13f8098c2ed39c889e129c2",
+      "revision_resolved": "43046b85ec22d584a13f8098c2ed39c889e129c2"
+    },
+    "timesfm2.5": {
+      "repo_id": "google/timesfm-2.5-200m-pytorch",
+      "revision_requested": "1d952420fba87f3c6dee4f240de0f1a0fbc790e3",
+      "revision_resolved": "1d952420fba87f3c6dee4f240de0f1a0fbc790e3"
+    }
+  },
+  "disk_free_gb": 1142.6,
+  "ram_gb": {
+    "MemTotal": 31.35,
+    "MemAvailable": 29.7
+  },
+  "python": "3.12.3"
+}
