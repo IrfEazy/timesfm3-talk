@@ -247,6 +247,20 @@ All items are dated 2026-10-10 and were made before any v2 model run; no v2 mode
 - The 2.5 grid runs primary-slice cells first; any cells not run are listed as not run.
 - Decision: PM proxy (Exchange 7) under the human's delegation. Nothing else changes.
 
+## Amendment of 2026-10-12 (after Kaggle runs; before any recalibrated MTG number was computed)
+
+- Finding: the preregistered MTG calibration split (origins and targets before 2025-06-01) is empty by construction. Context 512 with data from 2024-02-08 makes the first feasible origin 2025-07-04 (53 weekly origins, 2025-07-04 to 2026-07-03, 40 cards).
+  - The preregistered MTG "conformal fixes it" test is therefore reported as NOT EVALUABLE AS PREREGISTERED.
+  - The market-regime split is unchanged. market_shock at h=28 has no evaluation rows and is reported as not evaluable.
+- Seen when the rule below was fixed: uncalibrated MTG P10-P90 coverage on all origins per horizon, the market-regime before/after conformal results, and the Experiment A verdicts. No recalibrated MTG coverage under any alternative split had been computed.
+- Exploratory rule, fixed exactly:
+  - Let o_1 < ... < o_N be the distinct origin dates of the MTG primary-cell frame (N = 53). D' = o_{floor(N/2)+1} (= o_27 = 2026-01-02 in the committed primary export).
+  - Calibration rows: origin_date < D' AND target_date < D' (per-horizon purge, strict). Evaluation rows: origin_date >= D'. Same D' for all cards and horizons; no rebalancing.
+  - Same CQR as section 4 (pooled per horizon, same score and order-statistic convention) and same coverage CI methods (primary calendar-block, sensitivity whole-card). Before/after coverage is computed on exactly the same evaluation rows.
+  - Rejected: an expanding-window variant (adds a second analyst choice and breaks the single-threshold comparison); shorter-context cells (a different forecasting configuration from the Experiment A primary cell).
+- Labelling: results are "Exploratory MTG analysis - post-hoc amended split", never the preregistered verdict. The rule was "fixed before recalibration"; no claim of blindness to outcomes is made. All outcomes are reported whatever they show.
+- Decision: consult conformal-split (advice) and PM proxy Exchange 8 under the human's delegation. Nothing else changes.
+
 ---
 
 # v1 (historical, Italian) — SUPERSEDED by Preregistration v2 above
