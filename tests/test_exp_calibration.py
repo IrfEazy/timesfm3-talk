@@ -36,7 +36,7 @@ def test_missing_input_names_producer(tmp_path, monkeypatch, capsys):
     assert not list(tmp_path.glob("exp_calibration_v2_*"))
 
 
-def test_main_writes_v2_outputs_and_manifest(tmp_path, monkeypatch):
+def test_main_writes_v2_outputs_and_manifest(tmp_path, monkeypatch, capsys):
     mod = _load()
     monkeypatch.setattr(config, "RESULTS_DIR", tmp_path)
     _mtg_primary(n_days=90).to_parquet(tmp_path / "exp_mtg_benchmark_primary.parquet")
@@ -45,7 +45,9 @@ def test_main_writes_v2_outputs_and_manifest(tmp_path, monkeypatch):
     mod.main()
     cov = pd.read_parquet(tmp_path / "exp_calibration_v2_coverage.parquet")
     conf = pd.read_parquet(tmp_path / "exp_calibration_v2_conformal.parquet")
-    assert len(cov) == 3 + 3 + 4 and len(conf) == len(cov)
+    assert len(cov) == 3 + 3 + 4 and len(conf) == len(cov) + 4
+    assert (conf["analysis"] == "exploratory_post_hoc_resplit").sum() == 4
+    assert "Exploratory post-hoc MTG split date" in capsys.readouterr().out
     assert not (tmp_path / "exp_calibration_curve.parquet").exists()
     (manifest,) = (tmp_path / "manifests").glob("exp_calibration-2026-09-01-*.json")
     meta = json.loads(manifest.read_text())["_meta"]
@@ -70,5 +72,7 @@ def test_unfitted_cqr_warns_and_is_null(tmp_path, monkeypatch, capsys):
     err = capsys.readouterr().err
     assert "CQR not fitted for regime=mtg horizon=1" in err
     conf = pd.read_parquet(tmp_path / "exp_calibration_v2_conformal.parquet")
-    r = conf[(conf["regime"] == "mtg") & (conf["horizon"] == 1)].iloc[0]
+    r = conf[
+        (conf["analysis"] == "preregistered") & (conf["regime"] == "mtg") & (conf["horizon"] == 1)
+    ].iloc[0]
     assert r["status"] != "ok" and pd.isna(r["conformal_fixes_it"])

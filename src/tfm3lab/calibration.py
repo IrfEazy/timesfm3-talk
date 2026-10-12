@@ -178,23 +178,63 @@ def split_chronological(
     return frame[cal], frame[ev]
 
 
+PREREGISTERED = "preregistered"
+EXPLORATORY = "exploratory_post_hoc_resplit"
+
+
+def exploratory_split_date(frame: pd.DataFrame) -> pd.Timestamp:
+    """Exploratory MTG split D' = o_{floor(N/2)+1}: the element at 1-based
+    rank floor(N/2)+1 of the sorted distinct MTG origin dates (post hoc,
+    amendment of 2026-10-12). Raises ValueError without MTG rows."""
+    mtg = frame[frame["family"] == "mtg"]
+    if len(mtg) == 0:
+        raise ValueError("no MTG rows: cannot choose an exploratory split date")
+    dates = np.sort(pd.to_datetime(mtg["origin_date"]).unique())
+    return pd.Timestamp(dates[len(dates) // 2])
+
+
 def conformal_table(
     frame: pd.DataFrame,
     n_boot: int = bootstrap.DEFAULT_N_BOOT,
     seed: int = bootstrap.DEFAULT_SEED,
     split_date: pd.Timestamp = MTG_SPLIT_DATE,
+    exploratory: bool = True,
 ) -> pd.DataFrame:
-    """CQR per (family, horizon); evaluation reported per (regime, horizon)."""
+    """CQR per (family, horizon); evaluation reported per (regime, horizon).
+
+    Column `analysis` is 'preregistered' for the rows computed with
+    `split_date`; `split_date` is the MTG split used and NaT for market rows
+    (their split is by arm). With `exploratory` and MTG rows present, extra
+    MTG-only rows with analysis='exploratory_post_hoc_resplit' are appended,
+    split at exploratory_split_date(frame); market rows are not duplicated."""
+    pre = _conformal_rows(frame, REGIMES, split_date, n_boot, seed, PREREGISTERED)
+    parts = [pre]
+    if exploratory and (frame["family"] == "mtg").any():
+        d2 = exploratory_split_date(frame)
+        parts.append(_conformal_rows(frame, ("mtg",), d2, n_boot, seed, EXPLORATORY))
+    return pd.concat(parts, ignore_index=True)
+
+
+def _conformal_rows(
+    frame: pd.DataFrame,
+    regimes,
+    split_date: pd.Timestamp,
+    n_boot: int,
+    seed: int,
+    analysis: str,
+) -> pd.DataFrame:
     cal, ev = split_chronological(frame, split_date)
     rows = []
-    for regime in REGIMES:
+    for regime in regimes:
         fam = FAMILY[regime]
         for h in HORIZONS[fam]:
             c = cal[(cal["family"] == fam) & (cal["horizon"] == h)]
             e = ev[(ev["regime"] == regime) & (ev["horizon"] == h)]
             row = {
+                "analysis": analysis,
                 "family": fam,
                 "regime": regime,
+                "split_date": pd.Timestamp(split_date) if fam == "mtg" else pd.NaT,
                 "horizon": h,
                 "calibration_n": len(c),
                 "eval_n": len(e),

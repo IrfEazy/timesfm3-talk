@@ -16,6 +16,11 @@ A manifest is written to results/manifests/.
 Writes to results/:
     exp_calibration_v2_coverage.parquet   (coverage + 3 CIs by regime x horizon)
     exp_calibration_v2_conformal.parquet  (CQR before/after on the evaluation split)
+The conformal table has an `analysis` column: 'preregistered' rows use the
+preregistered splits (MTG split_date 2025-06-01); extra MTG-only rows labelled
+'exploratory_post_hoc_resplit' re-split at D' = o_{floor(N/2)+1} of the sorted
+distinct MTG origin dates (amendment of 2026-10-12). Exploratory rows never
+replace or alter preregistered rows; market rows are not duplicated.
 Regime results are empirical subgroup evaluations, not conformal guarantees.
 """
 
@@ -91,6 +96,17 @@ def main() -> None:
     )
     cov = calibration.coverage_table(frame, n_boot=args.n_boot)
     conf = calibration.conformal_table(frame, n_boot=args.n_boot)
+    expl = conf[conf["analysis"] == calibration.EXPLORATORY]
+    if len(expl):
+        print(
+            f"Exploratory post-hoc MTG split date D' = {expl['split_date'].iloc[0].date()} "
+            "(amendment of 2026-10-12)"
+        )
+        for _, r in expl.iterrows():
+            print(
+                f"  exploratory h={r['horizon']}: calibration_n={r['calibration_n']} "
+                f"eval_n={r['eval_n']}"
+            )
     for _, r in conf[conf["status"] != "ok"].iterrows():
         print(
             f"WARNING: CQR not fitted for regime={r['regime']} horizon={r['horizon']} "

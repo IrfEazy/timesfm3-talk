@@ -96,6 +96,7 @@ def test_regime_uses_target_offset_for_long_horizons():
 def test_insufficient_calibration_is_undetermined_not_false():
     assert cal.conformal_fixes_it(float("nan"), float("nan")) is None
     t = cal.conformal_table(cal.mtg_frame(_mtg_primary(start="2025-07-01")), n_boot=50)
+    t = t[t["analysis"] == "preregistered"]
     r = t[(t["regime"] == "mtg") & (t["horizon"] == 1)].iloc[0]
     assert r["status"] != "ok" and r["conformal_fixes_it"] is None
 
@@ -144,8 +145,10 @@ def test_thresholds_independent_of_evaluation_outcomes():
     q = p.copy()
     q.loc[q["origin_date"] >= cal.MTG_SPLIT_DATE, "y_norm"] = 5.0
     changed = cal.conformal_table(cal.mtg_frame(q), n_boot=50)
-    a = base[base["regime"] == "mtg"].set_index("horizon")
-    b = changed[changed["regime"] == "mtg"].set_index("horizon")
+    a = base[(base["regime"] == "mtg") & (base["analysis"] == "preregistered")].set_index("horizon")
+    b = changed[(changed["regime"] == "mtg") & (changed["analysis"] == "preregistered")].set_index(
+        "horizon"
+    )
     pd.testing.assert_series_equal(a["threshold"], b["threshold"])
     assert (b["coverage_before"] == 0).all()
 
@@ -158,7 +161,7 @@ def test_before_after_metrics():
     p.loc[cal_rows & (rng.random(len(p)) < 0.4), "y_norm"] = 1.4
     p.loc[~cal_rows, "y_norm"] = 1.3
     t = cal.conformal_table(cal.mtg_frame(p), n_boot=100)
-    r = t[(t["regime"] == "mtg") & (t["horizon"] == 1)].iloc[0]
+    r = t[(t["analysis"] == "preregistered") & (t["regime"] == "mtg") & (t["horizon"] == 1)].iloc[0]
     assert r["status"] == "ok" and r["threshold"] > 0
     assert r["coverage_before"] == 0.0 and r["coverage_after"] == 1.0
     assert np.isclose(r["median_rel_width_increase"], 2 * r["threshold"] / 0.2)
@@ -169,3 +172,74 @@ def test_before_after_metrics():
 def test_interval_score():
     s = cal.interval_score([1.0, 3.0], [0.0, 0.0], [2.0, 2.0])
     assert np.allclose(s, [2.0, 2.0 + 10.0])
+
+
+def _mtg_rows(origins, target_days=1):
+    o = pd.to_datetime(list(origins))
+    return pd.DataFrame(
+        {
+            "regime": "mtg",
+            "family": "mtg",
+            "cluster": "a",
+            "horizon": 1,
+            "origin_date": o,
+            "target_date": o + pd.Timedelta(days=target_days),
+            "y": 1.0,
+            "lo": 0.9,
+            "hi": 1.1,
+            "arm": "",
+            "target_offset": np.nan,
+        }
+    )
+
+
+def test_exploratory_split_date_odd_and_even():
+    odd = _mtg_rows(pd.date_range("2025-01-01", periods=5))  # N=5 -> rank 3
+    assert cal.exploratory_split_date(odd) == pd.Timestamp("2025-01-03")
+    even = _mtg_rows(pd.date_range("2025-01-01", periods=6))  # N=6 -> rank 4
+    assert cal.exploratory_split_date(even) == pd.Timestamp("2025-01-04")
+    dup = pd.concat([even, even], ignore_index=True)  # distinct dates only
+    assert cal.exploratory_split_date(dup) == pd.Timestamp("2025-01-04")
+
+
+def test_exploratory_split_date_requires_mtg_rows():
+    m = cal.market_frame(_shock_pred())
+    try:
+        cal.exploratory_split_date(m)
+    except ValueError:
+        return
+    raise AssertionError("expected ValueError")
+
+
+def test_exploratory_purge_and_boundary():
+    d = pd.Timestamp("2025-01-10")
+    f = pd.concat(
+        [
+            _mtg_rows(["2025-01-09"], target_days=1),  # target == D' -> purged
+            _mtg_rows(["2025-01-08"], target_days=1),  # target < D' -> calibration
+            _mtg_rows(["2025-01-10"], target_days=1),  # origin == D' -> evaluation
+        ],
+        ignore_index=True,
+    )
+    c, e = cal.split_chronological(f, d)
+    assert list(c["origin_date"]) == [pd.Timestamp("2025-01-08")]
+    assert list(e["origin_date"]) == [d]
+
+
+def test_exploratory_rows_only_for_mtg_and_prereg_unchanged():
+    frame = pd.concat(
+        [cal.mtg_frame(_mtg_primary(n_days=90)), cal.market_frame(_shock_pred())],
+        ignore_index=True,
+    )
+    t = cal.conformal_table(frame, n_boot=50)
+    old = cal.conformal_table(frame, n_boot=50, exploratory=False)
+    pre = t[t["analysis"] == "preregistered"].reset_index(drop=True)
+    pd.testing.assert_frame_equal(pre, old)
+    ex = t[t["analysis"] == "exploratory_post_hoc_resplit"]
+    assert set(ex["regime"]) == {"mtg"} and list(ex["horizon"]) == list(cal.MTG_HORIZONS)
+    assert (ex["split_date"] == cal.exploratory_split_date(frame)).all()
+    assert (pre[pre["family"] == "mtg"]["split_date"] == cal.MTG_SPLIT_DATE).all()
+    assert pre[pre["family"] == "market"]["split_date"].isna().all()
+    assert len(t) == len(pre) + len(cal.MTG_HORIZONS)
+    # same preregistered values as the pre-amendment code path: no new columns besides two
+    assert set(pre.columns) - {"analysis", "split_date"} <= set(old.columns)
