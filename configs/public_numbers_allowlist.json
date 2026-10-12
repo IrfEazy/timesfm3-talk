@@ -1,0 +1,242 @@
+{
+ "entries": [
+  {
+   "doc": "docs/report.md",
+   "literal": "3",
+   "context": "TimesFM-3",
+   "reason": "model name, not a quantity",
+   "expected_count": 14
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "2.5",
+   "context": "TimesFM-2.5",
+   "reason": "model name, not a quantity",
+   "expected_count": 9
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "10",
+   "context": "P10-P90",
+   "reason": "name of the P10-P90 quantile interval (definition, not a quantity)",
+   "expected_count": 3
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "90",
+   "context": "P10-P90",
+   "reason": "name of the P10-P90 quantile interval (definition, not a quantity)",
+   "expected_count": 3
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "2",
+   "context": "Preregistration v2",
+   "reason": "version label of the preregistration",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "2",
+   "context": "benchmark_pool_v2.csv",
+   "reason": "version tag inside a committed file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "2",
+   "context": "figures/v2_exp_a_skill_by_horizon.png",
+   "reason": "version tag inside a committed figure file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "2",
+   "context": "figures/v2_exp_c_coverage.png",
+   "reason": "version tag inside a committed figure file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "2",
+   "context": "figures/v2_exp_c_conformal_mtg_exploratory.png",
+   "reason": "version tag inside a committed figure file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "2",
+   "context": "figures/v2_exp_b_error_around_onset.png",
+   "reason": "version tag inside a committed figure file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "2",
+   "context": "figures/v2_covariates_leakage_demo.png",
+   "reason": "version tag inside a committed figure file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "2",
+   "context": "figures/v2_latency.png",
+   "reason": "version tag inside a committed figure file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "10",
+   "context": "10 Oct 2026",
+   "reason": "amendment date label quoted from docs/analysis-plan.md (identifier of the amendment, not a quantity)",
+   "expected_count": 3
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "2026",
+   "context": "10 Oct 2026",
+   "reason": "amendment date label quoted from docs/analysis-plan.md (identifier of the amendment, not a quantity)",
+   "expected_count": 3
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "11",
+   "context": "11 Oct 2026",
+   "reason": "amendment date label quoted from docs/analysis-plan.md (identifier of the amendment, not a quantity)",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "2026",
+   "context": "11 Oct 2026",
+   "reason": "amendment date label quoted from docs/analysis-plan.md (identifier of the amendment, not a quantity)",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "12",
+   "context": "12 Oct 2026",
+   "reason": "amendment date label quoted from docs/analysis-plan.md (identifier of the amendment, not a quantity)",
+   "expected_count": 2
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "2026",
+   "context": "12 Oct 2026",
+   "reason": "amendment date label quoted from docs/analysis-plan.md (identifier of the amendment, not a quantity)",
+   "expected_count": 2
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "1",
+   "context": "## 1. Question and scope",
+   "reason": "section number in a heading (structural label)",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "2",
+   "context": "## 2. Design",
+   "reason": "section number in a heading (structural label)",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "3",
+   "context": "## 3. Experiment A",
+   "reason": "section number in a heading (structural label)",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "4",
+   "context": "## 4. Experiment C",
+   "reason": "section number in a heading (structural label)",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "5",
+   "context": "## 5. Experiment B",
+   "reason": "section number in a heading (structural label)",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "6",
+   "context": "## 6. Covariates",
+   "reason": "section number in a heading (structural label)",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "7",
+   "context": "## 7. Latency",
+   "reason": "section number in a heading (structural label)",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "8",
+   "context": "## 8. Statistical self-check",
+   "reason": "section number in a heading (structural label)",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "9",
+   "context": "## 9. Limitations",
+   "reason": "section number in a heading (structural label)",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "10",
+   "context": "## 10. Reproducibility",
+   "reason": "section number in a heading (structural label)",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "1",
+   "context": "log1p",
+   "reason": "name of the log1p transform",
+   "expected_count": 2
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "95",
+   "context": "95th percentile",
+   "reason": "name of a percentile statistic (definition, not a quantity)",
+   "expected_count": 2
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "1000",
+   "context": "per 1000 forecasts",
+   "reason": "unit definition of the latency tables (seconds per 1000 forecasts)",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "256",
+   "context": "sha256",
+   "reason": "name of the hash function",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "10",
+   "context": "scripts/10_evidence_ledger.py",
+   "reason": "script file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "11",
+   "context": "scripts/11_render_docs.py",
+   "reason": "script file name",
+   "expected_count": 2
+  }
+ ]
+}

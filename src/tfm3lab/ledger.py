@@ -23,6 +23,12 @@ Invariants enforced here (all errors are :class:`LedgerError` or ``ValueError``)
   ``_meta.written_at_utc`` when every listing manifest has one, else by filename
   order (ties on timestamp also fall back to filename order).
 
+Sources are ``.parquet`` tables, or single-row ``.json`` files (nested keys flattened
+to ``a.b.c`` columns) and ``.py`` files (module-level literal constants, read with
+``ast``, never imported) for declared metadata such as dates and seeds. A source no
+run manifest lists (configs, manifests themselves, source code) needs an entry in the
+exemption table; its sha256 is still pinned in the ledger.
+
 Manifest layouts understood: ``outputs`` as a list of ``{path, sha256}``;
 ``outputs`` as a dict ``name -> {path, sha256}``; and a single top-level
 ``output`` + ``output_sha256`` pair (inference self-check). Files are matched by
@@ -43,6 +49,7 @@ zero occurrences (unused) is an error.
 
 from __future__ import annotations
 
+import ast
 import difflib
 import hashlib
 import json
@@ -50,7 +57,7 @@ import math
 import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 from typing import Any
@@ -144,12 +151,12 @@ class FieldSpec:
     """
 
     column: str
-    kind: str = "float"  # float | int | text | bool
+    kind: str = "float"  # float | int | text | bool | date | list
     decimals: int = 3
     nan_if: tuple[Clause, ...] = ()
 
     def __post_init__(self) -> None:
-        if self.kind not in ("float", "int", "text", "bool"):
+        if self.kind not in ("float", "int", "text", "bool", "date", "list"):
             raise LedgerError(f"unknown field kind {self.kind!r}")
         object.__setattr__(self, "nan_if", _norm_nan_if(self.nan_if))
 
@@ -171,6 +178,21 @@ class FieldSpec:
             if not isinstance(cell, bool):
                 raise LedgerError(f"column {self.column!r}: {cell!r} is not a bool")
             return bool(cell), "true" if bool(cell) else "false"
+        if self.kind == "date":
+            try:
+                iso = pd.Timestamp(cell).date().isoformat()
+            except (ValueError, TypeError) as exc:
+                raise LedgerError(f"column {self.column!r}: {cell!r} is not a date") from exc
+            return iso, iso
+        if self.kind == "list":
+            if not isinstance(cell, (list, tuple)) or not cell:
+                raise LedgerError(f"column {self.column!r}: {cell!r} is not a non-empty list")
+            parts = []
+            for item in cell:
+                if isinstance(item, bool) or not isinstance(item, (str, int)):
+                    raise LedgerError(f"column {self.column!r}: list item {item!r} not str/int")
+                parts.append(str(item))
+            return list(cell), ", ".join(parts)
         if not isinstance(cell, str):
             raise LedgerError(f"column {self.column!r}: {cell!r} is not text")
         return cell, cell
@@ -192,9 +214,21 @@ def B(column: str, nan_if: Any = None) -> FieldSpec:
     return FieldSpec(column, "bool", 0, nan_if)
 
 
+def D(column: str, nan_if: Any = None) -> FieldSpec:
+    """ISO calendar date (from a date, timestamp or ISO string)."""
+    return FieldSpec(column, "date", 0, nan_if)
+
+
+def LST(column: str, nan_if: Any = None) -> FieldSpec:
+    """Non-empty list of ints / strings rendered ``a, b, c``."""
+    return FieldSpec(column, "list", 0, nan_if)
+
+
 def _is_missing(cell: Any) -> bool:
     if cell is None or cell is pd.NA or cell is pd.NaT:
         return True
+    if isinstance(cell, (list, tuple)):
+        return False
     return isinstance(cell, float) and math.isnan(cell)
 
 
@@ -348,6 +382,94 @@ def resolve_manifest(
     raise LedgerError(f"{source}: no manifest records this file and it is not exempt")
 
 
+# --------------------------------------------------------------------------- table loading
+
+
+def _flatten_json(obj: Any, prefix: str = "") -> dict[str, Any]:
+    """Nested JSON -> flat ``a.b.c`` columns. Lists of scalars keep the list under
+    ``a.b`` and add one ``a.b.<i>`` column per element; lists holding objects are skipped."""
+    out: dict[str, Any] = {}
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            out.update(_flatten_json(v, f"{prefix}.{k}" if prefix else str(k)))
+    elif isinstance(obj, list):
+        if all(not isinstance(v, (dict, list)) for v in obj):
+            out[prefix] = list(obj)
+            for i, v in enumerate(obj):
+                out[f"{prefix}.{i}"] = v
+    else:
+        out[prefix] = obj
+    return out
+
+
+class _NotConstant(Exception):
+    pass
+
+
+def _const_value(node: ast.AST) -> Any:
+    """Evaluate a literal / ``date(y, m, d)`` expression; anything else is skipped."""
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        v = _const_value(node.operand)
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            return -v
+    if isinstance(node, (ast.Tuple, ast.List)):
+        return [_const_value(e) for e in node.elts]
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "date"
+        and not node.keywords
+    ):
+        args = [_const_value(a) for a in node.args]
+        if len(args) == 3 and all(isinstance(a, int) for a in args):
+            return date(*args)
+    raise _NotConstant
+
+
+def _python_constants(text: str) -> dict[str, Any]:
+    """Module-level ``NAME = <constant>`` assignments (no import, no execution)."""
+    out: dict[str, Any] = {}
+    for node in ast.parse(text).body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target, value = node.targets[0], node.value
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            target, value = node.target, node.value
+        else:
+            continue
+        if not isinstance(target, ast.Name):
+            continue
+        try:
+            out[target.id] = _const_value(value)
+        except _NotConstant:
+            continue
+    return out
+
+
+def load_table(path: Path) -> pd.DataFrame:
+    """Source file -> table: ``.parquet`` as is; ``.json`` and ``.py`` as ONE row
+    (flattened JSON columns / module-level literal constants)."""
+    path = Path(path)
+    if path.suffix == ".parquet":
+        return pd.read_parquet(path)
+    if path.suffix == ".json":
+        try:
+            data = json.loads(path.read_text())
+        except json.JSONDecodeError as exc:
+            raise LedgerError(f"{path.name}: invalid JSON ({exc})") from exc
+        if not isinstance(data, dict):
+            raise LedgerError(f"{path.name}: a JSON source must be an object")
+        flat = _flatten_json(data)
+    elif path.suffix == ".py":
+        flat = _python_constants(path.read_text())
+    else:
+        raise LedgerError(f"{path.name}: unsupported source type {path.suffix!r}")
+    if not flat:
+        raise LedgerError(f"{path.name}: no usable values")
+    return pd.DataFrame({k: pd.Series([v], dtype=object) for k, v in flat.items()})
+
+
 # --------------------------------------------------------------------------- build
 
 
@@ -472,7 +594,7 @@ def build_ledger(
                 "manifest": manifest,
                 "exemption": exemption,
             }
-            tables[spec.source] = pd.read_parquet(path)
+            tables[spec.source] = load_table(path)
         expanded = _expand_claims(spec, tables[spec.source])
         if spec.expected_claims is not None and len(expanded) != spec.expected_claims:
             raise LedgerError(
@@ -537,7 +659,9 @@ def render_markdown(ledger: Mapping[str, Any]) -> str:
                 value = "; ".join(
                     f"{k}={v['text']}" for k, v in f.items() if k not in ("n", "verdict")
                 )
-            pairs = [k for k, v in f.items() if isinstance(v["raw"], list)]
+            pairs = [
+                k for k, v in f.items() if isinstance(v["raw"], list) and v["text"].startswith("[")
+            ]
             ci_name = "ci" if "ci" in pairs else (pairs[0] if pairs else None)
             ci = f[ci_name]["text"] if ci_name else ""
             n = f["n"]["text"] if "n" in f else ""

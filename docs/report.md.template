@@ -1,0 +1,210 @@
+# TimesFM-3 on post-cutoff trading-card prices: a preregistered evaluation
+
+This report is rendered from the evidence ledger (`results/evidence_ledger.json`): every number below is read from a committed results file, and `scripts/11_render_docs.py --check` rejects any number that is not. Verdicts are quoted exactly as the preregistered rules produced them.
+
+## 1. Question and scope
+
+**Question.** Does TimesFM-3, used zero-shot, forecast the daily marketplace price of Magic: The Gathering cards better than a naive last-value forecast on post-cutoff data? This is a statement about price series, not investment advice.
+
+**Cutoff.** The pretraining cutoff of {{m.code.pretrain_cutoff}} is a conservative reading of the model card, not a certified date. Claims here say "post-cutoff data" and never "unseen domain".
+
+**Data.** TCGCSV daily archives from {{m.fetch.window_start}} to the as-of date {{m.fetch.as_of}}. The checkpoint is `{{m.code.checkpoint_tfm3}}`.
+
+**Experiments.** A (primary): a rule-drawn pool of cards, TimesFM-3 against naive. B: market-shock event study, an exploratory red-team appendix. C: calibration of the P10-P90 interval and conformal recalibration. Covariates and latency are descriptive or small-cluster. Skill is one minus the ratio of the model's mean absolute error to the baseline's, so a positive skill means the model beats the baseline.
+
+## 2. Design
+
+Preregistration v2 (`docs/analysis-plan.md`) fixed the design before any model output of the evaluation existed. Intervals are two-sided at level {{m.covariates.ci_level}}, percentile bootstrap with B = {{m.inference.n_boot}} resamples and seed {{m.inference.seed}}. The primary interval resamples whole cards; the sensitivity interval is a synchronized calendar-block bootstrap (block length in days equal to the larger of the horizon and one week) and is conditional on this panel.
+
+- **Pool.** {{m.inference.n_cards}} cards drawn by rule and frozen in a committed manifest before any model run ({{m.inference.n_missing}} missing from the export). The {{a.verdict.showcase_only.h28.median.n}} showcase cards were not forced in; none was drawn, so they are run separately and reported as descriptive only.
+- **Primary cell.** TimesFM-3, univariate, raw prices, `make_positive`, context {{m.grid.context_4}}, origin stride {{m.grid.origin_stride}}. Primary horizons {{m.grid.primary_horizons}}; full grid {{m.grid.horizons}}; contexts {{m.grid.context_lengths}}.
+- **Verdict rule (stricter, adopted before any result was inspected).** "beats naive" needs all four intervals (cluster and calendar-block, for both median skill and n-weighted mean skill) entirely above zero; "loses to naive" needs all four entirely below zero; anything else is "inconclusive". The original primary-interval-only rule is reported as a labelled sensitivity.
+
+Dated amendments to the preregistration, one line each:
+
+- 10 Oct 2026: Experiment B's primary forecaster mode is univariate; multivariate is a sensitivity (before any data of the evaluation were seen).
+- 10 Oct 2026: the stricter four-interval verdict rule above replaces the original one (human decision, before any result was seen).
+- 10 Oct 2026 (items A-F, before any model run): pool eligibility clarified (A); self-check disclosure, including a DGP tuned after a preview (B); committed errors scaled per series (C); Experiment C regime offsets apply to the target day (D); forward-fill sensitivity mechanics (E); the frozen event rule produced {{m.events.n_pre}} pre-cutoff and {{m.events.n_post}} post-cutoff events, too few to promote Experiment B (F).
+- 11 Oct 2026: the TimesFM-2.5 grid computes only the naive baseline (before any TimesFM-2.5 output existed).
+- 12 Oct 2026 (after the Kaggle runs): the preregistered MTG calibration split is empty by construction, so an exploratory post-hoc re-split is added and labelled as such (see Experiment C).
+
+## 3. Experiment A: TimesFM-3 against naive (primary claim)
+
+Each cell lists the point estimate, then the cluster interval, then the calendar-block interval.
+
+| subset | h | verdict | median skill (cluster CI) (calendar CI) | n-weighted skill (cluster CI) (calendar CI) | cards |
+|---|---|---|---|---|---|
+| pool | {{m.grid.h_primary_1}} | **{{a.verdict.pool.h28.median.verdict}}** | {{a.verdict.pool.h28.median.value}} {{a.verdict.pool.h28.median.ci}} {{a.verdict.pool.h28.median.cal_ci}} | {{a.verdict.pool.h28.weighted_mean.value}} {{a.verdict.pool.h28.weighted_mean.ci}} {{a.verdict.pool.h28.weighted_mean.cal_ci}} | {{a.verdict.pool.h28.median.n}} |
+| pool | {{m.grid.h_primary_2}} | **{{a.verdict.pool.h56.median.verdict}}** | {{a.verdict.pool.h56.median.value}} {{a.verdict.pool.h56.median.ci}} {{a.verdict.pool.h56.median.cal_ci}} | {{a.verdict.pool.h56.weighted_mean.value}} {{a.verdict.pool.h56.weighted_mean.ci}} {{a.verdict.pool.h56.weighted_mean.cal_ci}} | {{a.verdict.pool.h56.median.n}} |
+| pool without showcase cards | {{m.grid.h_primary_1}} | **{{a.verdict.excl_showcase.h28.median.verdict}}** | {{a.verdict.excl_showcase.h28.median.value}} {{a.verdict.excl_showcase.h28.median.ci}} {{a.verdict.excl_showcase.h28.median.cal_ci}} | {{a.verdict.excl_showcase.h28.weighted_mean.value}} {{a.verdict.excl_showcase.h28.weighted_mean.ci}} {{a.verdict.excl_showcase.h28.weighted_mean.cal_ci}} | {{a.verdict.excl_showcase.h28.median.n}} |
+| pool without showcase cards | {{m.grid.h_primary_2}} | **{{a.verdict.excl_showcase.h56.median.verdict}}** | {{a.verdict.excl_showcase.h56.median.value}} {{a.verdict.excl_showcase.h56.median.ci}} {{a.verdict.excl_showcase.h56.median.cal_ci}} | {{a.verdict.excl_showcase.h56.weighted_mean.value}} {{a.verdict.excl_showcase.h56.weighted_mean.ci}} {{a.verdict.excl_showcase.h56.weighted_mean.cal_ci}} | {{a.verdict.excl_showcase.h56.median.n}} |
+| showcase only (descriptive) | {{m.grid.h_primary_1}} | **{{a.verdict.showcase_only.h28.median.verdict}}** | {{a.verdict.showcase_only.h28.median.value}} {{a.verdict.showcase_only.h28.median.ci}} {{a.verdict.showcase_only.h28.median.cal_ci}} | {{a.verdict.showcase_only.h28.weighted_mean.value}} {{a.verdict.showcase_only.h28.weighted_mean.ci}} {{a.verdict.showcase_only.h28.weighted_mean.cal_ci}} | {{a.verdict.showcase_only.h28.median.n}} |
+| showcase only (descriptive) | {{m.grid.h_primary_2}} | **{{a.verdict.showcase_only.h56.median.verdict}}** | {{a.verdict.showcase_only.h56.median.value}} {{a.verdict.showcase_only.h56.median.ci}} {{a.verdict.showcase_only.h56.median.cal_ci}} | {{a.verdict.showcase_only.h56.weighted_mean.value}} {{a.verdict.showcase_only.h56.weighted_mean.ci}} {{a.verdict.showcase_only.h56.weighted_mean.cal_ci}} | {{a.verdict.showcase_only.h56.median.n}} |
+
+**Verdicts on the pool.** At h = {{m.grid.h_primary_1}}: **{{a.verdict.pool.h28.median.verdict}}**. At h = {{m.grid.h_primary_2}}: **{{a.verdict.pool.h56.median.verdict}}**. These strings are the rule's output. "inconclusive" means at least one of the four intervals does not lie entirely on one side of zero, and no claim of beating or losing is made. "loses to naive" is reported as it stands. The sensitivity with the original primary-interval-only rule gives {{a.verdict.pool.h28.median.verdict_original_rule}} at h = {{m.grid.h_primary_1}} and {{a.verdict.pool.h56.median.verdict_original_rule}} at h = {{m.grid.h_primary_2}}. The showcase-only subset has {{a.verdict.showcase_only.h28.median.n}} cards and is descriptive: its verdict column reads "{{a.verdict.showcase_only.h28.median.verdict}}".
+
+**Secondary results (descriptive, no verdict).** Point estimates of skill against the stated reference for variants of the primary cell; none is a decision input and none carries a multiplicity correction.
+
+| variant | reference | h = {{m.grid.h_primary_1}} median | h = {{m.grid.h_primary_1}} n-weighted | h = {{m.grid.h_primary_2}} median | h = {{m.grid.h_primary_2}} n-weighted | cards |
+|---|---|---|---|---|---|---|
+| primary cell | naive | {{a.lb.timesfm3_univariate.identity.postrue.c512.naive.h28.value}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.naive.h28.weighted}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.naive.h56.value}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.naive.h56.weighted}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.naive.h28.n}} |
+| primary cell | seasonal naive | {{a.lb.timesfm3_univariate.identity.postrue.c512.seasonal_naive.h28.value}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.seasonal_naive.h28.weighted}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.seasonal_naive.h56.value}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.seasonal_naive.h56.weighted}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.seasonal_naive.h28.n}} |
+| primary cell | drift | {{a.lb.timesfm3_univariate.identity.postrue.c512.drift.h28.value}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.drift.h28.weighted}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.drift.h56.value}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.drift.h56.weighted}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.drift.h28.n}} |
+| primary cell | ETS | {{a.lb.timesfm3_univariate.identity.postrue.c512.ets.h28.value}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.ets.h28.weighted}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.ets.h56.value}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.ets.h56.weighted}} | {{a.lb.timesfm3_univariate.identity.postrue.c512.ets.h28.n}} |
+| context {{m.grid.context_1}} | naive | {{a.lb.timesfm3_univariate.identity.postrue.c64.naive.h28.value}} | {{a.lb.timesfm3_univariate.identity.postrue.c64.naive.h28.weighted}} | {{a.lb.timesfm3_univariate.identity.postrue.c64.naive.h56.value}} | {{a.lb.timesfm3_univariate.identity.postrue.c64.naive.h56.weighted}} | {{a.lb.timesfm3_univariate.identity.postrue.c64.naive.h28.n}} |
+| context {{m.grid.context_2}} | naive | {{a.lb.timesfm3_univariate.identity.postrue.c128.naive.h28.value}} | {{a.lb.timesfm3_univariate.identity.postrue.c128.naive.h28.weighted}} | {{a.lb.timesfm3_univariate.identity.postrue.c128.naive.h56.value}} | {{a.lb.timesfm3_univariate.identity.postrue.c128.naive.h56.weighted}} | {{a.lb.timesfm3_univariate.identity.postrue.c128.naive.h28.n}} |
+| context {{m.grid.context_3}} | naive | {{a.lb.timesfm3_univariate.identity.postrue.c256.naive.h28.value}} | {{a.lb.timesfm3_univariate.identity.postrue.c256.naive.h28.weighted}} | {{a.lb.timesfm3_univariate.identity.postrue.c256.naive.h56.value}} | {{a.lb.timesfm3_univariate.identity.postrue.c256.naive.h56.weighted}} | {{a.lb.timesfm3_univariate.identity.postrue.c256.naive.h28.n}} |
+| log1p transform | naive | {{a.lb.timesfm3_univariate.log1p.postrue.c512.naive.h28.value}} | {{a.lb.timesfm3_univariate.log1p.postrue.c512.naive.h28.weighted}} | {{a.lb.timesfm3_univariate.log1p.postrue.c512.naive.h56.value}} | {{a.lb.timesfm3_univariate.log1p.postrue.c512.naive.h56.weighted}} | {{a.lb.timesfm3_univariate.log1p.postrue.c512.naive.h28.n}} |
+| `make_positive` off | naive | {{a.lb.timesfm3_univariate.identity.posfalse.c512.naive.h28.value}} | {{a.lb.timesfm3_univariate.identity.posfalse.c512.naive.h28.weighted}} | {{a.lb.timesfm3_univariate.identity.posfalse.c512.naive.h56.value}} | {{a.lb.timesfm3_univariate.identity.posfalse.c512.naive.h56.weighted}} | {{a.lb.timesfm3_univariate.identity.posfalse.c512.naive.h28.n}} |
+| multivariate | naive | {{a.lb.timesfm3_multivariate.identity.postrue.c512.naive.h28.value}} | {{a.lb.timesfm3_multivariate.identity.postrue.c512.naive.h28.weighted}} | {{a.lb.timesfm3_multivariate.identity.postrue.c512.naive.h56.value}} | {{a.lb.timesfm3_multivariate.identity.postrue.c512.naive.h56.weighted}} | {{a.lb.timesfm3_multivariate.identity.postrue.c512.naive.h28.n}} |
+| multivariate, placebo panel | naive | {{a.lb.timesfm3_multivariate_placebo.identity.postrue.c512.naive.h28.value}} | {{a.lb.timesfm3_multivariate_placebo.identity.postrue.c512.naive.h28.weighted}} | {{a.lb.timesfm3_multivariate_placebo.identity.postrue.c512.naive.h56.value}} | {{a.lb.timesfm3_multivariate_placebo.identity.postrue.c512.naive.h56.weighted}} | {{a.lb.timesfm3_multivariate_placebo.identity.postrue.c512.naive.h28.n}} |
+| TimesFM-2.5 univariate (model comparison only) | naive | {{a.lb25.identity.postrue.c512.h28.value}} | {{a.lb25.identity.postrue.c512.h28.weighted}} | {{a.lb25.identity.postrue.c512.h56.value}} | {{a.lb25.identity.postrue.c512.h56.weighted}} | {{a.lb25.identity.postrue.c512.h28.n}} |
+
+Seasonal naive coincides with naive at every horizon that is a multiple of the season length ({{m.grid.season_length}}), so those two rows are identical by construction. The multivariate, univariate and placebo rows are separate skills against naive, not paired differences, and carry no interval here. The context rows use the context lengths of the grid, and the placebo row is computed on the {{a.lb.timesfm3_multivariate_placebo.identity.postrue.c512.naive.h28.n}}-card placebo panel (seed {{m.grid.placebo_seed}}), not on the full pool, so it is not directly comparable with the other rows. The log1p variant against naive has a cluster interval of {{a.secondary.log1p_vs_naive.h28.median.ci}} (median) at h = {{m.grid.h_primary_1}} and {{a.secondary.log1p_vs_naive.h56.median.ci}} at h = {{m.grid.h_primary_2}}. TimesFM-2.5 is compared with TimesFM-3 as a model comparison only: no TimesFM-2.5 cutoff is sourced, so it is never a cutoff control.
+
+**Per-card Diebold-Mariano tests (secondary).** For the primary cell against naive, each comparison family has {{a.sig.timesfm3_univariate.identity.postrue.c512.naive.h28.family_size}} card-by-horizon tests. Rejections of equal accuracy (two-sided, no direction implied): at h = {{m.grid.h_primary_1}}, {{a.sig.timesfm3_univariate.identity.postrue.c512.naive.h28.bh_rejections}} by Benjamini-Hochberg (primary) and {{a.sig.timesfm3_univariate.identity.postrue.c512.naive.h28.by_rejections}} by Benjamini-Yekutieli (sensitivity); at h = {{m.grid.h_primary_2}}, {{a.sig.timesfm3_univariate.identity.postrue.c512.naive.h56.bh_rejections}} and {{a.sig.timesfm3_univariate.identity.postrue.c512.naive.h56.by_rejections}}. These counts never override the aggregate intervals.
+
+**Forward-fill sensitivity is uninformative.** The exports that forward-fill at most {{a.secondary.ffill0_vs_ffill3.h28.median.ffill_days}} and at most {{a.secondary.ffill1_vs_ffill3.h28.median.ffill_days}} days give a skill difference from the primary export of {{a.secondary.ffill0_vs_ffill3.h28.median.value}} (interval {{a.secondary.ffill0_vs_ffill3.h28.median.ci}}) and {{a.secondary.ffill1_vs_ffill3.h28.median.value}} (interval {{a.secondary.ffill1_vs_ffill3.h28.median.ci}}). That is not evidence of robustness: the only non-observed day is {{m.fetch.missing_date}}, the as-of day whose archive was unavailable ({{m.fetch.missing_count}} day), and it lies outside every context window, so the sensitivity cannot change any forecast.
+
+![Experiment A skill by horizon](../results/figures/v2_exp_a_skill_by_horizon.png)
+
+## 4. Experiment C: calibration of the P10-P90 interval
+
+The nominal coverage of a P10-P90 interval is {{m.calibration.nominal}}. A regime **under-covers** when the upper bound of its calendar-block interval lies below nominal. Regimes: `mtg` (the Experiment A primary cell), `market_shock` (target day near a shock onset) and `event_window_nonshock` (non-shock days inside event windows, not a general calm sample). All results are empirical subgroup evaluations, not conformal guarantees.
+
+| regime | h | coverage | calendar-block CI | cluster CI | rows | clusters | under-covers |
+|---|---|---|---|---|---|---|---|
+| mtg | {{m.grid.h_grid_1}} | {{c.coverage.mtg.h1.value}} | {{c.coverage.mtg.h1.cb}} | {{c.coverage.mtg.h1.cluster}} | {{c.coverage.mtg.h1.n}} | {{c.coverage.mtg.h1.n_clusters}} | {{c.coverage.mtg.h1.under_covers}} |
+| mtg | {{m.grid.h_grid_2}} | {{c.coverage.mtg.h7.value}} | {{c.coverage.mtg.h7.cb}} | {{c.coverage.mtg.h7.cluster}} | {{c.coverage.mtg.h7.n}} | {{c.coverage.mtg.h7.n_clusters}} | {{c.coverage.mtg.h7.under_covers}} |
+| mtg | {{m.grid.h_grid_3}} | {{c.coverage.mtg.h28.value}} | {{c.coverage.mtg.h28.cb}} | {{c.coverage.mtg.h28.cluster}} | {{c.coverage.mtg.h28.n}} | {{c.coverage.mtg.h28.n_clusters}} | {{c.coverage.mtg.h28.under_covers}} |
+| mtg | {{m.grid.h_grid_4}} | {{c.coverage.mtg.h56.value}} | {{c.coverage.mtg.h56.cb}} | {{c.coverage.mtg.h56.cluster}} | {{c.coverage.mtg.h56.n}} | {{c.coverage.mtg.h56.n_clusters}} | {{c.coverage.mtg.h56.under_covers}} |
+| market_shock | {{m.grid.h_grid_1}} | {{c.coverage.market_shock.h1.value}} | {{c.coverage.market_shock.h1.cb}} | {{c.coverage.market_shock.h1.cluster}} | {{c.coverage.market_shock.h1.n}} | {{c.coverage.market_shock.h1.n_clusters}} | {{c.coverage.market_shock.h1.under_covers}} |
+| market_shock | {{m.grid.h_grid_2}} | {{c.coverage.market_shock.h7.value}} | {{c.coverage.market_shock.h7.cb}} | {{c.coverage.market_shock.h7.cluster}} | {{c.coverage.market_shock.h7.n}} | {{c.coverage.market_shock.h7.n_clusters}} | {{c.coverage.market_shock.h7.under_covers}} |
+| market_shock | {{m.grid.h_grid_3}} | {{c.coverage.market_shock.h28.value}} | {{c.coverage.market_shock.h28.cb}} | {{c.coverage.market_shock.h28.cluster}} | {{c.coverage.market_shock.h28.n}} | {{c.coverage.market_shock.h28.n_clusters}} | {{c.coverage.market_shock.h28.under_covers}} |
+| event_window_nonshock | {{m.grid.h_grid_1}} | {{c.coverage.event_window_nonshock.h1.value}} | {{c.coverage.event_window_nonshock.h1.cb}} | {{c.coverage.event_window_nonshock.h1.cluster}} | {{c.coverage.event_window_nonshock.h1.n}} | {{c.coverage.event_window_nonshock.h1.n_clusters}} | {{c.coverage.event_window_nonshock.h1.under_covers}} |
+| event_window_nonshock | {{m.grid.h_grid_2}} | {{c.coverage.event_window_nonshock.h7.value}} | {{c.coverage.event_window_nonshock.h7.cb}} | {{c.coverage.event_window_nonshock.h7.cluster}} | {{c.coverage.event_window_nonshock.h7.n}} | {{c.coverage.event_window_nonshock.h7.n_clusters}} | {{c.coverage.event_window_nonshock.h7.under_covers}} |
+| event_window_nonshock | {{m.grid.h_grid_3}} | {{c.coverage.event_window_nonshock.h28.value}} | {{c.coverage.event_window_nonshock.h28.cb}} | {{c.coverage.event_window_nonshock.h28.cluster}} | {{c.coverage.event_window_nonshock.h28.n}} | {{c.coverage.event_window_nonshock.h28.n_clusters}} | {{c.coverage.event_window_nonshock.h28.under_covers}} |
+
+Cells with zero rows are not evaluable and show n/a (their under-covers flag is false only because there is nothing to evaluate). A row marked true under-covers by the preregistered rule. The market regimes have {{c.coverage.market_shock.h7.n_clusters}} event clusters, so they are small-cluster results.
+
+**Preregistered MTG conformal fix: not evaluable as preregistered.** The preregistered calibration split (origins and targets before {{c.conformal.preregistered.mtg.h1.split_date}}) holds {{c.conformal.preregistered.mtg.h1.calibration_n}} rows by construction, status `{{c.conformal.preregistered.mtg.h1.status}}`: with context {{m.grid.context_4}} the first feasible origin falls after the split date. No "conformal fixes it" verdict exists for MTG under the preregistration.
+
+**Market conformal, as preregistered** (calibration on pre-cutoff events, evaluation on post-cutoff events; "fixes it" means the post-recalibration calendar-block interval contains nominal coverage).
+
+| regime | h | coverage before | coverage after (calendar-block CI) | fixes it | median relative width increase | calibration rows | evaluation rows |
+|---|---|---|---|---|---|---|---|
+| market_shock | {{m.grid.h_grid_1}} | {{c.conformal.preregistered.market_shock.h1.before}} | {{c.conformal.preregistered.market_shock.h1.value}} {{c.conformal.preregistered.market_shock.h1.cb}} | {{c.conformal.preregistered.market_shock.h1.conformal_fixes_it}} | {{c.conformal.preregistered.market_shock.h1.median_rel_width_increase}} | {{c.conformal.preregistered.market_shock.h1.calibration_n}} | {{c.conformal.preregistered.market_shock.h1.n}} |
+| market_shock | {{m.grid.h_grid_2}} | {{c.conformal.preregistered.market_shock.h7.before}} | {{c.conformal.preregistered.market_shock.h7.value}} {{c.conformal.preregistered.market_shock.h7.cb}} | {{c.conformal.preregistered.market_shock.h7.conformal_fixes_it}} | {{c.conformal.preregistered.market_shock.h7.median_rel_width_increase}} | {{c.conformal.preregistered.market_shock.h7.calibration_n}} | {{c.conformal.preregistered.market_shock.h7.n}} |
+| market_shock | {{m.grid.h_grid_3}} | {{c.conformal.preregistered.market_shock.h28.before}} | {{c.conformal.preregistered.market_shock.h28.value}} {{c.conformal.preregistered.market_shock.h28.cb}} | {{c.conformal.preregistered.market_shock.h28.conformal_fixes_it}} | {{c.conformal.preregistered.market_shock.h28.median_rel_width_increase}} | {{c.conformal.preregistered.market_shock.h28.calibration_n}} | {{c.conformal.preregistered.market_shock.h28.n}} |
+| event_window_nonshock | {{m.grid.h_grid_1}} | {{c.conformal.preregistered.event_window_nonshock.h1.before}} | {{c.conformal.preregistered.event_window_nonshock.h1.value}} {{c.conformal.preregistered.event_window_nonshock.h1.cb}} | {{c.conformal.preregistered.event_window_nonshock.h1.conformal_fixes_it}} | {{c.conformal.preregistered.event_window_nonshock.h1.median_rel_width_increase}} | {{c.conformal.preregistered.event_window_nonshock.h1.calibration_n}} | {{c.conformal.preregistered.event_window_nonshock.h1.n}} |
+| event_window_nonshock | {{m.grid.h_grid_2}} | {{c.conformal.preregistered.event_window_nonshock.h7.before}} | {{c.conformal.preregistered.event_window_nonshock.h7.value}} {{c.conformal.preregistered.event_window_nonshock.h7.cb}} | {{c.conformal.preregistered.event_window_nonshock.h7.conformal_fixes_it}} | {{c.conformal.preregistered.event_window_nonshock.h7.median_rel_width_increase}} | {{c.conformal.preregistered.event_window_nonshock.h7.calibration_n}} | {{c.conformal.preregistered.event_window_nonshock.h7.n}} |
+| event_window_nonshock | {{m.grid.h_grid_3}} | {{c.conformal.preregistered.event_window_nonshock.h28.before}} | {{c.conformal.preregistered.event_window_nonshock.h28.value}} {{c.conformal.preregistered.event_window_nonshock.h28.cb}} | {{c.conformal.preregistered.event_window_nonshock.h28.conformal_fixes_it}} | {{c.conformal.preregistered.event_window_nonshock.h28.median_rel_width_increase}} | {{c.conformal.preregistered.event_window_nonshock.h28.calibration_n}} | {{c.conformal.preregistered.event_window_nonshock.h28.n}} |
+
+The rule is satisfied for some cells partly because the post-recalibration interval is wide: `market_shock` at h = {{m.grid.h_grid_1}} (fixes it: {{c.conformal.preregistered.market_shock.h1.conformal_fixes_it}}; calendar-block CI {{c.conformal.preregistered.market_shock.h1.cb}}); `market_shock` at h = {{m.grid.h_grid_2}} (fixes it: {{c.conformal.preregistered.market_shock.h7.conformal_fixes_it}}; calendar-block CI {{c.conformal.preregistered.market_shock.h7.cb}}); `event_window_nonshock` at h = {{m.grid.h_grid_1}} (fixes it: {{c.conformal.preregistered.event_window_nonshock.h1.conformal_fixes_it}}; calendar-block CI {{c.conformal.preregistered.event_window_nonshock.h1.cb}}). A calendar-block CI that contains the nominal level shows compatibility with it, not that calibration was restored.
+
+The `market_shock` cell at h = {{m.grid.h_grid_3}} has {{c.conformal.preregistered.market_shock.h28.n}} evaluation rows and is not evaluable; its "fixes it" entry is n/a, never "no".
+
+### Exploratory MTG analysis - post-hoc amended split
+
+This section is exploratory and post hoc (amendment of 12 Oct 2026). Calibration rows have origin and target before {{c.conformal.exploratory_post_hoc_resplit.mtg.h1.split_date}}, the median distinct origin date; evaluation rows are the origins on or after it. The rule was fixed before any recalibrated MTG number was computed, but after the uncalibrated coverage and the Experiment A verdicts had been seen, so no blindness to outcomes is claimed. Before and after are computed on exactly the same evaluation rows. It is not the preregistered verdict.
+
+| h | coverage before (calendar-block CI) | under-covered before | coverage after (calendar-block CI) | fixes it | median relative width increase | calibration rows | evaluation rows |
+|---|---|---|---|---|---|---|---|
+| {{m.grid.h_grid_1}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h1.before}} {{c.conformal.exploratory_post_hoc_resplit.mtg.h1.before_cb}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h1.under_covers_before}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h1.value}} {{c.conformal.exploratory_post_hoc_resplit.mtg.h1.cb}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h1.conformal_fixes_it}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h1.median_rel_width_increase}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h1.calibration_n}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h1.n}} |
+| {{m.grid.h_grid_2}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h7.before}} {{c.conformal.exploratory_post_hoc_resplit.mtg.h7.before_cb}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h7.under_covers_before}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h7.value}} {{c.conformal.exploratory_post_hoc_resplit.mtg.h7.cb}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h7.conformal_fixes_it}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h7.median_rel_width_increase}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h7.calibration_n}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h7.n}} |
+| {{m.grid.h_grid_3}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h28.before}} {{c.conformal.exploratory_post_hoc_resplit.mtg.h28.before_cb}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h28.under_covers_before}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h28.value}} {{c.conformal.exploratory_post_hoc_resplit.mtg.h28.cb}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h28.conformal_fixes_it}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h28.median_rel_width_increase}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h28.calibration_n}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h28.n}} |
+| {{m.grid.h_grid_4}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h56.before}} {{c.conformal.exploratory_post_hoc_resplit.mtg.h56.before_cb}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h56.under_covers_before}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h56.value}} {{c.conformal.exploratory_post_hoc_resplit.mtg.h56.cb}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h56.conformal_fixes_it}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h56.median_rel_width_increase}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h56.calibration_n}} | {{c.conformal.exploratory_post_hoc_resplit.mtg.h56.n}} |
+
+At h = {{m.grid.h_grid_2}} the entry is {{c.conformal.exploratory_post_hoc_resplit.mtg.h7.conformal_fixes_it}} with calendar-block CI {{c.conformal.exploratory_post_hoc_resplit.mtg.h7.cb}}. A CI containing the nominal level shows compatibility with it, not that calibration was restored.
+
+At h = {{m.grid.h_grid_1}} the evaluation split was not under-covering before recalibration (flag above), so a "fixes it" entry there says little about the recalibration. Where "fixes it" is false, the recalibrated interval still does not reach nominal coverage. Label: {{c.conformal.exploratory_post_hoc_resplit.mtg.h1.label}}.
+
+![Coverage by regime and horizon](../results/figures/v2_exp_c_coverage.png)
+
+![Exploratory MTG conformal re-split](../results/figures/v2_exp_c_conformal_mtg_exploratory.png)
+
+## 5. Experiment B: exploratory red-team appendix
+
+Experiment B is an explicitly **exploratory red-team appendix**, not a result of the main claim. The frozen rule (shock day: absolute z-score at least {{m.events.z_threshold}} against a trailing window of {{m.events.trailing_window}} trading days; events within {{m.events.decluster_gap}} trading days merged; guard band between {{m.events.pre_end}} and {{m.events.post_start}} excluded) produced {{m.events.n_pre}} pre-cutoff and {{m.events.n_post}} post-cutoff events. **Promotion verdict: {{b.tfm3.rule.timesfm3_univariate.none.promotion.verdict}}.** Reasons recorded with the verdict: {{b.tfm3.rule.timesfm3_univariate.none.promotion.reasons}}.
+
+The primary statistic is the difference, post minus pre, of the error-recovery lag of TimesFM-3 relative to naive (restricted mean, event-cluster bootstrap). Descriptive effects at the primary threshold:
+
+| forecaster and perturbation | lag difference vs naive (CI) | anticipation hit-rate difference (CI) | events pre / post |
+|---|---|---|---|
+| TimesFM-3 univariate, none | {{b.tfm3.rule.timesfm3_univariate.none.lag_d_naive_1.5.value}} {{b.tfm3.rule.timesfm3_univariate.none.lag_d_naive_1.5.ci}} | {{b.tfm3.rule.timesfm3_univariate.none.anticipation_hit_rate.value}} {{b.tfm3.rule.timesfm3_univariate.none.anticipation_hit_rate.ci}} | {{b.tfm3.rule.timesfm3_univariate.none.lag_d_naive_1.5.n_pre}} / {{b.tfm3.rule.timesfm3_univariate.none.lag_d_naive_1.5.n}} |
+| TimesFM-3 univariate, noise | {{b.tfm3.rule.timesfm3_univariate.noise.lag_d_naive_1.5.value}} {{b.tfm3.rule.timesfm3_univariate.noise.lag_d_naive_1.5.ci}} | {{b.tfm3.rule.timesfm3_univariate.noise.anticipation_hit_rate.value}} {{b.tfm3.rule.timesfm3_univariate.noise.anticipation_hit_rate.ci}} | {{b.tfm3.rule.timesfm3_univariate.noise.lag_d_naive_1.5.n_pre}} / {{b.tfm3.rule.timesfm3_univariate.noise.lag_d_naive_1.5.n}} |
+| TimesFM-3 univariate, context splice | {{b.tfm3.rule.timesfm3_univariate.splice.lag_d_naive_1.5.value}} {{b.tfm3.rule.timesfm3_univariate.splice.lag_d_naive_1.5.ci}} | {{b.tfm3.rule.timesfm3_univariate.splice.anticipation_hit_rate.value}} {{b.tfm3.rule.timesfm3_univariate.splice.anticipation_hit_rate.ci}} | {{b.tfm3.rule.timesfm3_univariate.splice.lag_d_naive_1.5.n_pre}} / {{b.tfm3.rule.timesfm3_univariate.splice.lag_d_naive_1.5.n}} |
+| TimesFM-2.5 univariate, none (model comparison only) | {{b.tfm25.rule.timesfm2p5_univariate.none.lag_d_naive_1.5.value}} {{b.tfm25.rule.timesfm2p5_univariate.none.lag_d_naive_1.5.ci}} | {{b.tfm25.rule.timesfm2p5_univariate.none.anticipation_hit_rate.value}} {{b.tfm25.rule.timesfm2p5_univariate.none.anticipation_hit_rate.ci}} | {{b.tfm25.rule.timesfm2p5_univariate.none.lag_d_naive_1.5.n_pre}} / {{b.tfm25.rule.timesfm2p5_univariate.none.lag_d_naive_1.5.n}} |
+
+Promotion requires all of: enough events per arm, a primary interval that excludes zero, and a same-sign effect under both perturbations; the recorded reasons above state which condition failed. Perturbation and TimesFM-2.5 rows are descriptive: a row whose interval excludes zero does not change the promotion verdict, which the rule decides on the unperturbed primary effect. Both arms are small clusters, so no claim about faster or slower adaptation after a shock is made.
+
+![Error around shock onset](../results/figures/v2_exp_b_error_around_onset.png)
+
+## 6. Covariates
+
+A covariate "helps" only if the paired skill-delta interval lies above zero against both the no-covariate arm and the placebo arm. Context {{m.covariates.context_len}}, origin stride {{m.covariates.origin_stride}}, B = {{m.covariates.n_boot}}. Rows show the primary statistic (n-weighted skill difference); the first horizon is the primary one, "all" pools horizons and is descriptive.
+
+| domain | comparison | horizon | skill difference (CI) | verdict | clusters | label |
+|---|---|---|---|---|---|---|
+| mtg | legit vs no covariate | primary | {{d.cov.mtg.legit_vs_no_covariate.h7.weighted_mean.value}} {{d.cov.mtg.legit_vs_no_covariate.h7.weighted_mean.ci}} | **{{d.cov.mtg.legit_vs_no_covariate.h7.weighted_mean.verdict}}** | {{d.cov.mtg.legit_vs_no_covariate.h7.weighted_mean.n}} | {{d.cov.mtg.legit_vs_no_covariate.h7.weighted_mean.label}} |
+| mtg | legit vs no covariate | all | {{d.cov.mtg.legit_vs_no_covariate.hall.weighted_mean.value}} {{d.cov.mtg.legit_vs_no_covariate.hall.weighted_mean.ci}} | **{{d.cov.mtg.legit_vs_no_covariate.hall.weighted_mean.verdict}}** | {{d.cov.mtg.legit_vs_no_covariate.hall.weighted_mean.n}} | {{d.cov.mtg.legit_vs_no_covariate.hall.weighted_mean.label}} |
+| mtg | legit vs placebo | primary | {{d.cov.mtg.legit_vs_placebo.h7.weighted_mean.value}} {{d.cov.mtg.legit_vs_placebo.h7.weighted_mean.ci}} | **{{d.cov.mtg.legit_vs_placebo.h7.weighted_mean.verdict}}** | {{d.cov.mtg.legit_vs_placebo.h7.weighted_mean.n}} | {{d.cov.mtg.legit_vs_placebo.h7.weighted_mean.label}} |
+| mtg | legit vs placebo | all | {{d.cov.mtg.legit_vs_placebo.hall.weighted_mean.value}} {{d.cov.mtg.legit_vs_placebo.hall.weighted_mean.ci}} | **{{d.cov.mtg.legit_vs_placebo.hall.weighted_mean.verdict}}** | {{d.cov.mtg.legit_vs_placebo.hall.weighted_mean.n}} | {{d.cov.mtg.legit_vs_placebo.hall.weighted_mean.label}} |
+| market | legit vs no covariate | primary | {{d.cov.market.legit_vs_no_covariate.h7.weighted_mean.value}} {{d.cov.market.legit_vs_no_covariate.h7.weighted_mean.ci}} | **{{d.cov.market.legit_vs_no_covariate.h7.weighted_mean.verdict}}** | {{d.cov.market.legit_vs_no_covariate.h7.weighted_mean.n}} | {{d.cov.market.legit_vs_no_covariate.h7.weighted_mean.label}} |
+| market | legit vs no covariate | all | {{d.cov.market.legit_vs_no_covariate.hall.weighted_mean.value}} {{d.cov.market.legit_vs_no_covariate.hall.weighted_mean.ci}} | **{{d.cov.market.legit_vs_no_covariate.hall.weighted_mean.verdict}}** | {{d.cov.market.legit_vs_no_covariate.hall.weighted_mean.n}} | {{d.cov.market.legit_vs_no_covariate.hall.weighted_mean.label}} |
+| market | legit vs placebo | primary | {{d.cov.market.legit_vs_placebo.h7.weighted_mean.value}} {{d.cov.market.legit_vs_placebo.h7.weighted_mean.ci}} | **{{d.cov.market.legit_vs_placebo.h7.weighted_mean.verdict}}** | {{d.cov.market.legit_vs_placebo.h7.weighted_mean.n}} | {{d.cov.market.legit_vs_placebo.h7.weighted_mean.label}} |
+| market | legit vs placebo | all | {{d.cov.market.legit_vs_placebo.hall.weighted_mean.value}} {{d.cov.market.legit_vs_placebo.hall.weighted_mean.ci}} | **{{d.cov.market.legit_vs_placebo.hall.weighted_mean.verdict}}** | {{d.cov.market.legit_vs_placebo.hall.weighted_mean.n}} | {{d.cov.market.legit_vs_placebo.hall.weighted_mean.label}} |
+
+Every verdict above is quoted from the ledger; where it reads "inconclusive", no helping effect is claimed. For the market domain the all-horizon legitimate-versus-no-covariate interval lies above zero, but the legitimate-versus-placebo interval does not, so the rule's verdict is {{d.cov.market.legit_vs_placebo.hall.weighted_mean.verdict}}. The market domain rests on {{d.cov.market.legit_vs_placebo.h7.weighted_mean.n}} clusters and is small-cluster/exploratory.
+
+**Leakage demonstration.** A leaked arm that sees real future values is a teaching contrast, watermarked "LEAKED - teaching contrast, not a result", and is excluded from every summary and headline. It shows why a covariate must be known at forecast time; it is not a result and no number from it is reported here.
+
+![Leakage demonstration (teaching contrast)](../results/figures/v2_covariates_leakage_demo.png)
+
+## 7. Latency
+
+Descriptive only: seconds per 1000 forecasts, median and 95th percentile, on `{{l.tfm3.timesfm3.tesla_t4.b1.c512.h28.gpu}}` for the model and on CPU for the baselines ({{l.tfm3.timesfm3.tesla_t4.b1.c512.h28.repeats}} repeats after {{l.tfm3.timesfm3.tesla_t4.b1.c512.h28.warmup}} warmups). Context {{m.grid.context_4}}, horizon {{m.grid.h_primary_1}}.
+
+| method | batch | median | 95th percentile |
+|---|---|---|---|
+| TimesFM-3 | {{l.tfm3.timesfm3.tesla_t4.b1.c512.h28.batch}} | {{l.tfm3.timesfm3.tesla_t4.b1.c512.h28.value}} | {{l.tfm3.timesfm3.tesla_t4.b1.c512.h28.p95_s_per_1k}} |
+| TimesFM-3 | {{l.tfm3.timesfm3.tesla_t4.b8.c512.h28.batch}} | {{l.tfm3.timesfm3.tesla_t4.b8.c512.h28.value}} | {{l.tfm3.timesfm3.tesla_t4.b8.c512.h28.p95_s_per_1k}} |
+| TimesFM-3 | {{l.tfm3.timesfm3.tesla_t4.b32.c512.h28.batch}} | {{l.tfm3.timesfm3.tesla_t4.b32.c512.h28.value}} | {{l.tfm3.timesfm3.tesla_t4.b32.c512.h28.p95_s_per_1k}} |
+| TimesFM-3 | {{l.tfm3.timesfm3.tesla_t4.b128.c512.h28.batch}} | {{l.tfm3.timesfm3.tesla_t4.b128.c512.h28.value}} | {{l.tfm3.timesfm3.tesla_t4.b128.c512.h28.p95_s_per_1k}} |
+| ETS (CPU) | {{l.tfm3.ets.cpu.b128.c512.h28.batch}} | {{l.tfm3.ets.cpu.b128.c512.h28.value}} | {{l.tfm3.ets.cpu.b128.c512.h28.p95_s_per_1k}} |
+| naive (CPU) | {{l.tfm3.naive.cpu.b128.c512.h28.batch}} | {{l.tfm3.naive.cpu.b128.c512.h28.value}} | {{l.tfm3.naive.cpu.b128.c512.h28.p95_s_per_1k}} |
+| TimesFM-2.5 | {{l.tfm25.timesfm2.5.tesla_t4.b128.c512.h28.batch}} | {{l.tfm25.timesfm2.5.tesla_t4.b128.c512.h28.value}} | {{l.tfm25.timesfm2.5.tesla_t4.b128.c512.h28.p95_s_per_1k}} |
+
+![Latency](../results/figures/v2_latency.png)
+
+These timings are not a deployment recommendation: the checkpoint licence is non-commercial, and no cost figure is given.
+
+## 8. Statistical self-check
+
+Before real data, the primary interval was checked on simulated panels with known skill ({{s.selfcheck.baseline.g40.median.n}} datasets per cluster count). Acceptance used the baseline scenario at {{m.selfcheck.accept_clusters}} clusters: coverage of the nominal {{m.covariates.ci_level}} interval within [{{m.selfcheck.accept_low}}, {{m.selfcheck.accept_high}}]; result: **{{m.selfcheck.verdict}}**. The baseline constants were chosen after a preview that showed under-coverage (amendment B), which is disclosed rather than hidden. Cluster counts below the acceptance count are reported but never used for acceptance.
+
+| scenario | clusters | median coverage (MC CI) | n-weighted coverage (MC CI) |
+|---|---|---|---|
+| baseline | {{s.selfcheck.baseline.g8.median.clusters}} | {{s.selfcheck.baseline.g8.median.value}} {{s.selfcheck.baseline.g8.median.mc_ci}} | {{s.selfcheck.baseline.g8.weighted_mean.value}} {{s.selfcheck.baseline.g8.weighted_mean.mc_ci}} |
+| baseline | {{s.selfcheck.baseline.g20.median.clusters}} | {{s.selfcheck.baseline.g20.median.value}} {{s.selfcheck.baseline.g20.median.mc_ci}} | {{s.selfcheck.baseline.g20.weighted_mean.value}} {{s.selfcheck.baseline.g20.weighted_mean.mc_ci}} |
+| baseline | {{s.selfcheck.baseline.g40.median.clusters}} | {{s.selfcheck.baseline.g40.median.value}} {{s.selfcheck.baseline.g40.median.mc_ci}} | {{s.selfcheck.baseline.g40.weighted_mean.value}} {{s.selfcheck.baseline.g40.weighted_mean.mc_ci}} |
+| stress | {{s.selfcheck.stress.g8.median.clusters}} | {{s.selfcheck.stress.g8.median.value}} {{s.selfcheck.stress.g8.median.mc_ci}} | {{s.selfcheck.stress.g8.weighted_mean.value}} {{s.selfcheck.stress.g8.weighted_mean.mc_ci}} |
+| stress | {{s.selfcheck.stress.g20.median.clusters}} | {{s.selfcheck.stress.g20.median.value}} {{s.selfcheck.stress.g20.median.mc_ci}} | {{s.selfcheck.stress.g20.weighted_mean.value}} {{s.selfcheck.stress.g20.weighted_mean.mc_ci}} |
+| stress | {{s.selfcheck.stress.g40.median.clusters}} | {{s.selfcheck.stress.g40.median.value}} {{s.selfcheck.stress.g40.median.mc_ci}} | {{s.selfcheck.stress.g40.weighted_mean.value}} {{s.selfcheck.stress.g40.weighted_mean.mc_ci}} |
+
+The stress scenario (strong common shocks across clusters) is a sensitivity and is never used for acceptance. Under it the cluster interval covers less than nominal at {{m.selfcheck.accept_clusters}} clusters, which is why the verdict rule also requires the calendar-block interval to agree. Reading: a cluster interval that excludes zero is weaker evidence than its nominal level suggests when cards share common shocks, and the stricter rule exists for that reason.
+
+## 9. Limitations and threats to validity
+
+- The cutoff is a conservative reading; contamination on either side cannot be excluded, and TimesFM-2.5 has no sourced cutoff.
+- One marketplace source; prices are marketplace quotes, not transactions. The catalog was fetched after the as-of date. The as-of day itself is missing.
+- Cards share common shocks (set releases, bans, market-wide moves), so effective sample size is smaller than the card count; the calendar-block interval and the stress scenario address this only partly.
+- Experiment B has few events per arm and is an exploratory appendix. The covariate arms are small-cluster in the market domain. The placebo panel is a small subset.
+- The preregistered MTG conformal test could not be run; the re-split is post hoc and exploratory, fixed after the uncalibrated coverage and verdicts had been seen.
+- Secondary comparisons are descriptive, uncorrected for multiplicity, and cannot change a verdict.
+- Committed errors are scaled per series; skill ratios are exact, pooled skill is level-free and secondary.
+- Latency is one GPU, one environment. Nothing here is investment advice or a deployment recommendation.
+
+## 10. Reproducibility
+
+Every step is a script under `scripts/`; GPU steps run through `notebooks/run_on_kaggle.ipynb` as described in `docs/kaggle-runbook.md`. Each run writes a manifest under `results/manifests/` (git SHA, preregistration commit, as-of date, checkpoint revision, seed, environment). `scripts/10_evidence_ledger.py` builds `results/evidence_ledger.json` and `docs/evidence-ledger.md` from the committed results, checking each file's sha256 against a manifest. This report is rendered from `docs/report.md.template` by `scripts/11_render_docs.py`; its `--check` re-renders in memory, compares byte for byte and rejects any number without a ledger claim. Frozen pool: `configs/benchmark_pool_v2.csv`. Self-check design: `docs/inference-selfcheck.md`. Committed outputs hold normalized errors and values only; actual prices stay in the local Kaggle archive.

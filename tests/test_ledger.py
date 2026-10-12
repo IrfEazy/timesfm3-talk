@@ -498,3 +498,86 @@ def test_committed_ledger_covers_required_tables():
     ):  # fmt: skip
         assert any(i.startswith(prefix) for i in ids), prefix
     assert all(c["manifest"] or c.get("exemption") for c in data["claims"])
+
+
+def test_metadata_prefixes_present():
+    data = json.loads((REPO / L.LEDGER_JSON).read_text())
+    ids = {c["id"] for c in data["claims"]}
+    assert {"m.code", "m.grid", "m.fetch", "m.events", "m.inference", "m.selfcheck"} <= ids
+    assert any(i.startswith("a.lb.") for i in ids) and any(i.startswith("a.lb25.") for i in ids)
+
+
+# ------------------------------------------------------------------ json / python sources
+
+
+def _meta_root(tmp_path: Path) -> Path:
+    (tmp_path / "results/manifests").mkdir(parents=True)
+    (tmp_path / "cfg.json").write_text(
+        json.dumps(
+            {
+                "as_of": "2026-09-04",
+                "horizons": [1, 7, 28],
+                "nested": {"seed": 7, "band": [0.92, 0.98], "flag": True},
+                "records": [{"x": 1}],
+            }
+        )
+    )
+    (tmp_path / "consts.py").write_text(
+        "from datetime import date\n"
+        "CUTOFF = date(2023, 11, 30)\n"
+        "NAME = 'google/x'\n"
+        "NEG = -2\n"
+        "DYN = some_call()\n"
+        "OTHER = 1 + 2\n"
+    )
+    return tmp_path
+
+
+def test_json_and_python_sources(tmp_path):
+    root = _meta_root(tmp_path)
+    specs = [
+        ClaimSpec(
+            id="m.cfg",
+            source="cfg.json",
+            group="M",
+            fields={
+                "as_of": T("as_of"),
+                "hs": L.LST("horizons"),
+                "h2": I("horizons.1"),
+                "seed": I("nested.seed"),
+                "lo": F("nested.band.0", 2),
+                "flag": B("nested.flag"),
+            },
+        ),
+        ClaimSpec(
+            id="m.py",
+            source="consts.py",
+            group="M",
+            fields={"cutoff": L.D("CUTOFF"), "name": T("NAME"), "neg": I("NEG")},
+        ),
+    ]
+    ex = {"cfg.json": "committed config", "consts.py": "committed constants"}
+    ledger = L.build_ledger(specs, root, ex)
+    c = {x["id"]: x["fields"] for x in ledger["claims"]}
+    assert c["m.cfg"]["hs"]["text"] == "1, 7, 28" and c["m.cfg"]["hs"]["raw"] == [1, 7, 28]
+    assert c["m.cfg"]["h2"]["text"] == "7" and c["m.cfg"]["lo"]["text"] == "0.92"
+    assert c["m.cfg"]["flag"]["text"] == "true"
+    assert c["m.py"]["cutoff"]["text"] == "2023-11-30" and c["m.py"]["neg"]["text"] == "-2"
+    # sha is pinned even for exempt sources, and an unlisted source needs an exemption
+    assert ledger["sources"]["cfg.json"]["exemption"] == "committed config"
+    with pytest.raises(LedgerError, match="no manifest records"):
+        L.build_ledger(specs, root, {})
+    # dynamic constants are skipped, not evaluated
+    bad = ClaimSpec(id="m.bad", source="consts.py", group="M", fields={"x": I("DYN")})
+    with pytest.raises(LedgerError, match="missing column"):
+        L.build_ledger([bad], root, ex)
+
+
+def test_date_and_list_kinds_reject_bad_values():
+    with pytest.raises(LedgerError, match="not a date"):
+        L.D("c").format("not-a-date")
+    assert L.D("c").format(pd.Timestamp("2026-01-02")) == ("2026-01-02", "2026-01-02")
+    with pytest.raises(LedgerError, match="non-empty list"):
+        L.LST("c").format([])
+    with pytest.raises(LedgerError, match="not str/int"):
+        L.LST("c").format([1.5])
