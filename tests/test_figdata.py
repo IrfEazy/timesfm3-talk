@@ -551,3 +551,118 @@ def test_data_quality_table_volatility_is_nan_with_fewer_than_two_observed_point
     s = _series("A", [10.0, 20.0, 30.0], [False, True, False])
     table = figdata.data_quality_table([s])
     assert np.isnan(table.iloc[0]["log_return_volatility"])
+
+
+# --- v2 figure prep -------------------------------------------------------
+
+
+def test_exp_a_primary_skill_filters_primary_cell():
+    rows = []
+    for mode, ctx, rh in [
+        (figdata.UNIVARIATE, 512, 2),
+        (figdata.UNIVARIATE, 512, 1),
+        (figdata.UNIVARIATE, 64, 2),
+        (figdata.MULTIVARIATE, 512, 2),
+    ]:
+        for step in range(1, rh + 1):
+            rows.append(
+                dict(
+                    mode=mode,
+                    transform="identity",
+                    make_positive=False,
+                    context_len=ctx,
+                    requested_horizon=rh,
+                    horizon_step=step,
+                    baseline_method="naive",
+                    skill_median=0.1 * step,
+                    skill_mean_weighted=0.2 * step,
+                    n_cards=5,
+                )
+            )
+    out = figdata.exp_a_primary_skill(pd.DataFrame(rows))
+    assert list(out["horizon_step"]) == [1, 2]
+    assert list(out["skill_median"]) == pytest.approx([0.1, 0.2])
+
+
+def test_exp_a_verdict_cis_pool_naive_only():
+    v = pd.DataFrame(
+        {
+            "subset": ["pool", "pool", "pool", "showcase_only"],
+            "baseline": ["naive"] * 4,
+            "horizon": [56, 28, 28, 28],
+            "statistic": ["median", "median", "pooled", "median"],
+            "estimate": [-0.04, -0.01, -0.02, -0.03],
+            "ci_low": [-0.08, -0.05, -0.05, -0.04],
+            "ci_high": [0.0, 0.02, 0.0, 0.02],
+        }
+    )
+    out = figdata.exp_a_verdict_cis(v)
+    assert list(out["horizon"]) == [28, 56]
+    assert set(out["statistic"]) == {"median"}
+
+
+def test_conformal_exploratory_mtg_selects_ok_rows():
+    c = pd.DataFrame(
+        {
+            "analysis": [figdata.V2_EXPLORATORY_ANALYSIS] * 3 + ["preregistered"],
+            "regime": ["mtg", "mtg", "market_shock", "mtg"],
+            "status": ["ok", "no_calibration_rows", "ok", "ok"],
+            "horizon": [7, 1, 7, 7],
+        }
+    )
+    for k in ("coverage", "cb_low", "cb_high"):
+        for s in ("before", "after"):
+            c[f"{k}_{s}"] = 0.5
+    out = figdata.conformal_exploratory_mtg(c)
+    assert list(out["horizon"]) == [7]
+
+
+def test_onset_error_by_offset_median_one_step():
+    rows = []
+    for arm in ("pre", "post"):
+        for ape in (1.0, 2.0, 10.0):
+            rows.append(
+                dict(
+                    source="rule",
+                    forecaster=figdata.UNIVARIATE,
+                    perturbation="none",
+                    horizon_step=1,
+                    arm=arm,
+                    origin_offset=0,
+                    ape=ape,
+                )
+            )
+    rows.append(
+        dict(
+            source="rule",
+            forecaster="naive",
+            perturbation="none",
+            horizon_step=1,
+            arm="pre",
+            origin_offset=0,
+            ape=99.0,
+        )
+    )
+    out = figdata.onset_error_by_offset(pd.DataFrame(rows))
+    assert list(out["median_ape"]) == [2.0, 2.0]
+    assert set(out["arm"]) == {"pre", "post"}
+
+
+def test_latency_summary_ok_rows_and_gpu():
+    def frame(method):
+        return pd.DataFrame(
+            {
+                "method": [method, method, method],
+                "batch": [1, 8, 8],
+                "context": [512, 512, 128],
+                "horizon": [28, 28, 28],
+                "status": ["ok", "ok", "ok"],
+                "median_s_per_1k": [10.0, 4.0, 99.0],
+                "env_gpu_name": ["GPU X"] * 3,
+            }
+        )
+
+    out, gpu = figdata.latency_summary([frame("a"), frame("b")])
+    assert gpu == "GPU X"
+    assert len(out) == 4
+    assert out[(out["method"] == "a") & (out["batch"] == 8)]["median_s_per_1k"].iloc[0] == 4.0

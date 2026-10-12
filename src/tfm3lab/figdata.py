@@ -543,3 +543,123 @@ def adaptation_lag_detail(
     if not out.empty:
         out["n_events_in_arm"] = out.groupby("arm")["event"].transform("count")
     return out.sort_values(["arm", "event"]).reset_index(drop=True)
+
+
+# --- v2 figure data prep (reads only committed results/*.parquet) ---------
+
+V2_PRIMARY_MODE = UNIVARIATE
+V2_PRIMARY_CONTEXT = 512
+V2_PRIMARY_BASELINE = "naive"
+V2_EXPLORATORY_ANALYSIS = "exploratory_post_hoc_resplit"
+
+
+def exp_a_primary_skill(
+    agg: pd.DataFrame, *, context_len: int = V2_PRIMARY_CONTEXT
+) -> pd.DataFrame:
+    """Skill vs naive by horizon step for the primary cell (TimesFM-3
+    univariate, raw prices, no make_positive). Uses the longest requested
+    horizon so every step is present. Columns: horizon_step, skill_median,
+    skill_mean_weighted, n_cards."""
+    m = (
+        (agg["mode"] == V2_PRIMARY_MODE)
+        & (agg["transform"] == IDENTITY)
+        & (~agg["make_positive"].astype(bool))
+        & (agg["context_len"] == context_len)
+        & (agg["baseline_method"] == V2_PRIMARY_BASELINE)
+    )
+    sub = agg[m]
+    if sub.empty:
+        return pd.DataFrame(
+            columns=["horizon_step", "skill_median", "skill_mean_weighted", "n_cards"]
+        )
+    sub = sub[sub["requested_horizon"] == sub["requested_horizon"].max()]
+    cols = ["horizon_step", "skill_median", "skill_mean_weighted", "n_cards"]
+    return sub[cols].sort_values("horizon_step").reset_index(drop=True)
+
+
+def exp_a_verdict_cis(verdict: pd.DataFrame) -> pd.DataFrame:
+    """Pool-subset cluster CIs for the median and weighted-mean statistics
+    against naive. Columns: horizon, statistic, estimate, ci_low, ci_high."""
+    m = (
+        (verdict["subset"] == "pool")
+        & (verdict["baseline"] == V2_PRIMARY_BASELINE)
+        & (verdict["statistic"].isin(["median", "weighted_mean"]))
+    )
+    cols = ["horizon", "statistic", "estimate", "ci_low", "ci_high"]
+    return verdict[m][cols].sort_values(["statistic", "horizon"]).reset_index(drop=True)
+
+
+def coverage_by_regime(cov: pd.DataFrame) -> pd.DataFrame:
+    """P10-P90 coverage with primary CIs. Columns: regime, horizon,
+    coverage, cb_low, cb_high (rows with a missing coverage dropped)."""
+    cols = ["regime", "horizon", "coverage", "cb_low", "cb_high"]
+    return (
+        cov[cols]
+        .dropna(subset=["coverage"])
+        .sort_values(["regime", "horizon"])
+        .reset_index(drop=True)
+    )
+
+
+def conformal_exploratory_mtg(conf: pd.DataFrame) -> pd.DataFrame:
+    """Exploratory post-hoc MTG split rows, before/after conformal.
+    Columns: horizon, coverage_before, cb_low_before, cb_high_before,
+    coverage_after, cb_low_after, cb_high_after."""
+    m = (
+        (conf["analysis"] == V2_EXPLORATORY_ANALYSIS)
+        & (conf["regime"] == "mtg")
+        & (conf["status"] == "ok")
+    )
+    cols = [
+        "horizon",
+        "coverage_before",
+        "cb_low_before",
+        "cb_high_before",
+        "coverage_after",
+        "cb_low_after",
+        "cb_high_after",
+    ]
+    return conf[m][cols].sort_values("horizon").reset_index(drop=True)
+
+
+def onset_error_by_offset(shock: pd.DataFrame) -> pd.DataFrame:
+    """Median one-step APE by origin_offset and arm (pre/post) for the
+    unperturbed TimesFM-3 univariate rule-based events. Columns: arm,
+    origin_offset, median_ape, n."""
+    m = (
+        (shock["source"] == "rule")
+        & (shock["forecaster"] == UNIVARIATE)
+        & (shock["perturbation"] == "none")
+        & (shock["horizon_step"] == 1)
+        & (shock["arm"].isin(["pre", "post"]))
+    )
+    g = shock[m].groupby(["arm", "origin_offset"])["ape"]
+    out = g.agg(median_ape="median", n="size").reset_index()
+    return out.sort_values(["arm", "origin_offset"]).reset_index(drop=True)
+
+
+def leakage_error_by_horizon(demo: pd.DataFrame) -> pd.DataFrame:
+    """Median scaled absolute error by horizon step, split by whether the
+    target was observed. Columns: horizon_step, observed, median_err, n."""
+    g = demo.groupby(["horizon_step", "observed"])["abs_err_scaled"]
+    out = g.agg(median_err="median", n="size").reset_index()
+    return out.sort_values(["observed", "horizon_step"]).reset_index(drop=True)
+
+
+def latency_summary(
+    frames: list[pd.DataFrame], *, context: int = 512, horizon: int = 28
+) -> tuple[pd.DataFrame, str]:
+    """Median seconds per 1k forecasts by method and batch size across the
+    given latency frames (status ok, one context/horizon). Returns the table
+    (method, batch, median_s_per_1k) and the GPU name (joined if several)."""
+    df = pd.concat(frames, ignore_index=True)
+    df = df[(df["status"] == "ok") & (df["context"] == context) & (df["horizon"] == horizon)]
+    gpus = sorted({str(g) for g in df["env_gpu_name"].dropna().unique()})
+    out = (
+        df.groupby(["method", "batch"])["median_s_per_1k"]
+        .mean()
+        .reset_index()
+        .sort_values(["method", "batch"])
+        .reset_index(drop=True)
+    )
+    return out, " / ".join(gpus)

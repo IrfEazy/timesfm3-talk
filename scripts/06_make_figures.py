@@ -134,6 +134,223 @@ def build_glitch_vignette() -> None:
     plots.save(fig, "exp_mtg_data_glitch")
 
 
+# --- v2 figures: committed v2 results only --------------------------------
+
+V2_WATERMARK = "LEAKED - teaching contrast, not a result"
+EXPLORATORY_LABEL = "Exploratory - post-hoc amended split"
+RED_TEAM_LABEL = "Exploratory red-team appendix"
+FIGURE_METADATA = {"Software": None}  # no version/date strings in the PNGs
+
+
+def _save_v2(fig, name: str) -> None:
+    path = config.FIGURES_DIR / f"{name}.png"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=200, bbox_inches="tight", metadata=FIGURE_METADATA)
+    plt.close(fig)
+
+
+def _titles(ax, title: str, subtitle: str | None = None) -> None:
+    ax.set_title(title if subtitle is None else f"{title}\n{subtitle}", fontsize=11)
+
+
+def fig_exp_a_skill(skill: pd.DataFrame, cis: pd.DataFrame):
+    fig, ax = plt.subplots(figsize=(9, 5))
+    ax.axhline(0, color="black", linewidth=1, label="no gain over naive")
+    ax.plot(
+        skill["horizon_step"], skill["skill_median"], color="#1f77b4", label="median across cards"
+    )
+    ax.plot(
+        skill["horizon_step"],
+        skill["skill_mean_weighted"],
+        color="#d95f02",
+        label="n-weighted mean",
+    )
+    styles = {"median": ("#1f77b4", -0.4), "weighted_mean": ("#d95f02", 0.4)}
+    labelled = False
+    for _, r in cis.iterrows():
+        color, dx = styles.get(r["statistic"], ("gray", 0.0))
+        x = r["horizon"] + dx
+        ax.errorbar(
+            [x],
+            [r["estimate"]],
+            yerr=[[r["estimate"] - r["ci_low"]], [r["ci_high"] - r["estimate"]]],
+            fmt="o",
+            color=color,
+            capsize=4,
+            markeredgecolor="black",
+            label=None if labelled else "verdict table (step = h)",
+        )
+        labelled = True
+    ax.set_xlabel("horizon step (days)")
+    ax.set_ylabel("skill vs naive (positive = better)")
+    _titles(
+        ax,
+        "Primary cell: TimesFM-3 univariate skill vs naive by horizon",
+        "median across cards is noisy step to step",
+    )
+    ax.legend(loc="lower left", fontsize=9)
+    return fig
+
+
+def fig_exp_c_coverage(cov: pd.DataFrame):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.axhline(0.80, color="black", linestyle="--", linewidth=1, label="nominal")
+    for i, (regime, g) in enumerate(cov.groupby("regime")):
+        g = g.sort_values("horizon")
+        off = (i - (cov["regime"].nunique() - 1) / 2) * 0.4
+        x = g["horizon"].to_numpy(dtype=float) + off
+        ax.errorbar(
+            x,
+            g["coverage"],
+            yerr=[g["coverage"] - g["cb_low"], g["cb_high"] - g["coverage"]],
+            marker="o",
+            capsize=3,
+            label=str(regime),
+        )
+    ax.set_xlabel("horizon step (days)")
+    ax.set_ylabel("P10-P90 interval coverage")
+    _titles(ax, "Interval coverage by horizon and regime")
+    ax.legend(fontsize=9)
+    return fig
+
+
+def fig_exp_c_conformal(conf: pd.DataFrame):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.axhline(0.80, color="black", linestyle="--", linewidth=1, label="nominal")
+    for key, color, dx in (("before", "#7f7f7f", -0.3), ("after", "#1f77b4", 0.3)):
+        x = conf["horizon"].to_numpy(dtype=float) + dx
+        c = conf[f"coverage_{key}"]
+        ax.errorbar(
+            x,
+            c,
+            yerr=[c - conf[f"cb_low_{key}"], conf[f"cb_high_{key}"] - c],
+            marker="o",
+            capsize=3,
+            color=color,
+            label=f"{key} conformal",
+        )
+    ax.set_xlabel("horizon step (days)")
+    ax.set_ylabel("P10-P90 interval coverage")
+    _titles(ax, "MTG conformal coverage, before and after", EXPLORATORY_LABEL)
+    ax.legend(fontsize=9)
+    return fig
+
+
+def fig_exp_b_onset(onset: pd.DataFrame):
+    fig, ax = plt.subplots(figsize=(9, 5))
+    for arm, color in (("pre", "#1f77b4"), ("post", "#d95f02")):
+        g = onset[onset["arm"] == arm].sort_values("origin_offset")
+        ax.plot(g["origin_offset"], g["median_ape"], color=color, marker="o", ms=3, label=arm)
+    ax.axvline(0, color="black", linewidth=1, linestyle=":", label="event onset")
+    ax.set_xlabel("origin offset from onset (days)")
+    ax.set_ylabel("median one-step APE")
+    _titles(ax, "Forecast error around event onset", RED_TEAM_LABEL)
+    ax.legend(title="arm", fontsize=9)
+    return fig
+
+
+def fig_leakage_demo(err: pd.DataFrame):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    g = err[err["observed"].astype(bool)]
+    ax.plot(g["horizon_step"], g["median_err"], marker="o", ms=3, label="target observed")
+    ax.set_xlabel("horizon step (days)")
+    ax.set_ylabel("median scaled absolute error")
+    _titles(ax, "Covariate leakage demo")
+    ax.legend(fontsize=9)
+    fig.text(
+        0.5,
+        0.5,
+        V2_WATERMARK,
+        fontsize=20,
+        color="red",
+        alpha=0.35,
+        rotation=25,
+        ha="center",
+        va="center",
+        weight="bold",
+    )
+    return fig
+
+
+def fig_latency(table: pd.DataFrame, gpu: str):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    for method, g in table.groupby("method"):
+        g = g.sort_values("batch")
+        ax.plot(g["batch"], g["median_s_per_1k"], marker="o", label=str(method))
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    batches = sorted(table["batch"].unique())
+    ax.set_xticks(batches, [str(b) for b in batches])
+    ax.set_xlabel("batch size")
+    ax.set_ylabel("median seconds per 1k forecasts")
+    _titles(ax, "Forecast latency by method and batch size", f"GPU: {gpu}")
+    ax.legend(title="method", fontsize=9)
+    return fig
+
+
+def build_v2_exp_a() -> None:
+    agg = _read("exp_mtg_benchmark_leaderboard_aggregate.parquet")
+    verdict = _read("exp_mtg_v2_verdict.parquet")
+    if agg is None or verdict is None:
+        return
+    skill = figdata.exp_a_primary_skill(agg)
+    if skill.empty:
+        print("  skip (no primary-cell rows)")
+        return
+    _save_v2(
+        fig_exp_a_skill(skill, figdata.exp_a_verdict_cis(verdict)), "v2_exp_a_skill_by_horizon"
+    )
+
+
+def build_v2_exp_c() -> None:
+    cov = _read("exp_calibration_v2_coverage.parquet")
+    if cov is None:
+        return
+    _save_v2(fig_exp_c_coverage(figdata.coverage_by_regime(cov)), "v2_exp_c_coverage")
+
+
+def build_v2_exp_c_conformal() -> None:
+    conf = _read("exp_calibration_v2_conformal.parquet")
+    if conf is None:
+        return
+    rows = figdata.conformal_exploratory_mtg(conf)
+    if rows.empty:
+        print("  skip (no exploratory MTG rows)")
+        return
+    _save_v2(fig_exp_c_conformal(rows), "v2_exp_c_conformal_mtg_exploratory")
+
+
+def build_v2_exp_b() -> None:
+    shock = _read("exp_shock_v2_predictions.parquet")
+    if shock is None:
+        return
+    onset = figdata.onset_error_by_offset(shock)
+    if onset.empty:
+        print("  skip (no onset rows)")
+        return
+    _save_v2(fig_exp_b_onset(onset), "v2_exp_b_error_around_onset")
+
+
+def build_v2_leakage() -> None:
+    demo = _read("exp_covariates_v2_leakage_demo.parquet")
+    if demo is None:
+        return
+    _save_v2(fig_leakage_demo(figdata.leakage_error_by_horizon(demo)), "v2_covariates_leakage_demo")
+
+
+def build_v2_latency() -> None:
+    frames = [
+        f for f in (_read("latency_v2.parquet"), _read("latency_v2_2p5.parquet")) if f is not None
+    ]
+    if not frames:
+        return
+    table, gpu = figdata.latency_summary(frames)
+    if table.empty:
+        print("  skip (no ok latency rows)")
+        return
+    _save_v2(fig_latency(table, gpu), "v2_latency")
+
+
 FIGURES = [
     ("exp_mtg_forecast_slice", build_hero_slice),
     ("exp_shock_reaction", build_shock_reactions),
@@ -143,6 +360,12 @@ FIGURES = [
     ("exp_shock_adaptation_dots", build_adaptation_dots),
     ("exp_mtg_relative_mae", build_card_relative_mae),
     ("exp_mtg_data_glitch", build_glitch_vignette),
+    ("v2_exp_a_skill_by_horizon", build_v2_exp_a),
+    ("v2_exp_c_coverage", build_v2_exp_c),
+    ("v2_exp_c_conformal_mtg_exploratory", build_v2_exp_c_conformal),
+    ("v2_exp_b_error_around_onset", build_v2_exp_b),
+    ("v2_covariates_leakage_demo", build_v2_leakage),
+    ("v2_latency", build_v2_latency),
 ]
 
 
