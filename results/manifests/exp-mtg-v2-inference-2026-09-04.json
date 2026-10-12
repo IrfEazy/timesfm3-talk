@@ -1,0 +1,116 @@
+{
+  "_meta": {
+    "git_sha": "c50493cd609ecaf4d4f1f65e2798b2e41643d54b",
+    "git_dirty": false,
+    "prereg_commit": "55560640262c37560ae7810d96fefe6bd2c4d75b",
+    "environment": {
+      "gpu_name": "cpu",
+      "cuda_version": null,
+      "torch_version": "2.13.0+cu130",
+      "device_count": 0
+    },
+    "checkpoint": null,
+    "seed": 20261010,
+    "as_of": "2026-09-04",
+    "live_end": false,
+    "written_at_utc": "2026-10-12T03:22:57.550292+00:00",
+    "package_versions": {
+      "requests": "2.34.2",
+      "py7zr": "1.1.3",
+      "pandas": "3.0.5",
+      "numpy": "2.5.2",
+      "scipy": "1.18.1",
+      "huggingface_hub": "1.29.0",
+      "timesfm": "3.0.0",
+      "timesfm3": "unknown",
+      "torch": "2.13.0"
+    }
+  },
+  "script": "scripts/08b_exp_mtg_inference.py",
+  "inputs": {
+    "primary": {
+      "path": "/home/icela/dev/timesfm3-talk/results/exp_mtg_benchmark_primary.parquet",
+      "sha256": "5a9313d3a11b85419680fa16ceea3bc3014b2ad1b50ee2e5700875ba70f71d8e"
+    },
+    "leaderboard": {
+      "path": "/home/icela/dev/timesfm3-talk/results/exp_mtg_benchmark_leaderboard.parquet",
+      "sha256": "641f52931899772c4e80ca1fdcb310a910966a28b044736788a957208220b249"
+    },
+    "pool": {
+      "path": "/home/icela/dev/timesfm3-talk/configs/benchmark_pool_v2.csv",
+      "sha256": "e671a846417da9345c01d174a0b96135b4d65760c3935477f6c5397f0192d29d"
+    },
+    "selfcheck": {
+      "path": "/home/icela/dev/timesfm3-talk/results/inference_selfcheck.parquet",
+      "sha256": "b05f78b2a9c8c31c494f9905ee2df532f94ad7af00a315586358c54fc6d78917"
+    }
+  },
+  "optional_inputs": {
+    "showcase_primary": {
+      "path": "/home/icela/dev/timesfm3-talk/results/exp_mtg_benchmark_primary__preregistered_v2_showcase.parquet",
+      "sha256": "9deb9e7df8102307df9798142f0db7bc5c57c759b5a30e6b0a8a15d41d6c3552"
+    },
+    "leaderboard_2p5": {
+      "path": "/home/icela/dev/timesfm3-talk/results/exp_mtg_benchmark_leaderboard__preregistered_v2_timesfm2p5.parquet",
+      "sha256": "493d84b00707fd9fd0538681d5107540f887ee9b39f9ef0fb1af2da4fa4f2e9e"
+    },
+    "ffill0_primary": {
+      "path": "/home/icela/dev/timesfm3-talk/results/exp_mtg_benchmark_primary__preregistered_v2_ffill0.parquet",
+      "sha256": "95f8d9f8a36f54552cf68e9a5eb17ffa4d8e73b9644647d7d0310f9710bfd2f9"
+    },
+    "ffill1_primary": {
+      "path": "/home/icela/dev/timesfm3-talk/results/exp_mtg_benchmark_primary__preregistered_v2_ffill1.parquet",
+      "sha256": "8d9087a5f38a4d5f4418e366ac97d53ae3d0edbe3aafb6fcb96a72575748be33"
+    }
+  },
+  "optional_inputs_not_present": [],
+  "outputs": {
+    "verdict": {
+      "path": "/home/icela/dev/timesfm3-talk/results/exp_mtg_v2_verdict.parquet",
+      "sha256": "67334344736d11de60b7553bf67b5b5e00af71ca5549919d1ef85f72294d88a8"
+    },
+    "secondary": {
+      "path": "/home/icela/dev/timesfm3-talk/results/exp_mtg_v2_secondary.parquet",
+      "sha256": "379cd16fc8f771922af5c73e4a253a7b4ad469f04df85e805fd22f555087ec51"
+    },
+    "significance": {
+      "path": "/home/icela/dev/timesfm3-talk/results/exp_mtg_v2_significance.parquet",
+      "sha256": "2da2e02307ed0ead90097e97713bf245043ca6e036f8be1d555c019b72c6a1b6"
+    }
+  },
+  "settings": {
+    "n_boot": 2000,
+    "seed": 20261010,
+    "ci_level": 0.95,
+    "primary_ci": "paired whole-card cluster bootstrap",
+    "sensitivity_ci": "synchronized calendar-block bootstrap (origin_date)",
+    "horizons": [
+      28,
+      56
+    ]
+  },
+  "n_showcase_cards_in_pool_csv": 0,
+  "n_pool_csv": 40,
+  "n_cards_in_export": 40,
+  "pool_cards_missing_from_export": [],
+  "selfcheck_acceptance_failed": false,
+  "rule_version": "strict-2026-10-10",
+  "rule_description": "beats/loses iff primary cluster CI and calendar-block CI, for both median and n-weighted mean skill, all lie entirely above/below 0; else inconclusive",
+  "original_rule_version": "original-v2",
+  "verdicts": [
+    "pool h=28 inconclusive",
+    "pool h=56 loses to naive",
+    "excl_showcase h=28 inconclusive",
+    "excl_showcase h=56 loses to naive",
+    "showcase_only h=28 descriptive (no verdict)",
+    "showcase_only h=56 descriptive (no verdict)"
+  ],
+  "verdicts_original_rule": [
+    "pool h=28 inconclusive",
+    "pool h=56 loses to naive",
+    "excl_showcase h=28 inconclusive",
+    "excl_showcase h=56 loses to naive",
+    "showcase_only h=28 descriptive (no verdict)",
+    "showcase_only h=56 descriptive (no verdict)"
+  ]
+}
