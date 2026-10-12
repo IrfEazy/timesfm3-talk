@@ -237,6 +237,174 @@
    "context": "scripts/11_render_docs.py",
    "reason": "script file name",
    "expected_count": 2
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "3",
+   "context": "TimesFM-3",
+   "reason": "model or package name, not a quantity",
+   "expected_count": 6
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "10",
+   "context": "P10-P90",
+   "reason": "name of the P10-P90 quantile interval (definition, not a quantity)",
+   "expected_count": 2
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "90",
+   "context": "P10-P90",
+   "reason": "name of the P10-P90 quantile interval (definition, not a quantity)",
+   "expected_count": 2
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "2.5",
+   "context": "TimesFM-2.5",
+   "reason": "model or package name, not a quantity",
+   "expected_count": 4
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "2",
+   "context": "v2_exp_a_skill_by_horizon.png",
+   "reason": "version tag inside a committed figure file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "2",
+   "context": "v2_exp_c_coverage.png",
+   "reason": "version tag inside a committed figure file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "2",
+   "context": "v2_exp_c_conformal_mtg_exploratory.png",
+   "reason": "version tag inside a committed figure file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "2",
+   "context": "v2_exp_b_error_around_onset.png",
+   "reason": "version tag inside a committed figure file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "2",
+   "context": "v2_covariates_leakage_demo.png",
+   "reason": "version tag inside a committed figure file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "95",
+   "context": "95°",
+   "reason": "ordinal of the 95th percentile (definition, not a result)",
+   "expected_count": 2
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "2",
+   "context": "v2_latency.png",
+   "reason": "version tag inside a committed figure file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "10",
+   "context": "10_evidence_ledger.py",
+   "reason": "number inside a committed script file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "256",
+   "context": "sha256",
+   "reason": "name of the hash algorithm",
+   "expected_count": 1
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "11",
+   "context": "11_render_docs.py",
+   "reason": "number inside a committed script file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "2",
+   "context": "benchmark_pool_v2.csv",
+   "reason": "version tag inside a committed file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "slides/talk.md",
+   "literal": "3",
+   "context": "tfm3lab",
+   "reason": "model or package name, not a quantity",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/talk-outline.md",
+   "literal": "3",
+   "context": "TimesFM-3",
+   "reason": "model or package name, not a quantity",
+   "expected_count": 2
+  },
+  {
+   "doc": "docs/talk-outline.md",
+   "literal": "11",
+   "context": "11_render_docs.py",
+   "reason": "number inside a committed script file name",
+   "expected_count": 2
+  },
+  {
+   "doc": "docs/talk-outline.md",
+   "literal": "1",
+   "context": "log1p",
+   "reason": "name of the log1p transform",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/talk-outline.md",
+   "literal": "2.5",
+   "context": "TimesFM-2.5",
+   "reason": "model or package name, not a quantity",
+   "expected_count": 3
+  },
+  {
+   "doc": "docs/talk-outline.md",
+   "literal": "10",
+   "context": "P10-P90",
+   "reason": "name of the P10-P90 quantile interval (definition, not a quantity)",
+   "expected_count": 2
+  },
+  {
+   "doc": "docs/talk-outline.md",
+   "literal": "90",
+   "context": "P10-P90",
+   "reason": "name of the P10-P90 quantile interval (definition, not a quantity)",
+   "expected_count": 2
+  },
+  {
+   "doc": "docs/talk-outline.md",
+   "literal": "256",
+   "context": "sha256",
+   "reason": "name of the hash algorithm",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/talk-outline.md",
+   "literal": "2",
+   "context": "benchmark_pool_v2.csv",
+   "reason": "version tag inside a committed file name",
+   "expected_count": 1
   }
  ]
 }

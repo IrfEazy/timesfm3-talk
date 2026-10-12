@@ -13,11 +13,19 @@ Every public document is ``<template> -> <output>``; the registry
 
 Each output starts with an HTML comment naming its template. The comment is added
 by the renderer after the scan, so the scan covers authored text only.
+
+Slide documents (``front_matter=True``) start with a Marp YAML front-matter block. Its
+CSS sizes and colours are not claims, so that one leading block (``---`` ... ``---`` at
+the very start of the template) is blanked before the scan, and the generated comment
+goes right after it (Marp needs the front matter first). Nothing else is exempt: slide
+directives and every other comment in the body are scanned like prose, and a
+placeholder inside the front matter is an error.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -33,14 +41,36 @@ RENDERER = "scripts/11_render_docs.py"
 class PublicDoc:
     template: str
     output: str
+    front_matter: bool = False  # Marp slide document: leading YAML block is exempt from the scan
 
 
-# The single registry of public documents (later packages append slides / outline / README).
-PUBLIC_DOCS: tuple[PublicDoc, ...] = (PublicDoc("docs/report.md.template", "docs/report.md"),)
+# The single registry of public documents (later packages append README).
+PUBLIC_DOCS: tuple[PublicDoc, ...] = (
+    PublicDoc("docs/report.md.template", "docs/report.md"),
+    PublicDoc("slides/talk.md.template", "slides/talk.md", front_matter=True),
+    PublicDoc("docs/talk-outline.md.template", "docs/talk-outline.md"),
+)
 
 
 def header(doc: PublicDoc) -> str:
     return f"<!-- generated from {doc.template} by {RENDERER}; do not edit -->\n\n"
+
+
+_FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\n.*?\n---[ \t]*\n", re.DOTALL)
+
+
+def split_front_matter(text: str) -> tuple[str, str]:
+    """``(front matter block, rest)``; the block is empty when the text has none.
+
+    Only a block that opens on the very first line is front matter.
+    """
+    m = _FRONT_MATTER_RE.match(text)
+    return (text[: m.end()], text[m.end() :]) if m else ("", text)
+
+
+def _blank(block: str) -> str:
+    """Replace every character but newlines by a space (keeps line numbers)."""
+    return re.sub(r"[^\n]", " ", block)
 
 
 def load_allowlist(root: Path, path: str = ALLOWLIST_PATH) -> list[L.AllowedLiteral]:
@@ -85,7 +115,14 @@ def render_doc(root: Path, doc: PublicDoc, ledger: Mapping) -> tuple[str, str]:
         raise L.LedgerError(f"template {doc.template} not found")
     text = tpl.read_text()
     marked = L.render(text, ledger, mark=True)
-    return header(doc) + L.strip_marks(marked), marked
+    if not doc.front_matter:
+        return header(doc) + L.strip_marks(marked), marked
+    fm, rest = split_front_matter(marked)
+    if not fm:
+        raise L.LedgerError(f"{doc.template}: expected a leading front-matter block")
+    if L.strip_marks(fm) != fm:
+        raise L.LedgerError(f"{doc.template}: placeholders are not allowed in the front matter")
+    return fm + header(doc) + L.strip_marks(rest), _blank(fm) + rest
 
 
 def scan_doc(
