@@ -1,0 +1,583 @@
+{
+  "s1": {
+    "n_events": 20,
+    "per_event": [
+      {
+        "eligible_floor_0.25": 684,
+        "eligible_floor_1.00": 412,
+        "event_date": "2024-02-09",
+        "k": 7,
+        "n_candidates": 1402
+      },
+      {
+        "eligible_floor_0.25": 696,
+        "eligible_floor_1.00": 417,
+        "event_date": "2024-02-09",
+        "k": 14,
+        "n_candidates": 1402
+      },
+      {
+        "eligible_floor_0.25": 669,
+        "eligible_floor_1.00": 407,
+        "event_date": "2024-02-09",
+        "k": 28,
+        "n_candidates": 1402
+      },
+      {
+        "eligible_floor_0.25": 166,
+        "eligible_floor_1.00": 86,
+        "event_date": "2024-02-23",
+        "k": 7,
+        "n_candidates": 265
+      },
+      {
+        "eligible_floor_0.25": 164,
+        "eligible_floor_1.00": 46,
+        "event_date": "2024-02-23",
+        "k": 14,
+        "n_candidates": 265
+      },
+      {
+        "eligible_floor_0.25": 155,
+        "eligible_floor_1.00": 38,
+        "event_date": "2024-02-23",
+        "k": 28,
+        "n_candidates": 265
+      },
+      {
+        "eligible_floor_0.25": 1358,
+        "eligible_floor_1.00": 1046,
+        "event_date": "2024-03-08",
+        "k": 7,
+        "n_candidates": 1555
+      },
+      {
+        "eligible_floor_0.25": 1337,
+        "eligible_floor_1.00": 904,
+        "event_date": "2024-03-08",
+        "k": 14,
+        "n_candidates": 1555
+      },
+      {
+        "eligible_floor_0.25": 1323,
+        "eligible_floor_1.00": 789,
+        "event_date": "2024-03-08",
+        "k": 28,
+        "n_candidates": 1555
+      },
+      {
+        "eligible_floor_0.25": 635,
+        "eligible_floor_1.00": 381,
+        "event_date": "2024-04-19",
+        "k": 7,
+        "n_candidates": 1228
+      },
+      {
+        "eligible_floor_0.25": 630,
+        "eligible_floor_1.00": 383,
+        "event_date": "2024-04-19",
+        "k": 14,
+        "n_candidates": 1228
+      },
+      {
+        "eligible_floor_0.25": 616,
+        "eligible_floor_1.00": 372,
+        "event_date": "2024-04-19",
+        "k": 28,
+        "n_candidates": 1228
+      },
+      {
+        "eligible_floor_0.25": 1190,
+        "eligible_floor_1.00": 850,
+        "event_date": "2024-06-14",
+        "k": 7,
+        "n_candidates": 1719
+      },
+      {
+        "eligible_floor_0.25": 1138,
+        "eligible_floor_1.00": 801,
+        "event_date": "2024-06-14",
+        "k": 14,
+        "n_candidates": 1719
+      },
+      {
+        "eligible_floor_0.25": 1114,
+        "eligible_floor_1.00": 724,
+        "event_date": "2024-06-14",
+        "k": 28,
+        "n_candidates": 1719
+      },
+      {
+        "eligible_floor_0.25": 317,
+        "eligible_floor_1.00": 212,
+        "event_date": "2024-07-05",
+        "k": 7,
+        "n_candidates": 459
+      },
+      {
+        "eligible_floor_0.25": 307,
+        "eligible_floor_1.00": 198,
+        "event_date": "2024-07-05",
+        "k": 14,
+        "n_candidates": 459
+      },
+      {
+        "eligible_floor_0.25": 318,
+        "eligible_floor_1.00": 217,
+        "event_date": "2024-07-05",
+        "k": 28,
+        "n_candidates": 459
+      },
+      {
+        "eligible_floor_0.25": 660,
+        "eligible_floor_1.00": 415,
+        "event_date": "2024-08-02",
+        "k": 7,
+        "n_candidates": 1254
+      },
+      {
+        "eligible_floor_0.25": 694,
+        "eligible_floor_1.00": 443,
+        "event_date": "2024-08-02",
+        "k": 14,
+        "n_candidates": 1254
+      },
+      {
+        "eligible_floor_0.25": 732,
+        "eligible_floor_1.00": 482,
+        "event_date": "2024-08-02",
+        "k": 28,
+        "n_candidates": 1254
+      },
+      {
+        "eligible_floor_0.25": 708,
+        "eligible_floor_1.00": 440,
+        "event_date": "2024-09-27",
+        "k": 7,
+        "n_candidates": 1298
+      },
+      {
+        "eligible_floor_0.25": 697,
+        "eligible_floor_1.00": 434,
+        "event_date": "2024-09-27",
+        "k": 14,
+        "n_candidates": 1298
+      },
+      {
+        "eligible_floor_0.25": 695,
+        "eligible_floor_1.00": 430,
+        "event_date": "2024-09-27",
+        "k": 28,
+        "n_candidates": 1298
+      },
+      {
+        "eligible_floor_0.25": 362,
+        "eligible_floor_1.00": 307,
+        "event_date": "2024-10-25",
+        "k": 7,
+        "n_candidates": 365
+      },
+      {
+        "eligible_floor_0.25": 362,
+        "eligible_floor_1.00": 302,
+        "event_date": "2024-10-25",
+        "k": 14,
+        "n_candidates": 365
+      },
+      {
+        "eligible_floor_0.25": 361,
+        "eligible_floor_1.00": 302,
+        "event_date": "2024-10-25",
+        "k": 28,
+        "n_candidates": 365
+      },
+      {
+        "eligible_floor_0.25": 1076,
+        "eligible_floor_1.00": 465,
+        "event_date": "2024-11-15",
+        "k": 7,
+        "n_candidates": 1911
+      },
+      {
+        "eligible_floor_0.25": 927,
+        "eligible_floor_1.00": 431,
+        "event_date": "2024-11-15",
+        "k": 14,
+        "n_candidates": 1911
+      },
+      {
+        "eligible_floor_0.25": 815,
+        "eligible_floor_1.00": 423,
+        "event_date": "2024-11-15",
+        "k": 28,
+        "n_candidates": 1911
+      },
+      {
+        "eligible_floor_0.25": 526,
+        "eligible_floor_1.00": 255,
+        "event_date": "2025-01-24",
+        "k": 7,
+        "n_candidates": 960
+      },
+      {
+        "eligible_floor_0.25": 446,
+        "eligible_floor_1.00": 236,
+        "event_date": "2025-01-24",
+        "k": 14,
+        "n_candidates": 960
+      },
+      {
+        "eligible_floor_0.25": 413,
+        "eligible_floor_1.00": 221,
+        "event_date": "2025-01-24",
+        "k": 28,
+        "n_candidates": 960
+      },
+      {
+        "eligible_floor_0.25": 670,
+        "eligible_floor_1.00": 443,
+        "event_date": "2025-02-14",
+        "k": 7,
+        "n_candidates": 1239
+      },
+      {
+        "eligible_floor_0.25": 682,
+        "eligible_floor_1.00": 452,
+        "event_date": "2025-02-14",
+        "k": 14,
+        "n_candidates": 1239
+      },
+      {
+        "eligible_floor_0.25": 684,
+        "eligible_floor_1.00": 467,
+        "event_date": "2025-02-14",
+        "k": 28,
+        "n_candidates": 1239
+      },
+      {
+        "eligible_floor_0.25": 791,
+        "eligible_floor_1.00": 429,
+        "event_date": "2025-04-11",
+        "k": 7,
+        "n_candidates": 1341
+      },
+      {
+        "eligible_floor_0.25": 767,
+        "eligible_floor_1.00": 433,
+        "event_date": "2025-04-11",
+        "k": 14,
+        "n_candidates": 1341
+      },
+      {
+        "eligible_floor_0.25": 774,
+        "eligible_floor_1.00": 451,
+        "event_date": "2025-04-11",
+        "k": 28,
+        "n_candidates": 1341
+      },
+      {
+        "eligible_floor_0.25": 1615,
+        "eligible_floor_1.00": 1223,
+        "event_date": "2025-06-13",
+        "k": 7,
+        "n_candidates": 2097
+      },
+      {
+        "eligible_floor_0.25": 1645,
+        "eligible_floor_1.00": 1187,
+        "event_date": "2025-06-13",
+        "k": 14,
+        "n_candidates": 2097
+      },
+      {
+        "eligible_floor_0.25": 1663,
+        "eligible_floor_1.00": 1159,
+        "event_date": "2025-06-13",
+        "k": 28,
+        "n_candidates": 2097
+      },
+      {
+        "eligible_floor_0.25": 913,
+        "eligible_floor_1.00": 651,
+        "event_date": "2025-08-01",
+        "k": 7,
+        "n_candidates": 1366
+      },
+      {
+        "eligible_floor_0.25": 901,
+        "eligible_floor_1.00": 658,
+        "event_date": "2025-08-01",
+        "k": 14,
+        "n_candidates": 1366
+      },
+      {
+        "eligible_floor_0.25": 931,
+        "eligible_floor_1.00": 676,
+        "event_date": "2025-08-01",
+        "k": 28,
+        "n_candidates": 1366
+      },
+      {
+        "eligible_floor_0.25": 415,
+        "eligible_floor_1.00": 283,
+        "event_date": "2025-09-26",
+        "k": 7,
+        "n_candidates": 776
+      },
+      {
+        "eligible_floor_0.25": 418,
+        "eligible_floor_1.00": 270,
+        "event_date": "2025-09-26",
+        "k": 14,
+        "n_candidates": 776
+      },
+      {
+        "eligible_floor_0.25": 416,
+        "eligible_floor_1.00": 252,
+        "event_date": "2025-09-26",
+        "k": 28,
+        "n_candidates": 776
+      },
+      {
+        "eligible_floor_0.25": 805,
+        "eligible_floor_1.00": 532,
+        "event_date": "2025-11-21",
+        "k": 7,
+        "n_candidates": 1283
+      },
+      {
+        "eligible_floor_0.25": 809,
+        "eligible_floor_1.00": 540,
+        "event_date": "2025-11-21",
+        "k": 14,
+        "n_candidates": 1283
+      },
+      {
+        "eligible_floor_0.25": 796,
+        "eligible_floor_1.00": 491,
+        "event_date": "2025-11-21",
+        "k": 28,
+        "n_candidates": 1283
+      },
+      {
+        "eligible_floor_0.25": 740,
+        "eligible_floor_1.00": 392,
+        "event_date": "2026-01-23",
+        "k": 7,
+        "n_candidates": 1122
+      },
+      {
+        "eligible_floor_0.25": 731,
+        "eligible_floor_1.00": 397,
+        "event_date": "2026-01-23",
+        "k": 14,
+        "n_candidates": 1122
+      },
+      {
+        "eligible_floor_0.25": 818,
+        "eligible_floor_1.00": 417,
+        "event_date": "2026-01-23",
+        "k": 28,
+        "n_candidates": 1122
+      },
+      {
+        "eligible_floor_0.25": 595,
+        "eligible_floor_1.00": 350,
+        "event_date": "2026-03-06",
+        "k": 7,
+        "n_candidates": 870
+      },
+      {
+        "eligible_floor_0.25": 612,
+        "eligible_floor_1.00": 350,
+        "event_date": "2026-03-06",
+        "k": 14,
+        "n_candidates": 870
+      },
+      {
+        "eligible_floor_0.25": 627,
+        "eligible_floor_1.00": 349,
+        "event_date": "2026-03-06",
+        "k": 28,
+        "n_candidates": 870
+      },
+      {
+        "eligible_floor_0.25": 1216,
+        "eligible_floor_1.00": 636,
+        "event_date": "2026-04-24",
+        "k": 7,
+        "n_candidates": 1557
+      },
+      {
+        "eligible_floor_0.25": 1218,
+        "eligible_floor_1.00": 606,
+        "event_date": "2026-04-24",
+        "k": 14,
+        "n_candidates": 1557
+      },
+      {
+        "eligible_floor_0.25": 1280,
+        "eligible_floor_1.00": 620,
+        "event_date": "2026-04-24",
+        "k": 28,
+        "n_candidates": 1557
+      }
+    ],
+    "totals_by_k": {
+      "14": {
+        "eligible_floor_0.25": 15181,
+        "eligible_floor_1.00": 9488
+      },
+      "28": {
+        "eligible_floor_0.25": 15200,
+        "eligible_floor_1.00": 9287
+      },
+      "7": {
+        "eligible_floor_0.25": 15442,
+        "eligible_floor_1.00": 9808
+      }
+    }
+  },
+  "s2": {
+    "M": 5500,
+    "accepted_N": 5325,
+    "accepted_per_month": {
+      "2024-08": 221,
+      "2024-09": 204,
+      "2024-10": 208,
+      "2024-11": 226,
+      "2024-12": 223,
+      "2025-01": 220,
+      "2025-02": 198,
+      "2025-03": 229,
+      "2025-04": 226,
+      "2025-05": 237,
+      "2025-06": 220,
+      "2025-07": 214,
+      "2025-08": 222,
+      "2025-09": 224,
+      "2025-10": 216,
+      "2025-11": 247,
+      "2025-12": 232,
+      "2026-01": 216,
+      "2026-02": 201,
+      "2026-03": 228,
+      "2026-04": 216,
+      "2026-05": 213,
+      "2026-06": 215,
+      "2026-07": 227,
+      "2026-08": 42
+    },
+    "candidates_drawn": 5500,
+    "dates_with_eligible": 736,
+    "distinct_cards": 3937,
+    "eligible_pairs": 32138163,
+    "eligible_per_month": {
+      "2024-08": 1170468,
+      "2024-09": 1155971,
+      "2024-10": 1211063,
+      "2024-11": 1185042,
+      "2024-12": 1243584,
+      "2025-01": 1266933,
+      "2025-02": 1161069,
+      "2025-03": 1293966,
+      "2025-04": 1261361,
+      "2025-05": 1319601,
+      "2025-06": 1277021,
+      "2025-07": 1318108,
+      "2025-08": 1330814,
+      "2025-09": 1309971,
+      "2025-10": 1364994,
+      "2025-11": 1335443,
+      "2025-12": 1393024,
+      "2026-01": 1423774,
+      "2026-02": 1319301,
+      "2026-03": 1480142,
+      "2026-04": 1448695,
+      "2026-05": 1516336,
+      "2026-06": 1486682,
+      "2026-07": 1560376,
+      "2026-08": 304424
+    },
+    "pool_candidates_per_month": {
+      "2024-08": 226,
+      "2024-09": 208,
+      "2024-10": 220,
+      "2024-11": 233,
+      "2024-12": 231,
+      "2025-01": 228,
+      "2025-02": 204,
+      "2025-03": 238,
+      "2025-04": 234,
+      "2025-05": 247,
+      "2025-06": 226,
+      "2025-07": 224,
+      "2025-08": 229,
+      "2025-09": 232,
+      "2025-10": 223,
+      "2025-11": 253,
+      "2025-12": 249,
+      "2026-01": 221,
+      "2026-02": 206,
+      "2026-03": 238,
+      "2026-04": 220,
+      "2026-05": 216,
+      "2026-06": 219,
+      "2026-07": 232,
+      "2026-08": 43
+    },
+    "price_band_counts": {
+      "1-5": 2778,
+      "20+": 772,
+      "5-20": 1775
+    },
+    "rejected": 175,
+    "seed": 20261014,
+    "window": [
+      "2024-08-01",
+      "2026-08-06"
+    ]
+  },
+  "s3": {
+    "N_events": 13275,
+    "confirmatory": true,
+    "crossings_after_cooldown": 13275,
+    "crossings_after_same_day_dedup": 20658,
+    "crossings_before_cooldown": 21028,
+    "distinct_cards": 7151,
+    "distinct_months": 27,
+    "events_per_month": {
+      "2024-05": 357,
+      "2024-06": 494,
+      "2024-07": 437,
+      "2024-08": 475,
+      "2024-09": 439,
+      "2024-10": 502,
+      "2024-11": 448,
+      "2024-12": 589,
+      "2025-01": 505,
+      "2025-02": 498,
+      "2025-03": 490,
+      "2025-04": 528,
+      "2025-05": 409,
+      "2025-06": 334,
+      "2025-07": 345,
+      "2025-08": 580,
+      "2025-09": 347,
+      "2025-10": 511,
+      "2025-11": 549,
+      "2025-12": 633,
+      "2026-01": 674,
+      "2026-02": 613,
+      "2026-03": 651,
+      "2026-04": 620,
+      "2026-05": 603,
+      "2026-06": 488,
+      "2026-07": 156
+    },
+    "window": [
+      "2024-05-08",
+      "2026-07-09"
+    ]
+  }
+}

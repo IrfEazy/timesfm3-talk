@@ -1,0 +1,96 @@
+{
+  "_meta": {
+    "git_sha": "782b96e26051438ca4a47b5f01805e70147c2ca1",
+    "git_dirty": false,
+    "prereg_commit": "36d69c1b91ffaea04c30f27ca55bef492fcf0c2d",
+    "environment": {
+      "gpu_name": "cpu",
+      "cuda_version": null,
+      "torch_version": "2.14.0+cpu",
+      "device_count": 0
+    },
+    "checkpoint": null,
+    "seed": 20261014,
+    "as_of": "2026-09-04",
+    "live_end": false,
+    "written_at_utc": "2026-10-15T07:45:38.990895+00:00",
+    "package_versions": {
+      "requests": "2.34.2",
+      "py7zr": "1.1.3",
+      "pandas": "3.0.5",
+      "numpy": "2.5.2",
+      "scipy": "1.18.1",
+      "huggingface_hub": "1.29.0",
+      "timesfm": "3.0.0",
+      "timesfm3": "unknown",
+      "torch": "2.14.0+cpu"
+    }
+  },
+  "script": "13_v3_select",
+  "parameters": {
+    "as_of": "2026-09-04",
+    "panel": "data/cache/panel",
+    "catalog": "data/raw/catalog-2026-09-04",
+    "panel_end_loaded": "2026-08-06",
+    "s1_ks": [
+      7,
+      14,
+      28
+    ],
+    "s1_floors": [
+      0.25,
+      1.0
+    ],
+    "s2_window": [
+      "2024-08-01",
+      "2026-08-06"
+    ],
+    "s2_M": 5500,
+    "s2_seed": 20261014,
+    "s3_window": [
+      "2024-05-08",
+      "2026-07-09"
+    ]
+  },
+  "outputs": [
+    {
+      "path": "configs/v3/s1_skus.csv",
+      "bytes": 3434365,
+      "sha256": "dc1003b878583a5cbd354a546412d655c06fdc9f0d8b20a652e20c55ae33d99a"
+    },
+    {
+      "path": "configs/v3/release_events.csv",
+      "bytes": 797,
+      "sha256": "30faafe317416650fbca25e9cfbe8d594b7f32cb10b08234e15448f1f6b11b59"
+    },
+    {
+      "path": "configs/v3/s2_decisions.csv",
+      "bytes": 408972,
+      "sha256": "bf55b4d61c54747b253e5968b063fa6edad4365fe9ea0132952c0ac4842926d5"
+    },
+    {
+      "path": "configs/v3/s3_events.csv",
+      "bytes": 950050,
+      "sha256": "85eabe3f99631a3380f300363ba98830cfeb71b205e03d39856ff20f2883a1d1"
+    },
+    {
+      "path": "results/v3_census.json",
+      "bytes": 13771,
+      "sha256": "26a16ec4a1033494abbb4d5126cf1d8077b4b08bdac7447de60e333d5fa095ea"
+    },
+    {
+      "path": "data/cache/v3_requests.parquet",
+      "bytes": 12580658,
+      "sha256": "8206e550863caa33c088681693ddd7046b848d1b79bbc439c06f670562cec2c7"
+    }
+  ],
+  "counts": {
+    "single_cards": 95081,
+    "skus": 137073,
+    "release_events": 20,
+    "s1_units": 45823,
+    "s2_decisions": 5325,
+    "s3_events": 13275,
+    "requests": 64423
+  }
+}
