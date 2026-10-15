@@ -5,7 +5,7 @@ shock experiment.
 adjusted series — NOT the vintage a real forecaster would have seen at the
 time (plan finding #12: a "vintage" problem). Any claim about the model
 reacting to the 2022 inflation shock using this series is therefore softer
-evidence than the market-shock experiment on daily prices, and the talk
+evidence than the market-shock experiment on daily prices, and any report
 must disclose that, not silently treat CPI the same as SP500/VIX.
 """
 

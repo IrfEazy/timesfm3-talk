@@ -10,8 +10,8 @@ wheels/
 .venv
 
 # Raw/cached data — large, re-downloadable via scripts/01_fetch_data.py.
-# results/ (metrics + figures) is committed on purpose: the demo notebook
-# and slides must work offline, without Colab or network, on talk day.
+# results/ (metrics + figures) is committed on purpose: the figures, report
+# and evidence ledger must regenerate offline, without Colab or network.
 data/raw/
 data/cache/
 
@@ -19,9 +19,9 @@ data/cache/
 # compression, over GitHub's warning threshold, and re-generated every time
 # scripts/02_exp_mtg.py runs. scripts/02_exp_mtg.py writes a small (~8 MB)
 # committed slice — exp_mtg_demo_slice.parquet — alongside it in the same
-# run, which is what notebooks/demo.ipynb and scripts/06_make_figures.py
-# actually read. Only scripts/04_exp_calibration.py needs the full file,
-# and it already requires scripts/02 and 03 to have been run first.
+# run, which is what scripts/06_make_figures.py actually reads. Only
+# scripts/04_exp_calibration.py needs the full file, and it already requires
+# scripts/02 and 03 to have been run first.
 results/exp_mtg_raw_predictions.parquet
 
 # Same reason, larger: scripts/02b_exp_mtg_benchmark.py writes one row per

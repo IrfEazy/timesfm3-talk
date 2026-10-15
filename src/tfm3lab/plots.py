@@ -3,10 +3,9 @@ figdata.py and returns a matplotlib Axes/ndarray-of-Axes. Nothing here
 reads a file, calls plt.show(), or saves anything (see `save` at the
 bottom, the one exception, used only by scripts/06_make_figures.py).
 
-Both scripts/06_make_figures.py and notebooks/demo.ipynb import from here,
-so the demo and the slides render the same chart from the same code —
-there is exactly one place that knows what "the shock reaction chart"
-looks like.
+scripts/06_make_figures.py imports from here, so every figure renders
+the same chart from the same code — there is exactly one place that knows
+what "the shock reaction chart" looks like.
 """
 
 from __future__ import annotations
@@ -31,8 +30,8 @@ PALETTE = {
 
 
 def apply_style() -> None:
-    """Applies the deck's rcParams once. Idempotent — safe to call from
-    both the notebook (once, in the setup cell) and the figure script."""
+    """Applies the project's rcParams once. Idempotent — safe to call repeatedly,
+    e.g. from scripts/06_make_figures.py."""
     plt.rcParams.update(
         {
             "figure.facecolor": "white",
@@ -51,8 +50,8 @@ def plot_forecast_slice(
 ):
     """The hero chart: history up to the cut, then (if `reveal`) the real
     continuation against the model's forecast. `reveal=False` still fixes
-    the y-limits to the revealed state, so a live demo's two cells (cut,
-    then reveal) don't jump the axes between them.
+    the y-limits to the revealed state, so the cut and the reveal
+    renderings don't jump the axes between them.
 
     Forward-filled points (`sl.history_observed`/`sl.observed_mask` False)
     are overlaid as hollow markers on top of the solid line — never drawn as

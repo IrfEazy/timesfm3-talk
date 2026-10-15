@@ -8,7 +8,6 @@ a summary. Loaded via importlib (scripts/ are CLIs, not package modules).
 from __future__ import annotations
 
 import importlib.util
-import re
 import sys
 from pathlib import Path
 
@@ -97,11 +96,3 @@ def test_leaked_rows_never_enter_summary_or_main_outputs(exp05, tmp_path):
     assert (leak["watermark"] == "LEAKED — teaching contrast, not a result").all()
     with pytest.raises(cv.LeakedRowsError):
         cv.paired_skill_summary(leak, primary_horizon=7, n_boot=20)
-
-
-def test_slides_leakage_slide_has_no_numbers():
-    tpl = (ROOT / "slides" / "talk.md.template").read_text(encoding="utf-8")
-    slide = next(s for s in tpl.split("\n---\n") if s.lstrip().startswith("## LEAKED"))
-    assert "LEAKED - teaching contrast, not a result" in slide
-    assert "{{" not in slide
-    assert not re.search(r"\d", slide.replace("v2_covariates_leakage_demo.png", ""))

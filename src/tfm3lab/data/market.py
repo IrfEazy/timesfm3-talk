@@ -7,7 +7,7 @@ pretraining sources, alongside GIFT-Eval's own undated pretraining split).
 That is exactly why Experiment B compares pre-cutoff and post-cutoff shock
 events on the SAME tickers, instead of treating any single result here as
 proof of zero-shot generalization — see config.PRETRAIN_CUTOFF and
-docs/talk-outline.md.
+docs/analysis-plan.md.
 """
 
 from __future__ import annotations

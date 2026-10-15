@@ -154,7 +154,7 @@ def summarize_calibration(
 ) -> pd.DataFrame:
     """Pinball loss (averaged over all 9 quantiles), P10-P90 coverage, and
     mean PIT value per group. A well-calibrated group has coverage near
-    0.80 and mean PIT near 0.5 — see docs/talk-outline.md for how this
+    0.80 and mean PIT near 0.5 — see docs/report.md for how this
     feeds Experiment C.
     """
     observed = df[df["observed"]]

@@ -57,7 +57,7 @@ def mase(abs_errors, scale) -> float:
     `scale` is normally a single float from `in_sample_scale` (the standard
     Hyndman-Koehler definition: one scale per series). It may also be an
     array broadcastable against `abs_errors` for a locally-scaled variant —
-    that changes what the number means (see docs/talk-outline.md) and
+    that changes what the number means and
     should be a deliberate, documented choice at the call site, not a
     silent default.
     """

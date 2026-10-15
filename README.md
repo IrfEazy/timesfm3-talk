@@ -1,14 +1,14 @@
 # tfm3lab — TimesFM-3 put to the test
 
-Experiments backing a talk on TimesFM-3 (Google Research's zero-shot time-series foundation
+Experiments testing TimesFM-3 (Google Research's zero-shot time-series foundation
 model, released Aug 2026). The question isn't "is TimesFM-3 good" — Google's own launch
 material only reports average rank on GIFT-Eval/FEV-Bench/TIME, no task-level numbers, and
 its pretraining corpus includes public web data up to late 2023. The question is whether it
 generalizes on data it could not have seen, and how it behaves when a genuine shock — one
 that is *not* in its training data by construction — hits.
 
-See `docs/talk-outline.md` for the full narrative and `docs/talk-outline.md`'s "Domande
-scomode" section for the hard questions this is built to survive.
+See `docs/report.md` for the results report and `docs/analysis-plan.md` for the
+preregistered analysis plan.
 
 ## What's here
 
@@ -24,8 +24,8 @@ preregistered grid (context lengths x horizons x transform x make_positive x
 univariate/multivariate/placebo-panel) instead of the single fixed config
 above — see `docs/analysis-plan.md` and
 `configs/benchmark_preregistered.example.json`. Its outputs
-(`exp_mtg_benchmark_*.parquet`) are separate from `02_exp_mtg.py`'s and never
-feed the numbers already committed in `docs/talk-outline.md` or the slides.
+(`exp_mtg_benchmark_*.parquet`) are separate files from `02_exp_mtg.py`'s
+`exp_mtg_*.parquet`, and running 02b does not change `02_exp_mtg.py` outputs.
 A real (non-`--dry-run`) run requires `--as-of <YYYY-MM-DD>` — the cached
 data's own cutoff, recorded verbatim in the run manifest rather than inferred
 from today's clock.
@@ -115,18 +115,18 @@ This machine has no GPU. The design: **the same scripts** run unmodified in both
 - **Colab** (`notebooks/run_on_colab.ipynb`): clones this repo, `uv sync --extra cuda`, runs
   the GPU-hungry steps (`01_fetch_data.py`'s MTG backfill, `02`/`03`/`05`).
 - **Local**: everything else — code, tests, `04_exp_calibration.py` (pure re-analysis, no
-  model calls), figures, slides, the demo notebook.
+  model calls), figures, the report, the evidence ledger.
 
-The boundary is `results/*.parquet`: heavy scripts write there, light scripts (`06`, `07`,
-`notebooks/demo.ipynb`) only ever read from there. Point `TFM3LAB_DATA_ROOT` at a shared
-location (e.g. a mounted Google Drive folder) if you want Colab and local runs to share the
-same `data/cache/` instead of re-fetching.
+The boundary is `results/*.parquet`: heavy scripts write there, light scripts (`06`, `10`,
+`11`) only ever read from there (or from the ledger built from it). Point
+`TFM3LAB_DATA_ROOT` at a shared location (e.g. a mounted Google Drive folder) if you want
+Colab and local runs to share the same `data/cache/` instead of re-fetching.
 
 ### Why `results/` is committed
 
-The demo notebook must work **offline, with no Colab and no network**, on talk day. Results
-are small (parquet, not raw archives) — they're checked in so the repo alone is enough to
-give the talk.
+Figures, report and evidence ledger must regenerate **offline, with no Colab and no
+network**. Results are small (parquet, not raw archives) — they're checked in so the repo
+alone reproduces the figures, the report and the ledger.
 
 ## Known limitations (say these out loud, don't bury them)
 
@@ -177,12 +177,11 @@ src/tfm3lab/
     mtg.py          TCGCSV ingestion (+ MTGJSON fallback)
     market.py       yfinance (SP500/VIX/Gold/Oil) + shock detection
     macro.py        FRED CPI YoY
-scripts/          00-07 + 02b, numbered/lettered in dependency order (see "Running it")
+scripts/          numbered/lettered in dependency order (see "Running it")
 configs/          declarative benchmark configs + card manifests (examples, no invented 30+ card selection)
 tests/            fast + offline by default; opt-in live/model tests clearly marked
-docs/talk-outline.md   the actual talk, with numbered placeholders for results not yet run
-notebooks/        run_on_colab.ipynb (bootstrap), demo.ipynb (offline, for the live demo)
-slides/           Marp source; scripts/07_build_slides.py injects numbers from results/
+docs/report.md    the results report, rendered from the evidence ledger
+notebooks/        run_on_colab.ipynb (bootstrap)
 results/          committed — see "why results/ is committed" above
 ```
 
@@ -195,5 +194,6 @@ uv run python scripts/00_probe_tcgcsv.py            # confirms the live TCGCSV s
 uv run python scripts/01_fetch_data.py --as-of <YYYY-MM-DD> --mtg-start <30 days ago>   # quick real-data check
 ```
 
-Every number that ends up on a slide should be traceable to a file in `results/` — no number
-gets typed by hand into `docs/talk-outline.md` or `slides/`.
+Every number in the report is traceable to a file in `results/` through the evidence ledger —
+no number gets typed by hand into `docs/report.md.template`, and
+`scripts/11_render_docs.py --check` fails if one is.

@@ -50,8 +50,8 @@ def valid_origins(
     An origin qualifies when both its context (origin-context_len .. origin)
     and its target (origin .. origin+horizon) fit inside the series. If
     `max_origins` truncates the result, only the *last* `max_origins` are
-    kept — callers must log how many were dropped (see docs/talk-outline.md's
-    "no silent caps" rule); this function does not log for you.
+    kept — callers must log how many were dropped (the "no silent caps"
+    rule); this function does not log for you.
     """
     if n <= 0:
         raise ValueError(f"n must be positive, got {n}")

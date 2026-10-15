@@ -313,7 +313,7 @@ Ablation grid:
   configurazioni devono essere confrontate sulle stesse origini".
 
 Card pool:
-  showcase (7 carte, DEFAULT_CARDS) per il talk;
+  showcase (7 carte, DEFAULT_CARDS) per il report;
   benchmark manifest piu' ampio (30+) OPZIONALE -- formato + criteri
   documentati in configs/benchmark_cards.example.csv, nessuna selezione
   reale di 30+ carte inventata in questo branch (richiederebbe un crawl

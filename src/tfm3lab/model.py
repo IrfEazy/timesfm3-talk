@@ -3,7 +3,7 @@
 Experiment scripts go through this module rather than importing timesfm3
 directly, for three reasons:
 
-1. One place enforces the invariant the whole talk's calibration claims
+1. One place enforces the invariant the calibration claims
    rest on — 9 sorted quantiles, median at a known index — via
    `assert_quantile_shape`, checked on every batch, not just in a test.
 2. One place implements the "one call, many horizons" optimization: a
@@ -50,8 +50,8 @@ class Forecaster(Protocol):
 
 
 def assert_quantile_shape(quantiles: np.ndarray) -> None:
-    """Fail loudly if the checkpoint's quantile grid isn't what the talk
-    assumes. Cheap enough to call on every batch, not just in tests."""
+    """Fail loudly if the checkpoint's quantile grid isn't what the calibration
+    analysis assumes. Cheap enough to call on every batch, not just in tests."""
     if quantiles.shape[-1] != config.N_QUANTILES:
         raise AssertionError(
             f"expected {config.N_QUANTILES} quantiles, got shape {quantiles.shape} "

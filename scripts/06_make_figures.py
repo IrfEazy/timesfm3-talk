@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Regenerates every slide figure from results/*.parquet — nothing here
+"""Regenerates every figure from results/*.parquet — nothing here
 reads from the model or the network. Safe to run locally, without a GPU,
 right after pulling fresh results from a Colab/Kaggle run.
 
 All data-shaping lives in tfm3lab.figdata, all rendering in tfm3lab.plots —
-this script is just a registry of (name, builder) pairs plus a loop, so
-notebooks/demo.ipynb can import and reuse the exact same functions.
+this script is just a registry of (name, builder) pairs plus a loop.
 
 Usage:
     uv run scripts/06_make_figures.py

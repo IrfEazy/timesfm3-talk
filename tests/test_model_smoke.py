@@ -42,8 +42,8 @@ def test_real_checkpoint_returns_expected_quantile_shape():
 def test_real_checkpoint_forecast_is_the_median_quantile():
     # Ground truth from timesfm3.TimesFM3Forecaster.predict_batch: `forecast`
     # is defined as raw[..., median_quantile_index], not a separately
-    # estimated mean — this is what makes the log1p ablation (docs/talk-
-    # outline.md) safe: any monotonic transform's point forecast survives
+    # estimated mean — this is what makes the log1p ablation (docs/analysis-
+    # plan.md) safe: any monotonic transform's point forecast survives
     # inversion exactly like its quantiles do, because both are the same
     # kind of statistic.
     forecaster = load_forecaster(per_core_batch_size=1)

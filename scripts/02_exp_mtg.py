@@ -161,19 +161,19 @@ def main() -> None:
     # zstd instead of the default snappy: ~33% smaller for the same content
     # (measured: 49.3 MB -> 32.8 MB on the full run), which matters because
     # this file is gitignored (see .gitignore) but the repo still has to
-    # move it around (Kaggle -> Drive -> local) more than once per talk.
+    # move it around (Kaggle -> Drive -> local) more than once per run.
     raw_df.to_parquet(
         config.RESULTS_DIR / "exp_mtg_raw_predictions.parquet", index=False, compression="zstd"
     )
 
-    # A small, committed slice for notebooks/demo.ipynb and scripts/06_make_figures.py:
+    # A small, committed slice for scripts/06_make_figures.py:
     # the full file is gitignored (49 MB, over GitHub's warning threshold),
-    # but the demo must still work fully offline. Written here, in the same
+    # but the figures must still regenerate fully offline. Written here, in the same
     # block that writes the parent file, rather than in a separate script —
     # a separate script is a second thing that can be forgotten after a
     # re-run and would silently describe a *previous* run's forecasts.
     # transform=="identity" & mode=="timesfm3_univariate" is the one
-    # combination every demo/slide chart actually reads; measured at 8.42 MB
+    # combination every committed chart actually reads; measured at 8.42 MB
     # with all 9 quantile columns kept (dropping to q10/q90 only saves
     # little and breaks the quantile-bin calibration diagnostic, which needs the full grid).
     demo_slice = raw_df[

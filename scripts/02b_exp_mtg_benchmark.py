@@ -5,10 +5,9 @@ over the MTG card pool, multi-baseline leaderboard, TimesFM-3 or TimesFM-2.5.
 
 This is Experiment A's PREREGISTERED evaluation entry point -- distinct from
 scripts/02_exp_mtg.py, whose fixed single-config output
-(results/exp_mtg_*.parquet) backs the numbers already committed in
-docs/talk-outline.md. This script's own outputs are prefixed
-exp_mtg_benchmark_* and are never read by 02_exp_mtg.py, 04-07, or the
-existing slides -- running this script does not change any existing number.
+(results/exp_mtg_*.parquet) is a separate set of files. This script's outputs
+are prefixed exp_mtg_benchmark_*, and running this script does not change any
+02_exp_mtg.py output.
 
 Usage:
     uv run scripts/02b_exp_mtg_benchmark.py \

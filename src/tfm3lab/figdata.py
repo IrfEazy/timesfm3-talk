@@ -1,4 +1,4 @@
-"""Data-shaping for the demo/slide figures — pure pandas/numpy, no matplotlib.
+"""Data-shaping for the report figures — pure pandas/numpy, no matplotlib.
 
 Split out from plotting (see plots.py) so the fragile parts — reconstructing
 a truth series across a gap the data doesn't cover, picking a demo window
@@ -42,10 +42,10 @@ def load_mtg_predictions(
     """Loads MTG raw predictions, preferring the small demo slice over the
     49 MB full file whenever the request matches what the slice contains.
 
-    Returns (dataframe, path_used) — callers (the demo notebook especially)
-    should print the path: silently falling back to a file that may not
-    exist offline is a `FileNotFoundError` in front of an audience, not a
-    graceful degradation, so make the choice visible instead of silent.
+    Returns (dataframe, path_used) — callers should print the path:
+    silently falling back to a file that may not exist offline is a
+    `FileNotFoundError` mid-run, not a graceful degradation, so make the
+    choice visible instead of silent.
     """
     if path is not None:
         df = pd.read_parquet(path)
@@ -238,9 +238,9 @@ def build_forecast_slice(
     `require_observed_targets=True` raises if any target point in this
     window is forward-filled rather than a real observation — set this for
     any window whose chart will be presented as "reale" (e.g. the hero
-    slide), so a forward-filled value can never get drawn as if it were an
-    actual market/TCGCSV print. Callers that only explore data (e.g. the
-    demo notebook scrubbing through origins) should leave it False and
+    chart), so a forward-filled value can never get drawn as if it were an
+    actual market/TCGCSV print. Callers that only explore data (e.g.
+    scrubbing through origins interactively) should leave it False and
     instead use `observed_mask`/`history_observed` to render imputed points
     distinctly (see plots.plot_forecast_slice).
 

@@ -56,10 +56,8 @@ def test_gate_passes_on_committed_docs():
 
 
 def test_registry_and_header():
-    assert [(d.template, d.output) for d in P.PUBLIC_DOCS][:3] == [
+    assert [(d.template, d.output) for d in P.PUBLIC_DOCS] == [
         ("docs/report.md.template", "docs/report.md"),
-        ("slides/talk.md.template", "slides/talk.md"),
-        ("docs/talk-outline.md.template", "docs/talk-outline.md"),
     ]
     text = (REPO / "docs/report.md").read_text()
     first = text.splitlines()[0]
@@ -185,89 +183,3 @@ def test_template_leading_comment_digit_is_flagged(sandbox):
     P.write_docs(sandbox, out=lambda *_: None)
     rc, log = _check(sandbox)
     assert rc == 1 and "UNTRACED NUMBER" in log and "'7'" in log
-
-
-# ---------------------------------------------------------------- slides and outline
-
-
-SLIDE_TPL = "slides/talk.md.template"
-
-
-def _slide(root):
-    return root / SLIDE_TPL
-
-
-def test_slide_front_matter_first_then_header():
-    text = (REPO / "slides/talk.md").read_text()
-    assert text.startswith("---\nmarp: true\n")
-    fm, rest = P.split_front_matter(text)
-    assert rest.startswith(
-        "<!-- generated from slides/talk.md.template by scripts/11_render_docs.py; do not edit -->"
-    )
-    assert "{{" not in text and "MANCA" not in text
-
-
-def test_front_matter_digits_are_exempt_but_body_digits_are_not(sandbox):
-    tpl = _slide(sandbox)
-    assert "26px" in tpl.read_text().split("\n---\n")[0]  # CSS digits sit in the front matter
-    tpl.write_text(tpl.read_text() + "\nIl modello vince di 0.5 punti.\n")
-    P.write_docs(sandbox, out=lambda *_: None)
-    rc, log = _check(sandbox)
-    assert rc == 1 and "'0.5'" in log
-
-
-def test_slide_directive_digits_are_flagged(sandbox):
-    tpl = _slide(sandbox)
-    tpl.write_text(tpl.read_text().replace("<!-- _paginate: false -->", "<!-- _class: s7 -->", 1))
-    P.write_docs(sandbox, out=lambda *_: None)
-    rc, log = _check(sandbox)
-    assert rc == 1 and "'7'" in log
-
-
-def test_front_matter_only_at_document_start(sandbox):
-    tpl = _slide(sandbox)
-    fm, rest = P.split_front_matter(tpl.read_text())
-    tpl.write_text("Intro\n\n" + fm + rest)  # block no longer first: not exempt, not found
-    with pytest.raises(L.LedgerError, match="front-matter"):
-        P.render_doc(sandbox, P.PUBLIC_DOCS[1], P.load_committed_ledger(sandbox))
-
-
-def test_placeholder_in_front_matter_rejected(sandbox):
-    tpl = _slide(sandbox)
-    tpl.write_text(tpl.read_text().replace("26px", "{{m.grid.h_primary_1}}px", 1))
-    with pytest.raises(L.LedgerError, match="front matter"):
-        P.render_doc(sandbox, P.PUBLIC_DOCS[1], P.load_committed_ledger(sandbox))
-
-
-def test_split_front_matter_unit():
-    assert P.split_front_matter("no\n---\na: 1\n---\n") == ("", "no\n---\na: 1\n---\n")
-    assert P.split_front_matter("---\na: 1\n---\nbody\n") == ("---\na: 1\n---\n", "body\n")
-    assert P._blank("a 1\nb") == "   \n "
-
-
-def test_slides_quote_ledger_verdicts_and_labels():
-    tpl = (REPO / SLIDE_TPL).read_text()
-    for needle in (
-        "{{a.verdict.pool.h28.median.verdict}}",
-        "{{a.verdict.pool.h56.median.verdict}}",
-        "{{b.tfm3.rule.timesfm3_univariate.none.promotion.verdict}}",
-    ):
-        assert f'"{needle}"' in tpl
-    for label in (
-        "descrittivo",
-        "Esplorativo - split post-hoc",
-        "non valutabile come preregistrato",
-    ):
-        assert label in tpl
-    assert "dati post-cutoff" in tpl
-    assert '"mai visto"' in tpl  # the phrase appears only as the claim we do not make
-    assert "Appendice" in tpl and "raccomandazione di deploy" in tpl
-    for fig in sorted((REPO / "results/figures").glob("v2_*.png")):
-        assert f"../results/figures/{fig.name}" in tpl
-
-
-def test_outline_has_no_v1_claims():
-    out = (REPO / "docs/talk-outline.md").read_text()
-    assert "Il cuore del talk" not in out.replace('"il cuore del talk"', "")
-    assert "MASE" not in out and "[NUMERO]" not in out
-    assert "dati post-cutoff" in out

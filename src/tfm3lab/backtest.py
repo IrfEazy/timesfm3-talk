@@ -37,7 +37,7 @@ class ValueTransform:
     forecasts) before scoring — `actual` is never transformed, so every
     transform is scored on equal footing in the original domain.
 
-    This is what the raw-vs-log1p ablation (docs/talk-outline.md) needs:
+    This is what the raw-vs-log1p ablation (docs/analysis-plan.md) needs:
     since TimesFM-3's point forecast is defined as the median quantile
     (verified against the installed timesfm3 source, not assumed), any
     monotonic transform's point forecast survives inversion exactly like

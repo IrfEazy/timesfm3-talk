@@ -3,7 +3,7 @@ ts_id label passed to predict_batch? It shouldn't — ts_id is meant to be an
 opaque tracking label, not a model input. If this test ever fails, a card's
 NAME (e.g. "The One Ring [LTR]") would be a channel for metadata leakage
 into the forecast, which would silently invalidate every zero-shot claim in
-this project's talk (the model would be reacting to the label, not learning
+this project (the model would be reacting to the label, not learning
 from the time series alone) — see openai.review.md's ts_id-invariance ask.
 
 Skipped by default: needs network, the gated HF checkpoint, and either

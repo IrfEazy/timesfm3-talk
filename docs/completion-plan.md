@@ -173,6 +173,8 @@ Planned routing: scouts and drafters on `haiku`. Developers on `sonnet`, with `o
 - Write `docs/report.md` (2–4 pages). Its conclusions follow the §4 rules, including "loses to naive" or "inconclusive".
 - Update `talk-outline.md` and the slides. The numbers come only from the ledger, and the template's hard-coded numbers move into the ledger or get a source note.
 
+> Slide, talk-outline and talk-material items in Phase 3 and Phase 4 were dropped on 2026-10-14 by the owner.
+
 ### Phase 4: presentation polish
 
 - README rewrite, recruiter-first and in English, as you specified. The Italian talk material stays.
