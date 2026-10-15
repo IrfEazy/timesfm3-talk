@@ -1,0 +1,65 @@
+[
+  {
+    "estimand": "mean over events of ALE_TimesFM - ALE_naive (k=14, floor 1.00)",
+    "incomplete_blocks": [],
+    "intervals": {
+      "t": [
+        1.3495467854305847,
+        2.3563815495306537
+      ]
+    },
+    "level": 0.9833333333333333,
+    "n": 20,
+    "p": 1.9073486328125e-06,
+    "point": 1.8529641674806192,
+    "status": "complete",
+    "study": "S1",
+    "unit": "events",
+    "verdict": "loses to naive"
+  },
+  {
+    "estimand": "mean advantage A of P_TFM vs buying now",
+    "incomplete_blocks": [],
+    "intervals": {
+      "block": [
+        -0.004500558823363387,
+        0.004080350808763611
+      ],
+      "cluster": [
+        -0.004024536973946786,
+        0.0034569320160610785
+      ]
+    },
+    "level": 0.9833333333333333,
+    "n": 5325,
+    "p": null,
+    "point": -0.00032762209001451154,
+    "status": "complete",
+    "study": "S2",
+    "unit": "decisions",
+    "verdict": "inconclusive"
+  },
+  {
+    "confirmatory": true,
+    "estimand": "mean over events of ALE_TimesFM - ALE_hold (h=28)",
+    "incomplete_blocks": [],
+    "intervals": {
+      "block": [
+        0.054648242524348654,
+        0.09047712296528364
+      ],
+      "cluster": [
+        0.06270230454434035,
+        0.08067236929678626
+      ]
+    },
+    "level": 0.9833333333333333,
+    "n": 13263,
+    "p": null,
+    "point": 0.07136412819273605,
+    "status": "complete",
+    "study": "S3",
+    "unit": "events",
+    "verdict": "loses to hold"
+  }
+]
