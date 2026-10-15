@@ -274,6 +274,39 @@ def read_forecasts(path: str | Path) -> pd.DataFrame:
     return out.sort_values(["request_id", "step"], kind="mergesort").reset_index(drop=True)
 
 
+# Preregistered floor (analysis-plan-v3 section 2, scaled: 0.001 x q(origin) ~ 0.001) and
+# the relative tolerance used to recognise a floored value (Amendment A1).
+FLOOR_VALUE = 0.001
+FLOOR_REL_TOL = 1e-9
+
+
+def floored_mask(values) -> np.ndarray:
+    """True where a value equals the floor (float32 0.001, as the runner writes it)
+    within FLOOR_REL_TOL relative."""
+    ref = float(np.float32(FLOOR_VALUE))
+    v = np.asarray(values, dtype=np.float64)
+    return np.abs(v - ref) <= FLOOR_REL_TOL * ref
+
+
+def rearrange_quantiles(forecasts_df: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    """Amendment A1: sort the nine quantiles of every row ascending and set the
+    point forecast to the sorted q50 in changed rows. Rows already non-decreasing
+    are left untouched (point included). Returns (new frame, number of changed rows)."""
+    out = forecasts_df.copy()
+    if not len(out):
+        return out, 0
+    cols = list(QUANTILE_COLUMNS)
+    before = out[cols].to_numpy()
+    after = np.sort(before, axis=1)
+    changed = (after != before).any(axis=1)
+    n = int(changed.sum())
+    if n:
+        for j, name in enumerate(cols):
+            out.loc[changed, name] = after[changed, j].astype(out[name].dtype)
+        out.loc[changed, "point"] = out.loc[changed, "q50"].astype(out["point"].dtype)
+    return out, n
+
+
 def _first_id(ids: pd.Series, mask: np.ndarray) -> str:
     return str(ids.to_numpy()[int(np.argmax(mask))])
 

@@ -315,3 +315,61 @@ def test_missing_subtype_round_trips_with_quote_keys(missing):
         == (skus["subtype"].map(lambda v: not isinstance(v, str) or v in ("", "None"))).sum()
     )
     assert out["has_outcome"].all() and out["tf_available"].all()
+
+
+def _floor_world(n_events=12):
+    world = _world(n_events=n_events, ks=(7, 14, 28))
+    skus, index, q = world
+    f = _forecasts(skus, q, index)
+    # every 5th request: the q50 path hits the floor at step 3; paths are 1..90-k
+    steps = []
+    for rid, k in zip(f["request_id"], skus["k"], strict=True):
+        steps.append(
+            pd.DataFrame(
+                {
+                    "request_id": rid,
+                    "step": np.arange(1, 91 - k),
+                    "q50": 1.0,
+                    "q10": 0.9,
+                    "q90": 1.1,
+                    "last": 90 - k,
+                }
+            )
+        )
+    path = pd.concat(steps, ignore_index=True)
+    path = path.merge(f[["request_id", "q50"]].rename(columns={"q50": "end"}), on="request_id")
+    final = path["step"] == path["last"]
+    path.loc[final, "q50"] = path.loc[final, "end"]
+    hit = np.arange(len(f)) % 5 == 0
+    hit_ids = set(f["request_id"][hit])
+    bad = path["request_id"].isin(hit_ids) & (path["step"] == 3)
+    path.loc[bad, "q50"] = np.float32(0.001)
+    return world, path.drop(columns=["end", "last"]), hit_ids, hit
+
+
+def test_floor_sensitivity_restricts_to_skus_whose_median_never_floored():
+    world, path, hit_ids, _ = _floor_world()
+    out = _errors(world, forecasts=path)
+    mask = ev.median_above_floor_mask(out, path)
+    ids = out.apply(
+        lambda r: ev.request_id(r["k"], r["event_date"], r["product_id"], r["subtype"]), axis=1
+    )
+    assert (mask == ~ids.isin(hit_ids)).all()
+    at14 = out["k"] == 14
+    res = ev.floor_sensitivity(out, path)
+    assert res["k"] == 14 and "verdict" not in res
+    assert res["n_skus_floor_1"] == int(at14.sum())
+    assert res["n_skus_median_above_floor"] == int((mask & at14).sum()) < int(at14.sum())
+    assert res["n_events"] == 12 and res["n_events_total"] == 12
+    lo, hi = res["t_ci_95"]
+    assert lo <= res["mean_diff"] <= hi
+    ex = ev.exploratory_results(out, None, forecasts=path)
+    assert ex["exploratory_q50_above_floor"] == res
+    assert "exploratory_q50_above_floor" not in ev.exploratory_results(out)
+
+
+def test_floor_sensitivity_missing_path_step_is_excluded():
+    world, path, _, _ = _floor_world(n_events=3)
+    out = _errors(world, forecasts=path)
+    short = path[path["step"] != 10]
+    assert not ev.median_above_floor_mask(out, short).any()

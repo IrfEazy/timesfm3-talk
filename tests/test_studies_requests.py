@@ -437,3 +437,50 @@ def test_validate_forecasts_on_a_partial_run_needs_the_matching_request_subset()
     with pytest.raises(ValueError, match="r002"):
         rq.validate_forecasts(requests_df, done)
     rq.validate_forecasts(requests_df.iloc[:2], done)
+
+
+# ------------------------------------------------------------------ Amendment A1
+
+
+def test_rearrange_sorts_crossing_rows_and_sets_point_to_q50():
+    requests_df = make_requests(2, horizon=2)
+    f = make_forecasts(requests_df)
+    orig = f.copy()
+    f.loc[1, "q10"] = np.float32(0.5)  # above q20.. -> crossing
+    f.loc[1, "q20"] = np.float32(0.001)
+    out, n = rq.rearrange_quantiles(f)
+    assert n == 1
+    q = out.loc[1, list(rq.QUANTILE_COLUMNS)].to_numpy(dtype=float)
+    assert (np.diff(q) >= 0).all()
+    assert out.loc[1, "point"] == out.loc[1, "q50"]
+    # untouched rows are identical, input is not mutated
+    keep = [0, 2, 3]
+    pd.testing.assert_frame_equal(out.loc[keep], orig.loc[keep])
+    assert f.loc[1, "q10"] == np.float32(0.5)
+    rq.validate_forecasts(requests_df, out)
+    assert out["point"].dtype == np.float32 and out["q10"].dtype == np.float32
+
+
+def test_rearrange_never_alters_monotone_rows_even_if_point_differs_from_q50():
+    requests_df = make_requests(2, horizon=2)
+    f = make_forecasts(requests_df)
+    f["point"] = f["point"] * np.float32(1.1)
+    out, n = rq.rearrange_quantiles(f)
+    assert n == 0
+    pd.testing.assert_frame_equal(out, f)
+    out, n = rq.rearrange_quantiles(f.iloc[0:0])
+    assert n == 0 and len(out) == 0
+
+
+def test_validate_stays_strict_without_rearrangement():
+    requests_df = make_requests(1, horizon=1)
+    f = make_forecasts(requests_df)
+    f.loc[0, "q10"] = np.float32(5.0)
+    with pytest.raises(ValueError, match="not non-decreasing"):
+        rq.validate_forecasts(requests_df, f)
+    rq.validate_forecasts(requests_df, rq.rearrange_quantiles(f)[0])
+
+
+def test_floored_mask_matches_float32_floor_only():
+    v = np.array([np.float32(0.001), 0.001, 0.0010001, 0.0, 1.0])
+    assert rq.floored_mask(v).tolist() == [True, False, False, False, False]

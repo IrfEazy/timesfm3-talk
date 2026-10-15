@@ -466,3 +466,70 @@ def test_manifest_records_panel_input(world, complete_forecasts, complete_run):
     assert panel["first_day"] == files[0].stem and panel["last_day"] == files[-1].stem
     assert panel["n_days"] == len(files) and panel["n_skus"] > 0
     assert panel["path"]
+
+
+# ------------------------------------------------------------------ Amendment A1
+
+
+def test_clean_run_records_zero_rearrangement_and_model_behaviour(complete_run):
+    res = complete_run / "results"
+    mb = json.loads((res / "v3_model_behaviour.json").read_text())
+    assert mb["amendment"] == "A1" and set(mb["studies"]) == {"S1", "S2", "S3"}
+    assert all(n == 0 for n in mb["rows_rearranged_by_block"].values())
+    assert set(mb["rows_rearranged_by_block"]) == {"1", "2", "3", "4"}
+    for st in mb["studies"].values():
+        assert st["floored_share_all_quantiles"] == 0.0
+        assert st["share_requests_q50_floored_any_step"] == 0.0
+        assert set(st["floored_share_by_quantile"]) == set(rq.QUANTILE_COLUMNS)
+    manifest = json.loads(next((res / "manifests").glob("exp-v3-evaluate-*.json")).read_text())
+    assert manifest["quantile_rearrangement"]["rows_changed"] == 0
+    assert any(o["path"] == "results/v3_model_behaviour.json" for o in manifest["outputs"])
+    s1 = json.loads((res / "v3_s1_summary.json").read_text())
+    sens = s1["exploratory"]["exploratory_q50_above_floor"]
+    assert sens["k"] == 14 and "verdict" not in sens
+    assert sens["n_skus_median_above_floor"] == sens["n_skus_floor_1"]  # nothing floored
+    assert sens["n_events"] == s1["primary"]["G"]
+    assert len(sens["t_ci_95"]) == 2
+
+
+def test_crossing_rows_are_rearranged_before_strict_validation(world, complete_forecasts, tmp_path):
+    import shutil
+
+    fc = tmp_path / "fc_crossing"
+    shutil.copytree(complete_forecasts, fc)
+    part = sorted((fc / "block=1").glob("part-*.parquet"))[0]
+    table = pq.read_table(part)
+    meta = table.schema.metadata
+    df = table.to_pandas()
+    assert df["request_id"].str.startswith("S1|").any()
+    df.loc[0:2, "q10"] = np.float32(50.0)  # three crossing rows
+    df.loc[3:5, "q20"] = np.float32(0.001)  # floored but monotone
+    df.loc[3:5, "q10"] = np.float32(0.001)
+    df.loc[6, "q50"] = np.float32(0.001)  # floored median; crossing with q60?
+    df.loc[6, ["q10", "q20", "q30", "q40"]] = np.float32(0.001)
+    pq.write_table(
+        pa.Table.from_pandas(df, schema=table.schema).replace_schema_metadata(meta), part
+    )
+
+    # strict validation alone would refuse these forecasts
+    requests_df = rq.read_requests(world.requests)
+    block1 = requests_df[requests_df["block"] == 1]
+    raw = rq.read_forecasts(fc)
+    raw = raw[raw["request_id"].isin(block1["request_id"])]
+    with pytest.raises(ValueError, match="not non-decreasing"):
+        rq.validate_forecasts(block1, raw)
+
+    root = run(world, fc, tmp_path / "out")
+    res = root / "results"
+    mb = json.loads((res / "v3_model_behaviour.json").read_text())
+    assert mb["rows_rearranged_by_block"]["1"] == 3
+    assert sum(mb["rows_rearranged_by_block"].values()) == 3
+    s1 = df["request_id"].iloc[6].split("|")[0]
+    st = mb["studies"][s1]
+    assert st["floored_share_by_quantile"]["q10"] > 0
+    assert st["floored_share_by_quantile"]["q50"] > 0
+    assert st["share_requests_q50_floored_any_step"] > 0
+    assert st["floored_share_all_quantiles"] > 0
+    manifest = json.loads(next((res / "manifests").glob("exp-v3-evaluate-*.json")).read_text())
+    assert manifest["quantile_rearrangement"]["rows_changed_by_block"]["1"] == 3
+    assert manifest["quantile_rearrangement"]["rows_changed"] == 3

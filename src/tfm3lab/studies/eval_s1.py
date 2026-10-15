@@ -29,6 +29,7 @@ import pandas as pd
 
 from .. import bootstrap
 from . import inference
+from . import requests as rq
 
 HORIZON_DAYS = 90
 MIN_REF_SKUS = 20
@@ -331,6 +332,55 @@ def compare_to_naive(
     return out
 
 
+def median_above_floor_mask(per_sku: pd.DataFrame, forecasts: pd.DataFrame) -> pd.Series:
+    """Amendment A1 sensitivity mask, aligned to `per_sku`: True for SKUs whose
+    TimesFM q50 path (after the floor) is above the floor at every step 1..90-k.
+    A SKU without a complete path is False."""
+    ids = pd.Series(
+        [
+            request_id(k, r, p, s)
+            for k, r, p, s in zip(
+                per_sku["k"],
+                per_sku["event_date"],
+                per_sku["product_id"],
+                per_sku["subtype"],
+                strict=True,
+            )
+        ]
+    )
+    need = (HORIZON_DAYS - per_sku["k"]).to_numpy()
+    f = forecasts[["request_id", "step", "q50"]]
+    f = f[f["request_id"].isin(set(ids))]
+    f = f[f["step"].astype(int) <= f["request_id"].map(dict(zip(ids, need, strict=True)))]
+    g = f.groupby("request_id")["q50"].agg(n="size", lo="min")
+    n = ids.map(g["n"]).fillna(0).to_numpy()
+    lo = ids.map(g["lo"]).to_numpy(dtype=float)
+    floor = float(np.float32(rq.FLOOR_VALUE)) * (1.0 + rq.FLOOR_REL_TOL)
+    with np.errstate(invalid="ignore"):
+        ok = (n == need) & (lo > floor)
+    return pd.Series(ok, index=per_sku.index)
+
+
+def floor_sensitivity(
+    per_sku_floor1: pd.DataFrame, forecasts: pd.DataFrame, seed: int = inference.SEED
+) -> dict:
+    """Exploratory (Amendment A1): the k = 14 floor_1 comparison on SKUs whose q50
+    never hit the floor. 95% Student-t interval over events; no verdict."""
+    mask = median_above_floor_mask(per_sku_floor1, forecasts)
+    res = compare_to_naive(per_sku_floor1, PRIMARY_K, seed, mask)
+    at_k = per_sku_floor1["k"] == PRIMARY_K
+    return {
+        "k": res["k"],
+        "n_events": res["G"],
+        "n_events_total": res["n_events_total"],
+        "mean_diff": res["mean_diff"],
+        "t_ci_95": res["t_ci_95"],
+        "n_skus_paired": res["n_skus_paired"],
+        "n_skus_median_above_floor": int((at_k & mask).sum()),
+        "n_skus_floor_1": int(at_k.sum()),
+    }
+
+
 def primary_result(per_sku_floor1: pd.DataFrame, seed: int = inference.SEED) -> dict:
     """Primary S1 result: k = 14, floor_1."""
     return compare_to_naive(per_sku_floor1, PRIMARY_K, seed)
@@ -397,8 +447,10 @@ def exploratory_results(
     per_sku_floor1: pd.DataFrame,
     per_sku_floor025: pd.DataFrame | None = None,
     seed: int = inference.SEED,
+    forecasts: pd.DataFrame | None = None,
 ) -> dict:
-    """All exploratory S1 analyses (95% intervals; never decision inputs)."""
+    """All exploratory S1 analyses (95% intervals; never decision inputs).
+    With `forecasts`, adds the Amendment A1 floor sensitivity."""
     fp = per_sku_floor1["first_printing"].astype(bool)
     out = {
         "cohort": cohort_comparison(per_sku_floor1, PRIMARY_K, seed),
@@ -411,4 +463,6 @@ def exploratory_results(
     }
     if per_sku_floor025 is not None:
         out["floor_025"] = compare_to_naive(per_sku_floor025, PRIMARY_K, seed)
+    if forecasts is not None:
+        out["exploratory_q50_above_floor"] = floor_sensitivity(per_sku_floor1, forecasts, seed)
     return out

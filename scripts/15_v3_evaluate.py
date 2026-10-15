@@ -17,7 +17,9 @@ Checks before anything is evaluated (a failure refuses the run):
     checkpoint revision (recorded in the manifest) and the official inference flags;
   * the frozen units in configs/v3 are exactly the units of the requests file;
   * the forecasts of every complete block hold exactly steps 1..horizon per request
-    (requests.validate_forecasts).
+    (requests.validate_forecasts, strict). Amendment A1: the 9 quantiles of every
+    forecast row are first sorted ascending (requests.rearrange_quantiles); the
+    number of rows changed is logged and recorded.
 
 Interruption policy (section 7): a block is complete iff its status is `complete`
 and every request has verified forecasts. A study with ANY incomplete block (S1 spans
@@ -34,6 +36,8 @@ a price or a per-SKU quote), under results/:
     v3_s3_events.parquet   per event: ids, ALE per method per horizon, coverage flags
     v3_s3_summary.json
     v3_verdicts.json       one record per confirmatory primary
+    v3_model_behaviour.json  Amendment A1: rows rearranged per block, floored-value
+                           shares and floored-median shares per study (forecast-only)
     manifests/exp-v3-evaluate-<as_of>-<UTC>.json  inputs and outputs with sha256
 
 Floats are never rounded in code; JSON carries full precision (NaN -> null).
@@ -339,13 +343,42 @@ def evaluate_s1(units, fc, dates, sku_index, qmat) -> dict:
     return {
         "events": s1_tables(per),
         "primary": primary,
-        "exploratory": eval_s1.exploratory_results(f1, f025),
+        "exploratory": eval_s1.exploratory_results(f1, f025, forecasts=fc),
         "counts": {
             "n_units": len(units),
             "n_sku_floor_1": len(f1),
             "n_sku_floor_025": len(f025),
             "n_tf_unavailable_floor_1": int((f1["has_outcome"] & ~f1["tf_available"]).sum()),
         },
+    }
+
+
+def model_behaviour(fc: pd.DataFrame, rows_changed: dict[str, int], n_rows: dict[str, int]):
+    """Forecast-only statistics (Amendment A1): per study, the share of floored
+    values per quantile column and overall, and the share of requests whose q50 is
+    floored at any step. `fc` is the rearranged forecasts of the complete blocks."""
+    studies = {}
+    for study in STUDIES:
+        g = fc[fc["request_id"].str.startswith(f"{study}|")]
+        if not len(g):
+            continue
+        floored = {c: rq.floored_mask(g[c].to_numpy()) for c in rq.QUANTILE_COLUMNS}
+        q50_any = pd.Series(floored["q50"], index=g["request_id"].to_numpy())
+        q50_any = q50_any.groupby(level=0).any()
+        studies[study] = {
+            "n_requests": int(g["request_id"].nunique()),
+            "n_rows": int(len(g)),
+            "floored_share_by_quantile": {c: float(m.mean()) for c, m in floored.items()},
+            "floored_share_all_quantiles": float(np.mean([m.mean() for m in floored.values()])),
+            "share_requests_q50_floored_any_step": float(q50_any.mean()),
+        }
+    return {
+        "amendment": "A1",
+        "floor": rq.FLOOR_VALUE,
+        "floor_rel_tol": rq.FLOOR_REL_TOL,
+        "rows_rearranged_by_block": rows_changed,
+        "rows_by_block": n_rows,
+        "studies": studies,
     }
 
 
@@ -459,6 +492,18 @@ def main(argv: list[str] | None = None) -> None:
         )
     in_complete = fc_all["request_id"].map(block_of).map(complete).astype(bool)
     fc = fc_all[in_complete].reset_index(drop=True)
+    fc, n_changed = rq.rearrange_quantiles(fc)  # Amendment A1, upstream of strict validation
+    fc_block = fc["request_id"].map(block_of).astype(int)
+    rows_by_block = {str(int(b)): int(n) for b, n in fc_block.value_counts().sort_index().items()}
+    rows_changed = {b: 0 for b in rows_by_block}
+    if n_changed:
+        before = fc_all[in_complete].reset_index(drop=True)
+        diff = (
+            before[list(rq.QUANTILE_COLUMNS)].to_numpy() != fc[list(rq.QUANTILE_COLUMNS)].to_numpy()
+        ).any(axis=1)
+        for b, n in fc_block[diff].value_counts().sort_index().items():
+            rows_changed[str(int(b))] = int(n)
+    log(f"quantile rearrangement (A1): {n_changed} rows changed; by block {rows_changed}")
     done_requests = requests_df[requests_df["block"].map(complete).astype(bool)]
     if len(done_requests):
         rq.validate_forecasts(done_requests, fc)
@@ -564,6 +609,8 @@ def main(argv: list[str] | None = None) -> None:
             verdict_records(results, studies, s3_confirmatory), results_dir / "v3_verdicts.json"
         )
     )
+    behaviour = model_behaviour(fc, rows_changed, rows_by_block)
+    outputs.append(write_json(behaviour, results_dir / "v3_model_behaviour.json"))
 
     # --- manifest --------------------------------------------------------------------
     def rel(path: Path) -> str:
@@ -597,6 +644,11 @@ def main(argv: list[str] | None = None) -> None:
             "panel": panel_input,
             "configs": [{"path": p.name, "sha256": sha256_file(p)} for p in config_files],
             "census": {"path": census_path.name, "sha256": sha256_file(census_path)},
+        },
+        "quantile_rearrangement": {
+            "amendment": "A1",
+            "rows_changed": n_changed,
+            "rows_changed_by_block": rows_changed,
         },
         "blocks_complete": {str(b): c for b, c in sorted(complete.items())},
         "studies": studies,
