@@ -223,3 +223,37 @@ this section governs.
 8. **Quantiles and signs.** Coverage uses q10 and q90 from the same TimesFM call as the
    q50 point forecast. All S2 comparisons, including P_TFM5, are on advantage A
    (positive = cheaper than buying now).
+
+## Amendment A1 (2026-10-15, committed before any v3 outcome was computed)
+
+**Trigger.** The Kaggle run (kernel `tfm3lab-v2-run` version 14, code snapshot
+`7ca21f37ef33`) returned forecasts for all 64423 requests with all four blocks complete,
+but the runner's final check failed with "quantiles not non-decreasing". The diagnosis
+used only the forecast files and the request contexts; no outcome (no quote after any
+origin) was read, computed or viewed.
+
+**Diagnosis.** With the preregistered `make_positive=True`, TimesFM-3 clips negative
+values to 0, and for many new-set (S1) contexts it extrapolates the early decline to
+zero. As preregistered (section 2), such values are floored at 0.001 x q(origin). Where a
+neighbouring quantile was positive but below 0.001, the floor created a quantile
+crossing in 1716 forecast rows (block 1: 632, block 2: 2, block 3: 95, block 4: 987) out
+of roughly 4.27 million.
+
+**Rule added.** After the preregistered floor, the 9 quantile values of every forecast
+row are sorted ascending (monotone rearrangement) and the point forecast is the q50 after
+sorting. This changes only rows with a crossing; the number of changed rows is reported.
+The evaluation driver stays strict: it still refuses non-monotone forecasts, so the
+rearrangement is applied and logged upstream of validation.
+
+**Model-behaviour reporting.** The share of floored values and of requests whose median
+is floored at any step is reported per study as a finding about the model, alongside the
+results.
+
+**One pre-declared exploratory sensitivity (S1 only).** The S1 primary comparison (k = 14,
+floor $1, same events and qualification rule) is repeated on the subset of SKUs whose
+TimesFM-3 q50 path, after the floor, is above 0.001 x q(origin) at every step from 1 to
+90 - k (that is, the median never hit the floor). Reported with the 95% Student-t interval
+over events, no verdict; it does not change the primary result.
+
+Not chosen: a Kaggle rerun with `make_positive=False` (would change the preregistered
+inference flags) and treating S1 as failed.
