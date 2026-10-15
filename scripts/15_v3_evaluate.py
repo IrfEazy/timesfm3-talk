@@ -85,6 +85,11 @@ _META_POSITIVE = runner._META_POSITIVE
 _BANNED_TOKENS = ("price", "actual", "market", "quote")
 _BANNED_SUBSTRINGS = ("q_origin", "q_target")
 _ALLOWED_NAMES = ("price_band", "by_price_band")
+# A float column is a price leak when its values systematically equal the row's own
+# SKU quotes: at least this share of eligible rows, or this many rows. One coincidental
+# match (e.g. a relative advantage of 0.5 against a 0.50 quote) is tolerated.
+_PRICE_MATCH_SHARE = 0.05
+_PRICE_MATCH_COUNT = 20
 
 
 # ------------------------------------------------------------------ guards
@@ -105,7 +110,7 @@ def assert_no_prices(
     df: pd.DataFrame, label: str, qmat: np.ndarray | None = None, sku_index=None
 ) -> None:
     """Refuse a frame with a price-like column name, a currency string, or (for a
-    per-SKU table) a float value that equals a quote of that row's own SKU."""
+    per-SKU table) a float column whose values systematically equal quotes of the row's own SKU."""
     for col in df.columns:
         check_name(col)
         if df[col].dtype == object:
@@ -124,13 +129,23 @@ def assert_no_prices(
             for p, s in zip(df["product_id"], df["subtype"], strict=True)
         ]
     )
-    for i in np.flatnonzero(rows >= 0):
+    valid = np.flatnonzero(rows >= 0)
+    levels = []
+    for i in valid:
         q = qmat[rows[i]]
-        levels = np.unique(q[np.isfinite(q) & (q > 0) & (q != 1.0)])
-        vals = df[floats].iloc[i].to_numpy(dtype=float)
-        vals = vals[np.isfinite(vals) & (vals != 0.0) & (vals != 1.0)]
-        if vals.size and np.isin(vals, levels).any():
-            raise ValueError(f"{label}: row {int(i)} holds an absolute price level")
+        levels.append(np.unique(q[np.isfinite(q) & (q > 0) & (q != 1.0)]))
+    for col in floats:
+        vals = df[col].to_numpy(dtype=float)[valid]
+        eligible = np.isfinite(vals) & (vals != 0.0) & (vals != 1.0)
+        n_eligible = int(eligible.sum())
+        matched = sum(1 for k in np.flatnonzero(eligible) if bool(np.isin(vals[k], levels[k])))
+        if matched and (
+            matched >= _PRICE_MATCH_COUNT or matched / n_eligible >= _PRICE_MATCH_SHARE
+        ):
+            raise ValueError(
+                f"{label}.{col}: holds an absolute price level "
+                f"({matched} of {n_eligible} eligible rows equal their own SKU's quotes)"
+            )
 
 
 # ------------------------------------------------------------------ io helpers

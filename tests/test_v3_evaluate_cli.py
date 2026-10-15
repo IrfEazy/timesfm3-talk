@@ -309,6 +309,39 @@ def test_guard_refuses_price_like_names_and_price_levels():
         mod.write_json({"a": {"price": 1.0}}, Path("/nonexistent/never-written.json"))
 
 
+def test_guard_flags_systematic_matches_not_coincidences():
+    mod = load_script()
+    n = 100
+    qmat = np.tile([0.5, 2.5, 3.5], (n, 1))
+    index = [(i, None) for i in range(n)]
+    base = pd.DataFrame({"product_id": range(n), "subtype": [None] * n})
+    rng = np.random.default_rng(0)
+    noise = rng.uniform(0.1, 0.4, n)
+    # one coincidental match among 100 eligible rows: tolerated
+    ok = base.assign(A_adv=noise)
+    ok.loc[3, "A_adv"] = 0.5
+    mod.assert_no_prices(ok, "t", qmat=qmat, sku_index=index)
+    # a column copying the quotes: refused, naming column and counts but no values
+    bad = base.assign(A_copy=3.5)
+    with pytest.raises(ValueError, match=r"t\.A_copy.*100 of 100") as exc:
+        mod.assert_no_prices(bad, "t", qmat=qmat, sku_index=index)
+    assert "3.5" not in str(exc.value)
+    # 6 of 100 matches reaches the 5 percent share
+    some = base.assign(A_adv=noise)
+    some.loc[:5, "A_adv"] = 2.5
+    with pytest.raises(ValueError, match="6 of 100"):
+        mod.assert_no_prices(some, "t", qmat=qmat, sku_index=index)
+    # 20 matches among many eligible rows reaches the count threshold
+    m = 1000
+    big = pd.DataFrame({"product_id": range(m), "subtype": [None] * m})
+    big["A_adv"] = rng.uniform(0.1, 0.4, m)
+    big.loc[:19, "A_adv"] = 0.5
+    with pytest.raises(ValueError, match="20 of 1000"):
+        mod.assert_no_prices(
+            big, "t", qmat=np.tile([0.5, 2.5], (m, 1)), sku_index=[(i, None) for i in range(m)]
+        )
+
+
 def test_revision_and_inputs_recorded_in_manifest(world, complete_forecasts, complete_run):
     files = sorted(
         (complete_run / "results" / "manifests").glob("exp-v3-evaluate-2024-12-31-*.json")
