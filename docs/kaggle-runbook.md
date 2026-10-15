@@ -300,8 +300,12 @@ session never runs it.
    builder). The result is `data/cache/v3_requests.parquet`: one row per
    forecast request with `request_id`, `study`, `block` (priority 1 to 4),
    `horizon` and a scaled `context` (each context divided by its origin quote,
-   so the origin quote is about 1). The file holds no outcome and no absolute
-   price level; `tfm3lab.studies.requests.read_requests` validates it.
+   so the origin quote is about 1). The file holds only scaled contexts, no
+   outcome and no absolute price level, **by construction of
+   `scripts/13_v3_select.py`**: `tfm3lab.studies.requests.read_requests`
+   validates the file but only checks that each context is finite, positive and
+   of valid length, so it cannot tell a scaled context from a raw price history.
+   Build the file only with that script.
 2. **Add it to the PRIVATE cache dataset.** Run
    `uv run python -m tfm3lab.kaggle cache-manifest --as-of 2026-09-04` again
    (the manifest covers every top-level `data/cache/*.parquet`, so the new
@@ -324,13 +328,21 @@ session never runs it.
    Every batch is written atomically to
    `results/benchmark/v3_forecasts/block=<k>/part-<n>.parquet` and
    `block_status.json` is refreshed (requests, done, floored values, seconds,
-   status per block). The step always passes `--resume`: after a cut session
-   attach the previous output as `PREVIOUS_OUTPUT_DIR` with the same commit and
-   the verified parts are skipped, never duplicated. Every part records the
+   status per block). The step always passes `--resume` and uses the default
+   `--out`: after a cut session attach the previous version's output as
+   `PREVIOUS_OUTPUT_DIR` with the same commit **only if it was produced from the
+   same requests file and the same checkpoint revision** (compare `requests_sha256`
+   and `checkpoint_revision` in the previous output's `block_status.json`, or its
+   manifest); the verified parts are
+   then skipped, never duplicated. Otherwise do not attach it, because the step
+   cannot be pointed at a fresh output directory. Every part records the
    sha256 of the requests content it was forecast from (also in
-   `block_status.json` and the manifest's `requests.content_sha256`); if the
-   requests file changed since, the resume stops with an error and the step
-   needs a fresh output directory. A forecast value that is not finite or not
+   `block_status.json` and the manifest's `requests.content_sha256`), the
+   resolved checkpoint revision and the two inference flags
+   (`use_symmetric_averaging`, `make_positive`); if the requests file, the
+   revision or a flag differs from the restored parts, the resume stops with an
+   error and the step needs a fresh output directory (do not attach that
+   output). A forecast value that is not finite or not
    positive is floored at 0.001 and counted in `floored_values`.
 5. **What to download.** The forecast directory
    `results/benchmark/v3_forecasts/` (inside the heavy archive, so keep
@@ -342,8 +354,9 @@ session never runs it.
    status and counts, and no forecast values. The forecast directory is
    gitignored; keep it local.
 6. **Keep the dataset private.** `v3_requests.parquet` itself holds only
-   scaled contexts (each divided by its origin quote; no outcomes, no absolute
-   price levels). The dataset as a whole also holds the redistribution-restricted
+   scaled contexts by construction of `scripts/13_v3_select.py` (each divided by
+   its origin quote; no outcomes, no absolute price levels; the validator does
+   not check this). The dataset as a whole also holds the redistribution-restricted
    v2 price caches (`mtg_prices.parquet`, `market_prices.parquet`, absolute
    price histories), so it must stay Private and must never be shared.
 

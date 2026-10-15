@@ -13,7 +13,8 @@ writes
     results/manifests/v3_forecast-<as_of>-<UTC timestamp>.json
 
 The manifest records the requests file's sha256 and counts, the model
-revision, the device and the per-block status; it never holds forecast values.
+revision (configured and resolved), the device and the per-block status; it
+never holds forecast values.
 
 Usage:
     uv run --no-sync scripts/14_v3_forecast.py --as-of 2026-09-04 --dry-run
@@ -29,8 +30,12 @@ previous session resumes from it).
 A fresh run refuses a --out that already holds parts; --resume continues it:
 verified parts are skipped and no request is ever written twice. Every part
 records the sha256 of the requests content it was forecast from (the manifest's
-requests.content_sha256); --resume refuses parts made from different requests,
-and then a fresh --out is needed. --dry-run only reports and never refuses an
+requests.content_sha256), the resolved checkpoint revision and the two inference
+flags (also in block_status.json); --resume refuses parts made from different
+requests, at another checkpoint revision or with other flags, and then a fresh
+--out is needed. The configured revision must be a full 40-hex commit sha
+(any run, --dry-run included, otherwise the script exits at once); it is checked
+against the parts before any preflight. --dry-run only reports and never refuses an
 --out that holds parts. A GPU is required (preflight: GPU, HF token, pinned
 checkpoint) unless --allow-cpu is given for a smoke run. With nothing left to
 forecast, no preflight runs and no model is loaded.
@@ -40,6 +45,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import re
 import sys
 from pathlib import Path
 
@@ -58,7 +64,9 @@ from tfm3lab.studies.requests import (
     validate_forecasts,
 )
 from tfm3lab.studies.runner import (
+    MAKE_POSITIVE,
     STATUS_FILE,
+    USE_SYMMETRIC_AVERAGING,
     current_status,
     has_forecast_parts,
     pending_counts,
@@ -68,6 +76,7 @@ from tfm3lab.studies.runner import (
 SCRIPT_NAME = "v3_forecast"
 REQUESTS_NAME = "v3_requests.parquet"
 DEFAULT_BATCH_SIZE = 128
+_FULL_SHA = re.compile(r"[0-9a-f]{40}")
 
 
 def default_requests_path() -> Path:
@@ -77,6 +86,21 @@ def default_requests_path() -> Path:
 def default_out_dir() -> Path:
     # results/benchmark/ is gitignored (see .gitignore): nothing under it is committed
     return config.RESULTS_DIR / "benchmark" / "v3_forecasts"
+
+
+def pinned_revision() -> str:
+    """The configured checkpoint revision, which must be a full 40-hex commit
+    sha for every run of this script (dry-run and status checks included): the
+    hub resolves a full sha to itself, so it can be checked against the parts
+    before any preflight and a branch or tag cannot move under a resume."""
+    revision = (config.CHECKPOINT_REVISION or "").strip().lower()
+    if not _FULL_SHA.fullmatch(revision):
+        raise SystemExit(
+            f"error: the configured checkpoint revision {config.CHECKPOINT_REVISION!r} is not a "
+            "full 40-hex commit sha; pin tfm3lab.config.CHECKPOINT_REVISION to the commit "
+            "(a branch or tag can move, so a resume could mix two checkpoints)"
+        )
+    return revision
 
 
 def parse_blocks(text: str) -> list[int]:
@@ -226,8 +250,8 @@ def write_session_manifest(
                 "repo_id": config.CHECKPOINT_ID,
                 "revision": config.CHECKPOINT_REVISION,
                 "revision_resolved": (checkpoint or {}).get("revision_resolved"),
-                "use_symmetric_averaging": True,
-                "make_positive": True,
+                "use_symmetric_averaging": USE_SYMMETRIC_AVERAGING,
+                "make_positive": MAKE_POSITIVE,
             },
             "device": run_environment()["gpu_name"],
             "batch_size": args.batch_size,
@@ -251,6 +275,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if not args.dry_run and args.as_of is None:
         parser.error("--as-of YYYY-MM-DD is required for a real run (recorded in the manifest)")
+    check_revision = pinned_revision()
 
     if not args.requests.is_file():
         raise SystemExit(
@@ -275,7 +300,14 @@ def main(argv: list[str] | None = None) -> int:
             "(parts are verified and never duplicated) or choose another --out"
         )
     try:
-        pending = pending_counts(requests_df, args.out, args.blocks)
+        pending = pending_counts(
+            requests_df,
+            args.out,
+            args.blocks,
+            checkpoint_revision=check_revision,
+            use_symmetric_averaging=USE_SYMMETRIC_AVERAGING,
+            make_positive=MAKE_POSITIVE,
+        )
     except ValueError as exc:
         raise SystemExit(f"error: {exc}") from exc
     for block, n in sorted(pending.items()):
@@ -298,7 +330,8 @@ def main(argv: list[str] | None = None) -> int:
             checkpoint = preflight_model(
                 config.CHECKPOINT_ID, config.CHECKPOINT_REVISION, allow_cpu=args.allow_cpu
             )
-            forecaster = load_forecaster(revision=checkpoint["revision_resolved"])
+            check_revision = checkpoint["revision_resolved"]
+            forecaster = load_forecaster(revision=check_revision)
             status = run_requests(
                 requests_df,
                 forecaster,
@@ -306,14 +339,29 @@ def main(argv: list[str] | None = None) -> int:
                 batch_size=args.batch_size,
                 resume=args.resume,
                 blocks=args.blocks,
+                checkpoint_revision=check_revision,
+                use_symmetric_averaging=USE_SYMMETRIC_AVERAGING,
+                make_positive=MAKE_POSITIVE,
             )
         else:
             print("nothing pending: no preflight, no model load")
-            status = current_status(requests_df, args.out)
+            status = current_status(
+                requests_df,
+                args.out,
+                checkpoint_revision=check_revision,
+                use_symmetric_averaging=USE_SYMMETRIC_AVERAGING,
+                make_positive=MAKE_POSITIVE,
+            )
     except Exception as exc:
         error = f"{type(exc).__name__}: {exc}"
         try:
-            status = current_status(requests_df, args.out)
+            status = current_status(
+                requests_df,
+                args.out,
+                checkpoint_revision=check_revision,
+                use_symmetric_averaging=USE_SYMMETRIC_AVERAGING,
+                make_positive=MAKE_POSITIVE,
+            )
         except ValueError:
             status = {}
         manifest_path = write_session_manifest(

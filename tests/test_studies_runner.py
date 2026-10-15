@@ -26,6 +26,14 @@ from tfm3lab.studies import runner
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "14_v3_forecast.py"
 QUANTILE_SHAPE = np.linspace(0.8, 1.2, 9)  # monotone multipliers of the point forecast
+REVISION = "ab" * 20  # a resolved checkpoint commit sha (stands in for the pinned one)
+OTHER_REVISION = "cd" * 20
+
+
+def run_requests(*args, **kwargs):
+    """runner.run_requests at REVISION unless a test names another revision."""
+    kwargs.setdefault("checkpoint_revision", REVISION)
+    return runner.run_requests(*args, **kwargs)
 
 
 # ------------------------------------------------------------------ fakes and fixtures
@@ -135,7 +143,7 @@ def test_blocks_run_in_ascending_order_and_batches_are_horizon_grouped(
     requests_df, tmp_path, quiet
 ):
     fake = FakeForecaster()
-    status = runner.run_requests(requests_df, fake, tmp_path, batch_size=2, echo=quiet)
+    status = run_requests(requests_df, fake, tmp_path, batch_size=2, echo=quiet)
 
     block_of = dict(zip(requests_df["request_id"], requests_df["block"], strict=True))
     horizon_of = dict(zip(requests_df["request_id"], requests_df["horizon"], strict=True))
@@ -161,7 +169,7 @@ def test_blocks_run_in_ascending_order_and_batches_are_horizon_grouped(
 def test_batch_size_splits_a_horizon_group(tmp_path, quiet):
     df = make_requests([(f"r{i}", 1, 4) for i in range(5)])
     fake = FakeForecaster()
-    runner.run_requests(df, fake, tmp_path, batch_size=2, echo=quiet)
+    run_requests(df, fake, tmp_path, batch_size=2, echo=quiet)
     assert [len(c["ts_ids"]) for c in fake.calls] == [2, 2, 1]
     assert [c["ts_ids"] for c in fake.calls] == [["r0", "r1"], ["r2", "r3"], ["r4"]]
     assert [p.name for p in parts_of(tmp_path, 1)] == [f"part-{n:06d}.parquet" for n in range(3)]
@@ -169,7 +177,7 @@ def test_batch_size_splits_a_horizon_group(tmp_path, quiet):
 
 def test_official_defaults_are_passed_to_the_model(requests_df, tmp_path, quiet):
     fake = FakeForecaster()
-    runner.run_requests(requests_df, fake, tmp_path, echo=quiet)
+    run_requests(requests_df, fake, tmp_path, echo=quiet)
     assert fake.calls
     for call in fake.calls:
         assert call["use_symmetric_averaging"] is True
@@ -179,7 +187,7 @@ def test_official_defaults_are_passed_to_the_model(requests_df, tmp_path, quiet)
 
 def test_blocks_argument_selects_blocks_and_reports_pending_ones(requests_df, tmp_path):
     fake, lines = FakeForecaster(), []
-    status = runner.run_requests(requests_df, fake, tmp_path, blocks=[3, 1], echo=lines.append)
+    status = run_requests(requests_df, fake, tmp_path, blocks=[3, 1], echo=lines.append)
     block_of = dict(zip(requests_df["request_id"], requests_df["block"], strict=True))
     assert {block_of[i] for i in fake.all_ids} == {1, 3}  # ascending whatever the order given
     assert [block_of[c["ts_ids"][0]] for c in fake.calls] == sorted(
@@ -192,20 +200,21 @@ def test_blocks_argument_selects_blocks_and_reports_pending_ones(requests_df, tm
         "seconds": 0.0,
         "status": "pending",
         "requests_sha256": rq.requests_digest(requests_df),
+        "checkpoint_revision": REVISION,
+        "use_symmetric_averaging": True,
+        "make_positive": True,
     }
     assert not (tmp_path / "block=2").exists()
 
     lines.clear()
-    runner.run_requests(requests_df, FakeForecaster(), tmp_path, blocks=[4], echo=lines.append)
+    run_requests(requests_df, FakeForecaster(), tmp_path, blocks=[4], echo=lines.append)
     assert any("block 4: no requests" in line for line in lines)
     with pytest.raises(ValueError, match="outside 1..4"):
-        runner.run_requests(requests_df, FakeForecaster(), tmp_path, blocks=[5])
+        run_requests(requests_df, FakeForecaster(), tmp_path, blocks=[5])
 
 
 def test_results_are_matched_by_ts_id_not_by_position(requests_df, tmp_path, quiet):
-    runner.run_requests(
-        requests_df, FakeForecaster(reverse=True), tmp_path, batch_size=3, echo=quiet
-    )
+    run_requests(requests_df, FakeForecaster(reverse=True), tmp_path, batch_size=3, echo=quiet)
     forecasts = rq.read_forecasts(tmp_path)
     last = {
         rid: float(ctx[-1])
@@ -224,7 +233,7 @@ def test_results_are_matched_by_ts_id_not_by_position(requests_df, tmp_path, qui
 
 
 def test_forecast_files_follow_the_frozen_schema_and_validate(requests_df, tmp_path, quiet):
-    runner.run_requests(requests_df, FakeForecaster(), tmp_path, batch_size=3, echo=quiet)
+    run_requests(requests_df, FakeForecaster(), tmp_path, batch_size=3, echo=quiet)
     for part in tmp_path.glob("block=*/part-*.parquet"):
         schema = pq.read_schema(part)
         assert schema.names == list(rq.FORECAST_COLUMNS)
@@ -235,10 +244,10 @@ def test_forecast_files_follow_the_frozen_schema_and_validate(requests_df, tmp_p
 
 def test_runner_rejects_bad_arguments(requests_df, tmp_path):
     with pytest.raises(ValueError, match="batch_size"):
-        runner.run_requests(requests_df, FakeForecaster(), tmp_path, batch_size=0)
+        run_requests(requests_df, FakeForecaster(), tmp_path, batch_size=0)
     bad = requests_df.assign(block=[1, 1, 1, 1, 1, 1, 1, 9])
     with pytest.raises(ValueError, match="h8"):
-        runner.run_requests(bad, FakeForecaster(), tmp_path)
+        run_requests(bad, FakeForecaster(), tmp_path)
 
 
 def test_wrong_model_output_shape_fails_loudly(tmp_path, quiet):
@@ -248,7 +257,7 @@ def test_wrong_model_output_shape_fails_loudly(tmp_path, quiet):
 
     df = make_requests([("r0", 1, 3)])
     with pytest.raises(ValueError, match="expected"):
-        runner.run_requests(df, Short(), tmp_path, echo=quiet)
+        run_requests(df, Short(), tmp_path, echo=quiet)
     assert not parts_of(tmp_path, 1)
 
 
@@ -265,7 +274,7 @@ def damage(ts_id, point, quantiles):
 
 def test_non_finite_and_non_positive_values_are_floored_and_counted(tmp_path, quiet):
     df = make_requests([("bad", 1, 3), ("good", 1, 3)])
-    status = runner.run_requests(df, FakeForecaster(corrupt=damage), tmp_path, echo=quiet)
+    status = run_requests(df, FakeForecaster(corrupt=damage), tmp_path, echo=quiet)
     assert status["1"]["floored_values"] == 3  # NaN point + two quantiles
     assert status["1"]["status"] == "complete"
 
@@ -289,8 +298,8 @@ def test_floored_count_survives_a_resume(tmp_path, quiet):
     df = make_requests([("bad", 1, 3), ("r1", 1, 3), ("r2", 1, 3)])
     fake = FakeForecaster(corrupt=damage, fail_on_call=2)
     with pytest.raises(RuntimeError, match="simulated"):
-        runner.run_requests(df, fake, tmp_path, batch_size=2, echo=quiet)  # batch 1 = bad, r1
-    status = runner.run_requests(df, FakeForecaster(corrupt=damage), tmp_path, echo=quiet)
+        run_requests(df, fake, tmp_path, batch_size=2, echo=quiet)  # batch 1 = bad, r1
+    status = run_requests(df, FakeForecaster(corrupt=damage), tmp_path, echo=quiet)
     assert status["1"]["floored_values"] == 3 and status["1"]["done"] == 3
 
 
@@ -300,7 +309,7 @@ def test_floored_count_survives_a_resume(tmp_path, quiet):
 def test_resume_after_an_interruption_does_not_duplicate_rows(requests_df, tmp_path, quiet):
     first = FakeForecaster(fail_on_call=2)
     with pytest.raises(RuntimeError, match="simulated interruption"):
-        runner.run_requests(requests_df, first, tmp_path, batch_size=2, echo=quiet)
+        run_requests(requests_df, first, tmp_path, batch_size=2, echo=quiet)
     assert len(first.calls) == 2  # one batch committed, the second died mid-block 1
     done_first = first.calls[0]["ts_ids"]
     assert done_first == ["d4", "f6"]
@@ -311,7 +320,7 @@ def test_resume_after_an_interruption_does_not_duplicate_rows(requests_df, tmp_p
     assert len(list(tmp_path.glob("block=*/part-*.parquet"))) == 1
 
     second = FakeForecaster()
-    status = runner.run_requests(requests_df, second, tmp_path, batch_size=2, echo=quiet)
+    status = run_requests(requests_df, second, tmp_path, batch_size=2, echo=quiet)
     assert not set(second.all_ids) & set(done_first)  # committed requests are never redone
     assert sorted(done_first + second.all_ids) == sorted(requests_df["request_id"])
     assert len(second.all_ids) == len(set(second.all_ids))
@@ -328,17 +337,17 @@ def test_resume_after_an_interruption_does_not_duplicate_rows(requests_df, tmp_p
 def test_resume_mid_block_continues_the_part_numbering(tmp_path, quiet):
     df = make_requests([(f"r{i}", 1, 2) for i in range(6)])
     with pytest.raises(RuntimeError):
-        runner.run_requests(df, FakeForecaster(fail_on_call=2), tmp_path, batch_size=2, echo=quiet)
+        run_requests(df, FakeForecaster(fail_on_call=2), tmp_path, batch_size=2, echo=quiet)
     assert len(parts_of(tmp_path, 1)) == 1
-    runner.run_requests(df, FakeForecaster(), tmp_path, batch_size=2, echo=quiet)
+    run_requests(df, FakeForecaster(), tmp_path, batch_size=2, echo=quiet)
     assert [p.name for p in parts_of(tmp_path, 1)] == [f"part-{n:06d}.parquet" for n in range(3)]
 
 
 def test_resume_with_everything_done_runs_no_inference(requests_df, tmp_path, quiet):
-    runner.run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
+    run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
     before = sorted((p.name, p.stat().st_mtime_ns) for p in tmp_path.rglob("part-*.parquet"))
     again = FakeForecaster()
-    status = runner.run_requests(requests_df, again, tmp_path, echo=quiet)
+    status = run_requests(requests_df, again, tmp_path, echo=quiet)
     assert again.calls == []
     assert {v["status"] for v in status.values()} == {"complete"}
     assert (
@@ -347,11 +356,11 @@ def test_resume_with_everything_done_runs_no_inference(requests_df, tmp_path, qu
 
 
 def test_fresh_run_refuses_a_directory_with_parts(requests_df, tmp_path, quiet):
-    runner.run_requests(requests_df, FakeForecaster(), tmp_path, resume=False, echo=quiet)
+    run_requests(requests_df, FakeForecaster(), tmp_path, resume=False, echo=quiet)
     assert runner.has_forecast_parts(tmp_path)
     again = FakeForecaster()
     with pytest.raises(FileExistsError, match="resume=True"):
-        runner.run_requests(requests_df, again, tmp_path, resume=False, echo=quiet)
+        run_requests(requests_df, again, tmp_path, resume=False, echo=quiet)
     assert again.calls == []
     assert not runner.has_forecast_parts(tmp_path / "elsewhere")
 
@@ -363,50 +372,55 @@ def scale_first_context(df: pd.DataFrame, factor: float) -> pd.DataFrame:
     return df.assign(context=pd.Series(contexts, index=df.index, dtype=object))
 
 
-def restamp(out: Path, sha: str | None) -> None:
-    """Rewrite the requests sha256 recorded in every part (None removes it)."""
+def restamp_key(out: Path, key: bytes, value: str | None) -> None:
+    """Rewrite one provenance entry recorded in every part (None removes it)."""
     for part in out.glob("block=*/part-*.parquet"):
         table = pq.read_table(part)
         meta = dict(table.schema.metadata or {})
-        meta.pop(runner._META_REQUESTS_SHA, None)
-        if sha is not None:
-            meta[runner._META_REQUESTS_SHA] = sha.encode()
+        meta.pop(key, None)
+        if value is not None:
+            meta[key] = value.encode()
         pq.write_table(table.replace_schema_metadata(meta), part)
 
 
+def restamp(out: Path, sha: str | None) -> None:
+    """Rewrite the requests sha256 recorded in every part (None removes it)."""
+    restamp_key(out, runner._META_REQUESTS_SHA, sha)
+
+
 def test_resume_refuses_parts_that_do_not_belong_to_the_requests(requests_df, tmp_path, quiet):
-    runner.run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
+    run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
     other = make_requests([("zz1", 1, 3), ("zz2", 1, 3)])
     # the digest of the requests catches it first ...
     with pytest.raises(ValueError, match="other requests"):
-        runner.run_requests(other, FakeForecaster(), tmp_path, echo=quiet)
+        run_requests(other, FakeForecaster(), tmp_path, echo=quiet)
     # ... and the content check still holds when the digest happens to match
     restamp(tmp_path, rq.requests_digest(other))
     with pytest.raises(ValueError, match="not a request of this block"):
-        runner.run_requests(other, FakeForecaster(), tmp_path, echo=quiet)
+        run_requests(other, FakeForecaster(), tmp_path, echo=quiet)
 
 
 def test_resume_refuses_a_part_with_missing_steps(tmp_path, quiet):
     df = make_requests([("r0", 1, 3), ("r1", 1, 3)])
-    runner.run_requests(df, FakeForecaster(), tmp_path, batch_size=1, echo=quiet)
+    run_requests(df, FakeForecaster(), tmp_path, batch_size=1, echo=quiet)
     victim = parts_of(tmp_path, 1)[0]
     table = pq.read_table(victim)
     pq.write_table(table.slice(0, 2), victim)  # r0 now has steps 1..2 only
     with pytest.raises(ValueError, match="r0.*exactly steps 1..horizon"):
-        runner.run_requests(df, FakeForecaster(), tmp_path, echo=quiet)
+        run_requests(df, FakeForecaster(), tmp_path, echo=quiet)
 
 
 def test_resume_refuses_a_request_in_two_parts(tmp_path, quiet):
     df = make_requests([("r0", 1, 2), ("r1", 1, 2)])
-    runner.run_requests(df, FakeForecaster(), tmp_path, batch_size=1, echo=quiet)
+    run_requests(df, FakeForecaster(), tmp_path, batch_size=1, echo=quiet)
     parts = parts_of(tmp_path, 1)
     shutil.copy(parts[0], tmp_path / "block=1" / "part-000009.parquet")
     with pytest.raises(ValueError, match="already has forecasts in an earlier part"):
-        runner.run_requests(df, FakeForecaster(), tmp_path, echo=quiet)
+        run_requests(df, FakeForecaster(), tmp_path, echo=quiet)
 
 
 def test_parts_and_status_record_the_requests_sha256(requests_df, tmp_path, quiet):
-    runner.run_requests(requests_df, FakeForecaster(), tmp_path, batch_size=3, echo=quiet)
+    run_requests(requests_df, FakeForecaster(), tmp_path, batch_size=3, echo=quiet)
     sha = rq.requests_digest(requests_df)
     assert len(sha) == 64
     parts = list(tmp_path.glob("block=*/part-*.parquet"))
@@ -417,11 +431,153 @@ def test_parts_and_status_record_the_requests_sha256(requests_df, tmp_path, quie
     assert {rec["requests_sha256"] for rec in saved.values()} == {sha}
 
 
+def test_parts_and_status_record_the_checkpoint_revision_and_flags(requests_df, tmp_path, quiet):
+    returned = run_requests(requests_df, FakeForecaster(), tmp_path, batch_size=3, echo=quiet)
+    parts = list(tmp_path.glob("block=*/part-*.parquet"))
+    assert parts
+    for part in parts:
+        meta = pq.read_schema(part).metadata
+        assert meta[runner._META_REVISION] == REVISION.encode()
+        assert meta[runner._META_SYMMETRIC] == b"true"
+        assert meta[runner._META_POSITIVE] == b"true"
+    saved = json.loads((tmp_path / runner.STATUS_FILE).read_text())
+    assert saved == returned
+    for rec in saved.values():
+        assert rec["checkpoint_revision"] == REVISION
+        assert rec["use_symmetric_averaging"] is True and rec["make_positive"] is True
+    # the read-only helper reports the same provenance when given the revision
+    assert runner.current_status(requests_df, tmp_path, checkpoint_revision=REVISION) == saved
+
+
+def test_inference_flags_reach_the_model_and_are_recorded(requests_df, tmp_path, quiet):
+    fake = FakeForecaster()
+    status = run_requests(
+        requests_df,
+        fake,
+        tmp_path,
+        echo=quiet,
+        use_symmetric_averaging=False,
+        make_positive=False,
+    )
+    assert fake.calls
+    for call in fake.calls:
+        assert call["use_symmetric_averaging"] is False and call["make_positive"] is False
+    for part in tmp_path.glob("block=*/part-*.parquet"):
+        meta = pq.read_schema(part).metadata
+        assert meta[runner._META_SYMMETRIC] == b"false" and meta[runner._META_POSITIVE] == b"false"
+    for rec in status.values():
+        assert rec["use_symmetric_averaging"] is False and rec["make_positive"] is False
+
+
+def interrupted_dir(requests_df, out, **kwargs):
+    """Run until the second batch dies; returns the names of the committed parts."""
+    fake = FakeForecaster(fail_on_call=2)
+    with pytest.raises(RuntimeError, match="simulated"):
+        run_requests(requests_df, fake, out, batch_size=2, echo=lambda _line: None, **kwargs)
+    return sorted(p.name for p in out.rglob("part-*.parquet"))
+
+
+def test_resume_refuses_parts_from_another_checkpoint_revision_and_runs_nothing(
+    requests_df, tmp_path, quiet
+):
+    before = interrupted_dir(requests_df, tmp_path)
+    assert before
+    status_before = (tmp_path / runner.STATUS_FILE).read_text()
+
+    again = FakeForecaster()
+    with pytest.raises(ValueError, match="checkpoint revision.*mix.*fresh output directory"):
+        run_requests(requests_df, again, tmp_path, echo=quiet, checkpoint_revision=OTHER_REVISION)
+    assert again.calls == []
+    assert sorted(p.name for p in tmp_path.rglob("part-*.parquet")) == before
+    assert (tmp_path / runner.STATUS_FILE).read_text() == status_before  # nothing rewritten
+    assert not list(tmp_path.rglob("*.tmp-*"))
+    with pytest.raises(ValueError) as exc:  # the message names both revisions
+        run_requests(requests_df, again, tmp_path, echo=quiet, checkpoint_revision=OTHER_REVISION)
+    assert REVISION in str(exc.value) and OTHER_REVISION in str(exc.value)
+    # the read-only helpers refuse as well ...
+    with pytest.raises(ValueError, match="checkpoint revision"):
+        runner.current_status(requests_df, tmp_path, checkpoint_revision=OTHER_REVISION)
+    with pytest.raises(ValueError, match="checkpoint revision"):
+        runner.pending_counts(requests_df, tmp_path, checkpoint_revision=OTHER_REVISION)
+    # ... but a caller that has not resolved a revision yet is not refused
+    assert runner.pending_counts(requests_df, tmp_path) == {1: 2, 2: 2, 3: 2}
+    assert runner.current_status(requests_df, tmp_path)["1"]["checkpoint_revision"] is None
+
+    # the same revision resumes cleanly
+    status = run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
+    assert {v["status"] for v in status.values()} == {"complete"}
+    assert {v["checkpoint_revision"] for v in status.values()} == {REVISION}
+
+
+@pytest.mark.parametrize(
+    ("flag", "key"),
+    [
+        ("use_symmetric_averaging", runner._META_SYMMETRIC),
+        ("make_positive", runner._META_POSITIVE),
+    ],
+)
+def test_resume_refuses_parts_made_with_other_inference_flags(
+    requests_df, tmp_path, quiet, flag, key
+):
+    before = interrupted_dir(requests_df, tmp_path)
+    again = FakeForecaster()
+    with pytest.raises(ValueError, match=f"{flag}=true.*{flag}=false.*fresh output directory"):
+        run_requests(requests_df, again, tmp_path, echo=quiet, **{flag: False})
+    assert again.calls == []
+    assert sorted(p.name for p in tmp_path.rglob("part-*.parquet")) == before
+    with pytest.raises(ValueError, match=flag):
+        runner.current_status(requests_df, tmp_path, **{flag: False})
+    with pytest.raises(ValueError, match=flag):
+        runner.pending_counts(requests_df, tmp_path, **{flag: False})
+
+    # parts made with the flag off refuse a resume with the default ...
+    other = tmp_path / "other"
+    interrupted_dir(requests_df, other, **{flag: False})
+    with pytest.raises(ValueError, match=f"{flag}=false.*{flag}=true"):
+        run_requests(requests_df, FakeForecaster(), other, echo=quiet)
+    # ... and resume when the flag matches
+    status = run_requests(requests_df, FakeForecaster(), other, echo=quiet, **{flag: False})
+    assert {v["status"] for v in status.values()} == {"complete"}
+    assert pq.read_schema(next(other.rglob("part-*.parquet"))).metadata[key] == b"false"
+
+
+def test_resume_refuses_parts_without_a_recorded_revision_or_flags(requests_df, tmp_path, quiet):
+    run_requests(requests_df, FakeForecaster(), tmp_path / "good", echo=quiet)
+    for key, text in (
+        (runner._META_REVISION, "no checkpoint revision recorded"),
+        (runner._META_SYMMETRIC, "no use_symmetric_averaging recorded"),
+        (runner._META_POSITIVE, "no make_positive recorded"),
+    ):
+        victim = tmp_path / key.decode()
+        shutil.copytree(tmp_path / "good", victim)
+        restamp_key(victim, key, None)  # e.g. written by an older runner
+        with pytest.raises(ValueError, match=f"{text}.*fresh output directory"):
+            run_requests(requests_df, FakeForecaster(), victim, echo=quiet)
+
+
+def test_run_requests_needs_a_non_empty_checkpoint_revision(requests_df, tmp_path, quiet):
+    with pytest.raises(TypeError, match="checkpoint_revision"):
+        runner.run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
+    for bad in (None, "", "  ", "main", "ab" * 19, "zz" * 20, "ab" * 21):
+        with pytest.raises(ValueError, match="checkpoint_revision"):
+            runner.run_requests(
+                requests_df, FakeForecaster(), tmp_path, echo=quiet, checkpoint_revision=bad
+            )
+    assert not runner.has_forecast_parts(tmp_path)
+
+
+def test_run_requests_accepts_an_uppercase_sha(requests_df, tmp_path, quiet):
+    runner.run_requests(
+        requests_df, FakeForecaster(), tmp_path, echo=quiet, checkpoint_revision=REVISION.upper()
+    )
+    assert runner.has_forecast_parts(tmp_path)
+
+
 def test_resume_refuses_parts_from_different_requests_and_runs_nothing(
     requests_df, tmp_path, quiet
 ):
     with pytest.raises(RuntimeError, match="simulated"):
-        runner.run_requests(
+        run_requests(
             requests_df, FakeForecaster(fail_on_call=2), tmp_path, batch_size=2, echo=quiet
         )
     before = sorted(p.name for p in tmp_path.rglob("part-*.parquet"))
@@ -433,7 +589,7 @@ def test_resume_refuses_parts_from_different_requests_and_runs_nothing(
 
     again = FakeForecaster()
     with pytest.raises(ValueError, match="other requests.*fresh output directory"):
-        runner.run_requests(changed, again, tmp_path, echo=quiet)
+        run_requests(changed, again, tmp_path, echo=quiet)
     assert again.calls == []
     assert sorted(p.name for p in tmp_path.rglob("part-*.parquet")) == before
     assert not list(tmp_path.rglob("*.tmp-*"))
@@ -444,41 +600,41 @@ def test_resume_refuses_parts_from_different_requests_and_runs_nothing(
         runner.pending_counts(changed, tmp_path)
 
     # the original requests still resume cleanly
-    status = runner.run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
+    status = run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
     assert {v["status"] for v in status.values()} == {"complete"}
 
 
 def test_resume_refuses_a_subset_of_the_requests_that_made_the_parts(requests_df, tmp_path, quiet):
-    runner.run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
+    run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
     only_block_1 = requests_df[requests_df["block"] == 1]  # every id is known to the parts
     with pytest.raises(ValueError, match="other requests"):
-        runner.run_requests(only_block_1, FakeForecaster(), tmp_path, echo=quiet)
+        run_requests(only_block_1, FakeForecaster(), tmp_path, echo=quiet)
 
 
 def test_resume_accepts_the_same_requests_in_another_row_order(requests_df, tmp_path, quiet):
     with pytest.raises(RuntimeError, match="simulated"):
-        runner.run_requests(
+        run_requests(
             requests_df, FakeForecaster(fail_on_call=2), tmp_path, batch_size=2, echo=quiet
         )
     shuffled = requests_df.sample(frac=1.0, random_state=7).reset_index(drop=True)
     assert rq.requests_digest(shuffled) == rq.requests_digest(requests_df)
-    status = runner.run_requests(shuffled, FakeForecaster(), tmp_path, batch_size=2, echo=quiet)
+    status = run_requests(shuffled, FakeForecaster(), tmp_path, batch_size=2, echo=quiet)
     assert {v["status"] for v in status.values()} == {"complete"}
     rq.validate_forecasts(requests_df, rq.read_forecasts(tmp_path))
 
 
 def test_resume_refuses_a_part_without_a_recorded_requests_sha256(requests_df, tmp_path, quiet):
-    runner.run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
+    run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
     restamp(tmp_path, None)  # e.g. written by an older runner
     with pytest.raises(ValueError, match="no requests sha256.*fresh output directory"):
-        runner.run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
+        run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
 
 
 def test_interrupted_atomic_write_debris_is_removed(requests_df, tmp_path, quiet):
     debris = tmp_path / "block=1" / "part-000000.parquet.tmp-123-abcd"
     debris.parent.mkdir(parents=True)
     debris.write_bytes(b"half a file")
-    runner.run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
+    run_requests(requests_df, FakeForecaster(), tmp_path, echo=quiet)
     assert not debris.exists()
 
 
@@ -486,9 +642,7 @@ def test_interrupted_atomic_write_debris_is_removed(requests_df, tmp_path, quiet
 
 
 def test_block_status_contents(requests_df, tmp_path, quiet):
-    returned = runner.run_requests(
-        requests_df, FakeForecaster(), tmp_path, blocks=[1, 2], echo=quiet
-    )
+    returned = run_requests(requests_df, FakeForecaster(), tmp_path, blocks=[1, 2], echo=quiet)
     saved = json.loads((tmp_path / runner.STATUS_FILE).read_text())
     assert saved == returned
     assert sorted(saved) == ["1", "2", "3"]
@@ -500,8 +654,12 @@ def test_block_status_contents(requests_df, tmp_path, quiet):
             "seconds",
             "status",
             "requests_sha256",
+            "checkpoint_revision",
+            "use_symmetric_averaging",
+            "make_positive",
         }
         assert rec["requests_sha256"] == rq.requests_digest(requests_df)
+        assert rec["checkpoint_revision"] == REVISION
     assert saved["1"]["requests"] == 4 and saved["1"]["done"] == 4
     assert saved["2"]["requests"] == 2 and saved["2"]["done"] == 2
     assert saved["1"]["status"] == saved["2"]["status"] == "complete"
@@ -513,6 +671,9 @@ def test_block_status_contents(requests_df, tmp_path, quiet):
         "seconds": 0.0,
         "status": "pending",
         "requests_sha256": rq.requests_digest(requests_df),
+        "checkpoint_revision": REVISION,
+        "use_symmetric_averaging": True,
+        "make_positive": True,
     }
 
 
@@ -521,9 +682,7 @@ def test_status_is_derived_from_the_parts_and_is_read_only(requests_df, tmp_path
     assert runner.pending_counts(requests_df, out) == {1: 4, 2: 2, 3: 2}
     assert not out.exists()  # looking never creates anything
     with pytest.raises(RuntimeError):
-        runner.run_requests(
-            requests_df, FakeForecaster(fail_on_call=2), out, batch_size=3, echo=quiet
-        )
+        run_requests(requests_df, FakeForecaster(fail_on_call=2), out, batch_size=3, echo=quiet)
     (out / runner.STATUS_FILE).unlink()  # the json is a cache: the parts are the truth
     status = runner.current_status(requests_df, out)
     assert status["1"]["status"] == "partial" and status["1"]["done"] == 2
@@ -614,17 +773,19 @@ def test_default_output_dir_is_gitignored(script):
 def cli_env(script, tmp_path, monkeypatch, requests_df):
     """The script with preflight and model loading faked, manifests under tmp_path."""
     monkeypatch.setattr(config, "RESULTS_DIR", tmp_path / "results")
+    monkeypatch.setattr(config, "CHECKPOINT_REVISION", REVISION)
     monkeypatch.setattr(script, "capture_git_state", lambda: False)
     fake = FakeForecaster()
     loaded: list[str | None] = []
     preflights: list[bool] = []
+    resolve: dict[str, str] = {}  # revision requested -> resolved; a full sha resolves to itself
 
     def preflight(repo_id, revision, *, allow_cpu=False):
         preflights.append(allow_cpu)
         return {
             "repo_id": repo_id,
             "revision_requested": revision,
-            "revision_resolved": "resolved-sha",
+            "revision_resolved": resolve.get(revision, revision),
         }
 
     def load(revision=None):
@@ -645,7 +806,13 @@ def cli_env(script, tmp_path, monkeypatch, requests_df):
         "3",
     ]
     return SimpleNamespace(
-        fake=fake, loaded=loaded, preflights=preflights, argv=argv, path=path, tmp=tmp_path
+        fake=fake,
+        loaded=loaded,
+        preflights=preflights,
+        resolve=resolve,
+        argv=argv,
+        path=path,
+        tmp=tmp_path,
     )
 
 
@@ -656,7 +823,7 @@ def manifests(env) -> list[Path]:
 def test_cli_run_writes_forecasts_and_a_value_free_manifest(script, cli_env, requests_df, capsys):
     assert script.main([*cli_env.argv, "--allow-cpu"]) == 0
     out = cli_env.tmp / "out"
-    assert cli_env.preflights == [True] and cli_env.loaded == ["resolved-sha"]
+    assert cli_env.preflights == [True] and cli_env.loaded == [REVISION]
     rq.validate_forecasts(requests_df, rq.read_forecasts(out))
     assert {v["status"] for v in json.loads((out / runner.STATUS_FILE).read_text()).values()} == {
         "complete"
@@ -670,10 +837,19 @@ def test_cli_run_writes_forecasts_and_a_value_free_manifest(script, cli_env, req
     assert manifest["requests"]["n_requests"] == 8
     assert manifest["requests"]["by_block"] == {"1": 4, "2": 2, "3": 2}
     assert sum(manifest["requests"]["by_study"].values()) == 8
-    assert manifest["model"]["revision"] == config.CHECKPOINT_REVISION
-    assert manifest["model"]["revision_resolved"] == "resolved-sha"
+    assert manifest["model"]["revision"] == config.CHECKPOINT_REVISION == REVISION
+    assert manifest["model"]["revision_resolved"] == REVISION
     assert manifest["model"]["use_symmetric_averaging"] is True
-    assert manifest["_meta"]["checkpoint"]["revision_resolved"] == "resolved-sha"
+    assert manifest["model"]["make_positive"] is True
+    assert manifest["_meta"]["checkpoint"]["revision_resolved"] == REVISION
+    # the resolved revision and the flags are stamped into every part and status record
+    for part in out.glob("block=*/part-*.parquet"):
+        meta = pq.read_schema(part).metadata
+        assert meta[runner._META_REVISION] == REVISION.encode()
+        assert meta[runner._META_SYMMETRIC] == b"true" and meta[runner._META_POSITIVE] == b"true"
+    for rec in json.loads((out / runner.STATUS_FILE).read_text()).values():
+        assert rec["checkpoint_revision"] == REVISION
+        assert rec["use_symmetric_averaging"] is True and rec["make_positive"] is True
     assert manifest["device"] == manifest["_meta"]["environment"]["gpu_name"]
     assert manifest["batch_size"] == 3 and manifest["blocks_selected"] == [1, 2, 3]
     assert {k: v["status"] for k, v in manifest["block_status"].items()} == dict.fromkeys(
@@ -793,7 +969,38 @@ def test_cli_resume_refuses_parts_from_different_requests(script, cli_env, reque
         script.main([*argv, "--resume"])
     with pytest.raises(SystemExit, match="other requests"):
         script.main([*argv, "--dry-run"])
-    assert len(cli_env.fake.calls) == calls and cli_env.loaded == ["resolved-sha"]  # no new load
+    assert len(cli_env.fake.calls) == calls and cli_env.loaded == [REVISION]  # no new load
+
+
+def test_cli_resume_refuses_another_pinned_revision_before_any_preflight(
+    script, cli_env, monkeypatch
+):
+    assert script.main([*cli_env.argv, "--allow-cpu", "--blocks", "2"]) == 0
+    calls = len(cli_env.fake.calls)
+    cli_env.preflights.clear()
+    cli_env.loaded.clear()
+    monkeypatch.setattr(config, "CHECKPOINT_REVISION", OTHER_REVISION.upper())  # case is ignored
+    for extra in (["--resume"], ["--dry-run"]):
+        with pytest.raises(SystemExit, match="checkpoint revision.*fresh output directory"):
+            script.main([*cli_env.argv, *extra])
+    assert cli_env.preflights == [] and cli_env.loaded == []  # refused before any GPU time
+    assert len(cli_env.fake.calls) == calls
+
+    # a fresh --out is the documented way forward
+    fresh = [*cli_env.argv]
+    fresh[fresh.index("--out") + 1] = str(cli_env.tmp / "fresh")
+    assert script.main([*fresh, "--allow-cpu"]) == 0
+    assert [r.lower() for r in cli_env.loaded] == [OTHER_REVISION]  # the hub answers in lowercase
+
+
+@pytest.mark.parametrize("bad", ["main", "v1.0", "abc123", "", "ab" * 19])
+@pytest.mark.parametrize("extra", [[], ["--resume"], ["--dry-run"]])
+def test_cli_refuses_a_revision_that_is_not_a_full_sha(script, cli_env, monkeypatch, bad, extra):
+    monkeypatch.setattr(config, "CHECKPOINT_REVISION", bad)
+    with pytest.raises(SystemExit, match="40-hex commit sha"):
+        script.main([*cli_env.argv, "--allow-cpu", *extra])
+    assert cli_env.preflights == [] and cli_env.loaded == []
+    assert not cli_env.fake.calls
 
 
 def test_cli_requires_as_of_for_a_real_run(script, cli_env):
@@ -829,11 +1036,11 @@ def test_cli_gpu_is_required_unless_allow_cpu(script, cli_env, monkeypatch):
     monkeypatch.setattr(script, "preflight_model", preflight.preflight_model)
     monkeypatch.setattr(preflight, "_cuda_available", lambda: False)
     monkeypatch.setattr(
-        preflight, "require_checkpoint_access", lambda repo, revision=None: "pinned-sha"
+        preflight, "require_checkpoint_access", lambda repo, revision=None: REVISION
     )
     with pytest.raises(SystemExit, match="no CUDA GPU"):
         script.main(cli_env.argv)
     assert cli_env.loaded == [] and not (cli_env.tmp / "out").exists()
 
     assert script.main([*cli_env.argv, "--allow-cpu"]) == 0
-    assert cli_env.loaded == ["pinned-sha"]
+    assert cli_env.loaded == [REVISION]
