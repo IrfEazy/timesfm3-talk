@@ -103,10 +103,27 @@ STEPS: tuple[Step, ...] = (
         "timesfm2.5",
         "latency, TimesFM-2.5",
     ),
+    # v3 studies: appended last so the ids and order above stay unchanged. It reads
+    # data/cache/v3_requests.parquet (scripts/14_v3_forecast.py default), which the
+    # attached PRIVATE cache dataset provides: copy_dataset_into_cache copies it with
+    # the other parquet files and verify_cache checks it against the committed
+    # cache manifest like any other cache file (rebuild that manifest after adding it).
+    Step(
+        "v3_forecasts",
+        "scripts/14_v3_forecast.py",
+        ("--resume",),
+        "timesfm3",
+        "v3 studies: S1/S2/S3 forecasts",
+    ),
 )
 
 STEP_BY_ID: dict[str, Step] = {s.step_id: s for s in STEPS}
-DEFAULT_EXPERIMENTS: tuple[str, ...] = tuple(s.step_id for s in STEPS)
+# Steps that never run in the default (Preregistration v2) session: they need inputs
+# the v2 cache dataset does not hold, so a session opts in by naming them in EXPERIMENTS.
+OPT_IN_STEPS: frozenset[str] = frozenset({"v3_forecasts"})
+DEFAULT_EXPERIMENTS: tuple[str, ...] = tuple(
+    s.step_id for s in STEPS if s.step_id not in OPT_IN_STEPS
+)
 PROBE_ID = "probe"
 
 
@@ -421,7 +438,7 @@ def _utcnow() -> str:
 
 def format_status_table(steps: dict[str, dict]) -> str:
     rows = [f"{'step':<24}{'status':<9}{'exit':>5}{'elapsed_min':>13}"]
-    for sid in DEFAULT_EXPERIMENTS:
+    for sid in STEP_BY_ID:
         rec = steps.get(sid)
         if rec is None:
             continue

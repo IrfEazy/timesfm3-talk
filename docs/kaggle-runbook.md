@@ -156,7 +156,7 @@ Flip invariance runs every series twice, so 2.5 latency numbers include about
 | `DATASET_SLUG` | Slug of the attached private cache dataset, found recursively under `/kaggle/input`. |
 | `DATASET_DIR` | Optional explicit mount path overriding the slug lookup. |
 | `PREVIOUS_OUTPUT_DIR` | Optional: a prior version's output, attached as input, to resume. |
-| `EXPERIMENTS` | Ordered step ids; remove ids to skip steps. |
+| `EXPERIMENTS` | Ordered step ids; remove ids to skip steps. The opt-in `v3_forecasts` is not in the default list (see "v3 studies session"). |
 | `RESUME` | Skip steps already completed in a restored session (02b always resumes its run directories). |
 | `ALLOW_CPU` | Smoke tests only. Never use for real results. |
 | `QUOTA_HOURS` | Remaining weekly GPU quota; the probe compares its projection with it. |
@@ -165,7 +165,8 @@ Flip invariance runs every series twice, so 2.5 latency numbers include about
 Step ids, in run order (the primary preregistered claim comes first after the
 probe): `probe`, `02b_preregistered_v2`, `02b_timesfm2p5`, `02b_showcase`,
 `02b_ffill0`, `02b_ffill1`, `03_timesfm3`, `03_timesfm2p5`, `05_covariates`,
-`09_latency_timesfm3`, `09_latency_timesfm2p5`.
+`09_latency_timesfm3`, `09_latency_timesfm2p5`, and last the opt-in
+`v3_forecasts` (not in the default `EXPERIMENTS`; see "v3 studies session").
 
 ## What the notebook does
 
@@ -287,6 +288,64 @@ plus `results/inference_selfcheck.parquet` (`scripts/08_inference_selfcheck.py`,
 run locally). Both stop and name the missing producer otherwise. Review `results/run_status.json` first: it lists every step's
 exit code and elapsed time, the commit sha and the resolved checkpoint shas.
 Do not commit anything from the heavy archive.
+
+## v3 studies session
+
+The opt-in step `v3_forecasts` (`scripts/14_v3_forecast.py`) forecasts the
+requests of the v3 studies (S1/S2/S3) with TimesFM-3. It is the last step of
+the table and is **not** in the default `EXPERIMENTS`, so a Preregistration v2
+session never runs it.
+
+1. **Build the requests locally** with `scripts/13_v3_select.py` (the request
+   builder). The result is `data/cache/v3_requests.parquet`: one row per
+   forecast request with `request_id`, `study`, `block` (priority 1 to 4),
+   `horizon` and a scaled `context` (each context divided by its origin quote,
+   so the origin quote is about 1). The file holds no outcome and no absolute
+   price level; `tfm3lab.studies.requests.read_requests` validates it.
+2. **Add it to the PRIVATE cache dataset.** Run
+   `uv run python -m tfm3lab.kaggle cache-manifest --as-of 2026-09-04` again
+   (the manifest covers every top-level `data/cache/*.parquet`, so the new
+   file is checked like the others: a dataset without it, with other bytes, or
+   with extra files stops the notebook before any GPU time), commit and push
+   the manifest, and upload a new version of the private dataset with the
+   file added. Upload only the top-level `*.parquet` files, not subfolders
+   such as `data/cache/panel/`. The manifest in that ref now lists
+   `v3_requests.parquet`, so every later session of that ref needs the new
+   dataset version too. Re-running `cache-manifest` rewrites
+   `results/manifests/cache-2026-09-04.json` in place: the v2 sessions are
+   finished, so this is accepted, and the earlier version of that file stays in
+   git history.
+3. **Choose the step.** In the parameter cell set
+   `EXPERIMENTS = ["probe", "v3_forecasts"]` (or just `["v3_forecasts"]`). The
+   probe measures throughput but has no work model for this step, so it prints
+   no projection for it.
+4. **What it does.** Block 1 first, then 2, 3 and 4; inside a block the
+   requests are grouped by horizon and batched (`--batch-size`, default 128).
+   Every batch is written atomically to
+   `results/benchmark/v3_forecasts/block=<k>/part-<n>.parquet` and
+   `block_status.json` is refreshed (requests, done, floored values, seconds,
+   status per block). The step always passes `--resume`: after a cut session
+   attach the previous output as `PREVIOUS_OUTPUT_DIR` with the same commit and
+   the verified parts are skipped, never duplicated. Every part records the
+   sha256 of the requests content it was forecast from (also in
+   `block_status.json` and the manifest's `requests.content_sha256`); if the
+   requests file changed since, the resume stops with an error and the step
+   needs a fresh output directory. A forecast value that is not finite or not
+   positive is floored at 0.001 and counted in `floored_values`.
+5. **What to download.** The forecast directory
+   `results/benchmark/v3_forecasts/` (inside the heavy archive, so keep
+   `PACK_HEAVY = True`, or take `tfm3lab-data/results/benchmark/v3_forecasts`
+   from the version output), the manifest
+   `results/manifests/v3_forecast-2026-09-04-<timestamp>.json` and
+   `results/run_status.json` (both in the light archive). The manifest holds
+   the requests file's sha256, the model revision, the device, the per-block
+   status and counts, and no forecast values. The forecast directory is
+   gitignored; keep it local.
+6. **Keep the dataset private.** `v3_requests.parquet` itself holds only
+   scaled contexts (each divided by its origin quote; no outcomes, no absolute
+   price levels). The dataset as a whole also holds the redistribution-restricted
+   v2 price caches (`mtg_prices.parquet`, `market_prices.parquet`, absolute
+   price histories), so it must stay Private and must never be shared.
 
 ## Troubleshooting
 
