@@ -350,7 +350,85 @@ def build_v2_latency() -> None:
     _save_v2(fig_latency(table, gpu), "v2_latency")
 
 
+# V3 figures use the same manifest-checked claims as the report. Independent
+# axes are deliberate: log-error differences and quote advantage have different units.
+def fig_v3_primary(claims):
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4.7))
+    settings = (
+        ("s1", "New-set cold start", "ALE difference vs naive\n(positive = worse)"),
+        ("s2", "Buy now or wait", "Quote advantage vs buying now\n(positive = better)"),
+        ("s3", "After a price spike", "ALE difference vs hold\n(positive = worse)"),
+    )
+    for ax, (study, title, xlabel) in zip(axes, settings, strict=True):
+        c = claims[f"v3.{study}"]
+        intervals = (
+            [("Student-t", c["ci_low"], c["ci_high"])]
+            if study == "s1"
+            else [
+                ("Card cluster", c["ci_low"], c["ci_high"]),
+                ("Calendar block", c["cal_ci_low"], c["cal_ci_high"]),
+            ]
+        )
+        ax.axvline(0, color="black", linewidth=1)
+        for y, (_, low, high) in enumerate(intervals):
+            # Draw endpoints directly: a percentile interval need not enclose its estimate.
+            ax.hlines(y, low, high, color=plots.PALETTE["model"], linewidth=2)
+            ax.plot([low, high], [y, y], "|", color=plots.PALETTE["model"], markersize=10)
+            ax.plot(c["value"], y, "o", color=plots.PALETTE["model"])
+        ax.set_yticks(range(len(intervals)), [i[0] for i in intervals])
+        ax.set_ylim(-0.6, max(1, len(intervals) - 1) + 0.6)
+        ax.set_xlabel(xlabel)
+        _titles(ax, f"{c['study']}: {title}", c["verdict"])
+    level = claims["v3.s2"]["level"]
+    fig.suptitle(f"Preregistered primary comparisons: {level:.2%} intervals", fontsize=13)
+    fig.tight_layout(rect=(0, 0, 1, 0.90))
+    return fig
+
+
+def fig_v3_floor(claims):
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    studies = ("s1", "s2", "s3")
+    x = range(len(studies))
+    for field, offset, label in (
+        ("median_steps", -0.18, "Median forecast steps at floor"),
+        ("requests", 0.18, "Requests with any median step at floor"),
+    ):
+        ax.bar(
+            [i + offset for i in x],
+            [claims[f"v3.floor.{s}"][field] for s in studies],
+            width=0.36,
+            label=label,
+        )
+    ax.set_xticks(x, [claims[f"v3.{s}"]["study"] for s in studies])
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Share (all requests and horizons within each study)")
+    _titles(
+        ax, "Forecast flooring diagnostics", "Descriptive; broader than the primary analysis sets"
+    )
+    ax.legend(fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
+def _v3_claims():
+    from tfm3lab.claims import EXEMPTIONS, V3_SPECS
+    from tfm3lab.ledger import build_ledger
+
+    ledger = build_ledger(V3_SPECS, config.REPO_ROOT, EXEMPTIONS)
+    return {c["id"]: {k: v["raw"] for k, v in c["fields"].items()} for c in ledger["claims"]}
+
+
+def build_v3_primary():
+    _save_v2(fig_v3_primary(_v3_claims()), "v3_primary_comparisons")
+
+
+def build_v3_floor():
+    _save_v2(fig_v3_floor(_v3_claims()), "v3_floor_diagnostics")
+
+
 FIGURES = [
+    ("v3_primary_comparisons", build_v3_primary),
+    ("v3_floor_diagnostics", build_v3_floor),
     ("exp_mtg_forecast_slice", build_hero_slice),
     ("exp_shock_reaction", build_shock_reactions),
     ("exp_mtg_horizon_profile", build_horizon_profile),

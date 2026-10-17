@@ -183,3 +183,39 @@ def test_template_leading_comment_digit_is_flagged(sandbox):
     P.write_docs(sandbox, out=lambda *_: None)
     rc, log = _check(sandbox)
     assert rc == 1 and "UNTRACED NUMBER" in log and "'7'" in log
+
+
+def test_v3_claims_match_confirmatory_verdicts_and_not_exploratory_intervals():
+    claims = _claims()
+    verdicts = json.loads((REPO / "results/v3_verdicts.json").read_text())
+    report = (REPO / "docs/report.md").read_text()
+    for verdict in verdicts:
+        c = claims[f"v3.{verdict['study'].lower()}"]
+        assert c["verdict"] == verdict["verdict"]
+        assert c["value"] == verdict["point"]
+        assert c["n"] == verdict["n"]
+        assert c["status"] == verdict["status"] == "complete"
+        interval = verdict["intervals"].get("t", verdict["intervals"].get("cluster"))
+        assert [c["ci_low"], c["ci_high"]] == interval
+        if "block" in verdict["intervals"]:
+            assert [c["cal_ci_low"], c["cal_ci_high"]] == verdict["intervals"]["block"]
+        assert f"**{c['verdict']}**" in report
+    # This narrative must continue to match the committed census/evaluation.
+    s3 = json.loads((REPO / "results/v3_s3_summary.json").read_text())
+    assert s3["confirmatory"] is True
+    s1 = claims["v3.s1"]
+    assert s1["sensitivity_low"] > 0
+    assert "does not replace the primary verdict" in report
+    # Rare floor hits must not round to zero in the public table.
+    ledger = json.loads((REPO / L.LEDGER_JSON).read_text())
+    floor = next(c for c in ledger["claims"] if c["id"] == "v3.floor.s2")
+    assert float(floor["fields"]["median_steps"]["text"]) > 0
+
+
+def test_changed_v3_results_fail_manifest_validation(sandbox):
+    source = sandbox / "results/v3_s2_summary.json"
+    data = json.loads(source.read_text())
+    data["primary"]["mean"] = 0.5
+    source.write_text(json.dumps(data))
+    rc, log = _check(sandbox)
+    assert rc == 1 and "does not match the newest manifest" in log

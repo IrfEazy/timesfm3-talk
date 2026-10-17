@@ -123,3 +123,34 @@ def test_committed_leaderboard_matches_verdict_table():
             est = pool[(pool["horizon"] == h) & (pool["statistic"] == stat)]["estimate"]
             assert len(est) == 1
             assert abs(float(row[col].iloc[0]) - float(est.iloc[0])) < 1e-9
+
+
+def test_v3_figure_preserves_interval_endpoints_and_effect_directions():
+    claims = mf._v3_claims()
+    fig = mf.fig_v3_primary(claims)
+    for ax, study in zip(fig.axes, ("s1", "s2", "s3"), strict=True):
+        c = claims[f"v3.{study}"]
+        endpoints = [(c["ci_low"], c["ci_high"])]
+        if study != "s1":
+            endpoints.append((c["cal_ci_low"], c["cal_ci_high"]))
+        for collection, bounds in zip(ax.collections, endpoints, strict=True):
+            np.testing.assert_allclose(collection.get_segments()[0][:, 0], bounds)
+        assert ("positive = better" if study == "s2" else "positive = worse") in ax.get_xlabel()
+        assert c["verdict"] in ax.get_title()
+    assert "98.33%" in fig._suptitle.get_text()
+    plt.close(fig)
+
+
+def test_v3_floor_figure_uses_all_requests_not_primary_counts():
+    claims = mf._v3_claims()
+    fig = mf.fig_v3_floor(claims)
+    bars = fig.axes[0].patches
+    expected = [
+        claims[f"v3.floor.{s}"][field]
+        for field in ("median_steps", "requests")
+        for s in ("s1", "s2", "s3")
+    ]
+    np.testing.assert_allclose([b.get_height() for b in bars], expected)
+    assert claims["v3.floor.s1"]["n"] != claims["v3.s1"]["n_skus"]
+    assert "broader than the primary analysis sets" in fig.axes[0].get_title()
+    plt.close(fig)

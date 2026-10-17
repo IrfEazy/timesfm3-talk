@@ -1,4 +1,4 @@
-"""Claim specs for the committed v2 results (column names only; no result values).
+"""Claim specs for the committed v2 and v3 results (column names only; no result values).
 
 Defaults: 3 decimals for skill/coverage/effects, integers for counts. Latency
 seconds-per-1k use 4 decimals (an override of the 2-decimal default: the fastest
@@ -373,3 +373,97 @@ SPECS: tuple[ClaimSpec, ...] = (
         },
     ),
 )
+
+
+# V3 summaries are already normalized, and each is pinned by the evaluation manifest.
+GV3 = "V3: Decision-focused studies"
+_V3_EVAL = "results/manifests/exp-v3-evaluate-2026-09-04-20261015T085141Z.json"
+EXEMPTIONS[_V3_EVAL] = "committed evaluation manifest used as metadata; sha256 pinned here"
+for _study in ("s1", "s2", "s3"):
+    EXEMPTIONS[f"src/tfm3lab/studies/eval_{_study}.py"] = (
+        "committed study design constants; sha256 pinned here"
+    )
+
+V3_SPECS = (
+    ClaimSpec(
+        id="v3.design",
+        source=_V3_EVAL,
+        group=GV3,
+        fields={
+            "n_boot": I("parameters.bootstrap_B"),
+            "seed": I("parameters.seed"),
+            "s1_floor": F("parameters.s1_floors.0", 2),
+        },
+    ),
+    *(
+        ClaimSpec(
+            id=f"v3.design.{study}",
+            source=f"src/tfm3lab/studies/eval_{study}.py",
+            group=GV3,
+            fields={"target": I(column)},
+        )
+        for study, column in (("s1", "HORIZON_DAYS"), ("s2", "HORIZON"), ("s3", "PRIMARY_H"))
+    ),
+    ClaimSpec(
+        id="v3.s1",
+        source="results/v3_s1_summary.json",
+        group=GV3,
+        fields={
+            "study": T("study"),
+            "status": T("status"),
+            "as_of": T("as_of"),
+            "checkpoint": T("checkpoint_revision"),
+            "k": I("primary.k"),
+            "n": I("primary.G"),
+            "n_skus": I("primary.n_skus_paired"),
+            "attrition": I("primary.n_attrition"),
+            "unavailable": I("counts.n_tf_unavailable_floor_1"),
+            "value": F("primary.mean_diff", 4),
+            "ci_low": F("primary.t_ci_9833.0", 4),
+            "ci_high": F("primary.t_ci_9833.1", 4),
+            "p": F("primary.sign_flip_p", 8),
+            "verdict": T("primary.verdict"),
+            "sensitivity_value": F("exploratory.exploratory_q50_above_floor.mean_diff", 4),
+            "sensitivity_low": F("exploratory.exploratory_q50_above_floor.t_ci_95.0", 4),
+            "sensitivity_high": F("exploratory.exploratory_q50_above_floor.t_ci_95.1", 4),
+            "sensitivity_n": I("exploratory.exploratory_q50_above_floor.n_skus_paired"),
+            "sensitivity_events": I("exploratory.exploratory_q50_above_floor.n_events"),
+            "coverage": F("exploratory.bias_coverage.coverage_80", 4),
+        },
+    ),
+    *(
+        ClaimSpec(
+            id=f"v3.{study}",
+            source=f"results/v3_{study}_summary.json",
+            group=GV3,
+            fields={
+                "study": T("study"),
+                "status": T("status"),
+                "value": F("primary.mean", 4),
+                "n": I("primary.n"),
+                "ci_low": F("primary.cluster_ci.0", 4),
+                "ci_high": F("primary.cluster_ci.1", 4),
+                "cal_ci_low": F("primary.block_ci.0", 4),
+                "cal_ci_high": F("primary.block_ci.1", 4),
+                "level": F("primary.level", 6),
+                "verdict": T("primary.verdict"),
+            },
+        )
+        for study in ("s2", "s3")
+    ),
+    *(
+        ClaimSpec(
+            id=f"v3.floor.{study.lower()}",
+            source="results/v3_model_behaviour.json",
+            group=GV3,
+            fields={
+                "floor": F("floor"),
+                "median_steps": F(f"studies.{study}.floored_share_by_quantile.q50", 6),
+                "requests": F(f"studies.{study}.share_requests_q50_floored_any_step", 6),
+                "n": I(f"studies.{study}.n_requests"),
+            },
+        )
+        for study in ("S1", "S2", "S3")
+    ),
+)
+SPECS += V3_SPECS

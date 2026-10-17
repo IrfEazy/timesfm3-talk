@@ -237,6 +237,41 @@
    "context": "scripts/11_render_docs.py",
    "reason": "script file name",
    "expected_count": 2
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "3",
+   "context": "Preregistration v3",
+   "reason": "version label of the follow-up preregistration",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "3",
+   "context": "analysis-plan-v3.md",
+   "reason": "version tag inside a committed file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "3",
+   "context": "figures/v3_primary_comparisons.png",
+   "reason": "version tag inside a committed figure file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "3",
+   "context": "figures/v3_floor_diagnostics.png",
+   "reason": "version tag inside a committed figure file name",
+   "expected_count": 1
+  },
+  {
+   "doc": "docs/report.md",
+   "literal": "1",
+   "context": "Amendment A1",
+   "reason": "identifier of the preregistered forecast-processing amendment",
+   "expected_count": 1
   }
  ]
 }

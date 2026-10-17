@@ -196,6 +196,42 @@ Before real data, the primary interval was checked on simulated panels with know
 
 The stress scenario (strong common shocks across clusters) is a sensitivity and is never used for acceptance. Under it the cluster interval covers less than nominal at 40 clusters, which is why the verdict rule also requires the calendar-block interval to agree. Reading: a cluster interval that excludes zero is weaker evidence than its nominal level suggests when cards share common shocks, and the stricter rule exists for that reason.
 
+## Decision-focused studies (Preregistration v3)
+
+The follow-up [preregistration](analysis-plan-v3.md) asks whether the same model is useful for new-set cold starts, purchase timing, or forecasting after a price spike. These are retrospective studies of marketplace quotes with an as-of cutoff of 2026-09-04, using checkpoint revision `43046b85ec22d584a13f8098c2ed39c889e129c2`. The catalogue was fetched after the as-of date; it is not a point-in-time catalogue. Each study uses origin-available histories and the frozen selection rules. Status: S1 **complete**, S2 **complete**, S3 **complete**.
+
+The confirmatory family contains the three primary comparisons. Bonferroni-adjusted two-sided interval level is 0.983333. Bootstrap comparisons use 2000 resamples and seed 20261010. The cold-start verdict requires agreement between its event-level Student-t interval and sign-flip test. Purchase timing and spike verdicts require agreement between card-cluster and calendar-block intervals. Absolute log error (ALE) is the absolute log ratio of forecast to outcome: a positive model-minus-reference difference means greater error. Quote advantage is one minus the execution quote divided by the origin quote: positive means a lower quote than buying now.
+
+| study | primary estimand | estimate | primary interval | calendar-block interval | analysis units | verdict |
+|---|---|---|---|---|---|---|
+| S1: new-set cold start | event mean ALE difference vs naive | 1.8530 | [1.3495, 2.3564] (Student-t) | not used | 20 release events | **loses to naive** |
+| S2: buy now or wait | mean quote advantage vs buying now | -0.0003 | [-0.0040, 0.0035] (card cluster) | [-0.0045, 0.0041] | 5325 decisions | **inconclusive** |
+| S3: spike, hold or revert | mean ALE difference vs hold | 0.0714 | [0.0627, 0.0807] (card cluster) | [0.0546, 0.0905] | 13263 events | **loses to hold** |
+
+![Primary comparisons with separate axes and units](../results/figures/v3_primary_comparisons.png)
+
+**New-set cold start.** The primary forecast starts 14 days after release and predicts the quote 90 days after release, with a primary origin-quote eligibility floor of $1.00. The paired analysis includes 9471 SKUs across 20 release events, with 17 missing outcomes and 0 unavailable forecasts at the primary eligibility floor. The sign-flip p-value is 0.00000191. The positive ALE difference means that extrapolating the early price history performed worse than keeping the origin quote fixed. Events, rather than individual SKUs, are the primary averaging units.
+
+**Buy now or wait.** The model chooses an execution day within 28 days by minimizing its predicted median path, including the option to buy immediately. The estimate is close to zero, and both intervals cross zero: **inconclusive**. This does not establish equivalence with buying now. Failed executions count against the policy under the preregistered rule. The estimand is a quote-based price advantage; it does not account for fees, shipping, stock, or the ability to transact at that quote.
+
+**Spike, hold or revert.** The census met the preregistered event-count and calendar-span requirements, so the primary comparison is confirmatory. At the primary horizon of 28 days, the model has greater ALE than holding the spike-day quote fixed: **loses to hold**. This compares forecast errors; it is not a recommendation to hold an asset. Missing outcomes are excluded on the same paired set for every forecasting method.
+
+### Forecast-floor diagnostics and exploratory sensitivity
+
+Amendment A1 was committed after inspecting forecasts but before computing outcomes. It sorts quantiles after applying the preregistered numerical floor (0.001 times the origin quote), and retains the median after sorting. The flooring diagnostics below cover all requests and forecast steps in each study, including secondary horizons and eligibility floors; their denominators differ from the primary analysis sets above.
+
+| study | requests | share of median forecast steps at floor | share of requests with any median step at floor |
+|---|---|---|---|
+| S1 | 45823 | 0.256792 | 0.307815 |
+| S2 | 5325 | 0.000007 | 0.000188 |
+| S3 | 13275 | 0.001766 | 0.003917 |
+
+![Descriptive flooring diagnostics across all requests](../results/figures/v3_floor_diagnostics.png)
+
+Flooring is especially common in the cold-start study, where the model can extrapolate an early decline to zero. The pre-declared exploratory check restricts the primary cold-start sample to median paths that never hit the floor: 6757 paired SKUs across 20 events. Its mean ALE difference remains positive at 0.1610, with exploratory interval [0.1041, 0.2179] at level 0.95. This is a selected subset of forecasts, not a causal estimate of the floor's effect, and does not replace the primary verdict. Exploratory central-interval coverage (nominal 0.80) for the cold-start study is 0.5684; no coverage confidence interval is supplied, so no calibration verdict is made here.
+
+The new studies provide no confirmatory evidence of an advantage for the model in these tasks. This conclusion is limited to the frozen samples, checkpoint, inference settings, and quote-based outcomes. Other baseline comparisons, price-band splits, and secondary horizons remain exploratory; see the committed study summaries for details.
+
 ## 9. Limitations and threats to validity
 
 - The cutoff is a conservative reading; contamination on either side cannot be excluded, and TimesFM-2.5 has no sourced cutoff.

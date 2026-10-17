@@ -8,7 +8,10 @@ generalizes on data it could not have seen, and how it behaves when a genuine sh
 that is *not* in its training data by construction — hits.
 
 See `docs/report.md` for the results report and `docs/analysis-plan.md` for the
-preregistered analysis plan.
+preregistered analysis plan. The
+[decision-focused follow-up](docs/report.md#decision-focused-studies-preregistration-v3)
+reports new-set cold starts, buy-now-or-wait decisions, and forecasts after price
+spikes under [Preregistration v3](docs/analysis-plan-v3.md).
 
 ## What's here
 
@@ -197,3 +200,23 @@ uv run python scripts/01_fetch_data.py --as-of <YYYY-MM-DD> --mtg-start <30 days
 Every number in the report is traceable to a file in `results/` through the evidence ledger —
 no number gets typed by hand into `docs/report.md.template`, and
 `scripts/11_render_docs.py --check` fails if one is.
+
+### Reproduce the v3 report and figures offline
+
+The committed `results/v3_*_summary.json` and `results/v3_model_behaviour.json`
+contain the evaluated results and diagnostics; the evaluation manifest pins their
+hashes. No model, private price cache, or network is needed for publication:
+
+```bash
+uv run scripts/10_evidence_ledger.py
+uv run scripts/06_make_figures.py --only v3_primary_comparisons
+uv run scripts/06_make_figures.py --only v3_floor_diagnostics
+uv run scripts/11_render_docs.py
+uv run scripts/11_render_docs.py --check
+```
+
+The v3 figure builders validate the same manifest-backed claims as the report.
+Primary comparisons use separate axes because log-error differences and quote
+advantage have different units and opposite directions of improvement. The floor
+figure is descriptive and includes all requests, rather than just the primary
+analysis sets.

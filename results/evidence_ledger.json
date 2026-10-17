@@ -67083,6 +67083,394 @@
    },
    "source": "results/inference_selfcheck.parquet",
    "source_sha256": "b05f78b2a9c8c31c494f9905ee2df532f94ad7af00a315586358c54fc6d78917"
+  },
+  {
+   "exemption": "committed evaluation manifest used as metadata; sha256 pinned here",
+   "fields": {
+    "n_boot": {
+     "raw": 2000,
+     "text": "2000"
+    },
+    "s1_floor": {
+     "raw": 1.0,
+     "text": "1.00"
+    },
+    "seed": {
+     "raw": 20261010,
+     "text": "20261010"
+    }
+   },
+   "group": "V3: Decision-focused studies",
+   "id": "v3.design",
+   "kind": "row",
+   "manifest": null,
+   "selector": {},
+   "source": "results/manifests/exp-v3-evaluate-2026-09-04-20261015T085141Z.json",
+   "source_sha256": "427de9e851c0f2ee6134d94f4647976c57b270cb0d475b7036392eda57b17798"
+  },
+  {
+   "exemption": "committed study design constants; sha256 pinned here",
+   "fields": {
+    "target": {
+     "raw": 90,
+     "text": "90"
+    }
+   },
+   "group": "V3: Decision-focused studies",
+   "id": "v3.design.s1",
+   "kind": "row",
+   "manifest": null,
+   "selector": {},
+   "source": "src/tfm3lab/studies/eval_s1.py",
+   "source_sha256": "b4e8cf75268abc180f942356119a3f83353c236ad227bc52f3d005d003244742"
+  },
+  {
+   "exemption": "committed study design constants; sha256 pinned here",
+   "fields": {
+    "target": {
+     "raw": 28,
+     "text": "28"
+    }
+   },
+   "group": "V3: Decision-focused studies",
+   "id": "v3.design.s2",
+   "kind": "row",
+   "manifest": null,
+   "selector": {},
+   "source": "src/tfm3lab/studies/eval_s2.py",
+   "source_sha256": "09e6f5e54ec381c3d8103cfbd67e69408c028da96641df62d07ea9dc3839e2b0"
+  },
+  {
+   "exemption": "committed study design constants; sha256 pinned here",
+   "fields": {
+    "target": {
+     "raw": 28,
+     "text": "28"
+    }
+   },
+   "group": "V3: Decision-focused studies",
+   "id": "v3.design.s3",
+   "kind": "row",
+   "manifest": null,
+   "selector": {},
+   "source": "src/tfm3lab/studies/eval_s3.py",
+   "source_sha256": "1df4f55f61ba4b31203e7e084746de53ed0fa458713e32c8fff4f8ab0847e8ec"
+  },
+  {
+   "fields": {
+    "floor": {
+     "raw": 0.001,
+     "text": "0.001"
+    },
+    "median_steps": {
+     "raw": 0.2567923544085247,
+     "text": "0.256792"
+    },
+    "n": {
+     "raw": 45823,
+     "text": "45823"
+    },
+    "requests": {
+     "raw": 0.30781485280317744,
+     "text": "0.307815"
+    }
+   },
+   "group": "V3: Decision-focused studies",
+   "id": "v3.floor.s1",
+   "kind": "row",
+   "manifest": "exp-v3-evaluate-2026-09-04-20261015T085141Z.json",
+   "selector": {},
+   "source": "results/v3_model_behaviour.json",
+   "source_sha256": "033c65dca69a7b92f33d2ce4bf0f057836e6a6362720ced542a4a928302e5f97"
+  },
+  {
+   "fields": {
+    "floor": {
+     "raw": 0.001,
+     "text": "0.001"
+    },
+    "median_steps": {
+     "raw": 6.706908115358819e-06,
+     "text": "0.000007"
+    },
+    "n": {
+     "raw": 5325,
+     "text": "5325"
+    },
+    "requests": {
+     "raw": 0.00018779342723004695,
+     "text": "0.000188"
+    }
+   },
+   "group": "V3: Decision-focused studies",
+   "id": "v3.floor.s2",
+   "kind": "row",
+   "manifest": "exp-v3-evaluate-2026-09-04-20261015T085141Z.json",
+   "selector": {},
+   "source": "results/v3_model_behaviour.json",
+   "source_sha256": "033c65dca69a7b92f33d2ce4bf0f057836e6a6362720ced542a4a928302e5f97"
+  },
+  {
+   "fields": {
+    "floor": {
+     "raw": 0.001,
+     "text": "0.001"
+    },
+    "median_steps": {
+     "raw": 0.0017662093085821899,
+     "text": "0.001766"
+    },
+    "n": {
+     "raw": 13275,
+     "text": "13275"
+    },
+    "requests": {
+     "raw": 0.00391713747645951,
+     "text": "0.003917"
+    }
+   },
+   "group": "V3: Decision-focused studies",
+   "id": "v3.floor.s3",
+   "kind": "row",
+   "manifest": "exp-v3-evaluate-2026-09-04-20261015T085141Z.json",
+   "selector": {},
+   "source": "results/v3_model_behaviour.json",
+   "source_sha256": "033c65dca69a7b92f33d2ce4bf0f057836e6a6362720ced542a4a928302e5f97"
+  },
+  {
+   "fields": {
+    "as_of": {
+     "raw": "2026-09-04",
+     "text": "2026-09-04"
+    },
+    "attrition": {
+     "raw": 17,
+     "text": "17"
+    },
+    "checkpoint": {
+     "raw": "43046b85ec22d584a13f8098c2ed39c889e129c2",
+     "text": "43046b85ec22d584a13f8098c2ed39c889e129c2"
+    },
+    "ci": {
+     "raw": [
+      1.3495467854305847,
+      2.3563815495306537
+     ],
+     "text": "[1.3495, 2.3564]"
+    },
+    "ci_high": {
+     "raw": 2.3563815495306537,
+     "text": "2.3564"
+    },
+    "ci_low": {
+     "raw": 1.3495467854305847,
+     "text": "1.3495"
+    },
+    "coverage": {
+     "raw": 0.568420917146611,
+     "text": "0.5684"
+    },
+    "k": {
+     "raw": 14,
+     "text": "14"
+    },
+    "n": {
+     "raw": 20,
+     "text": "20"
+    },
+    "n_skus": {
+     "raw": 9471,
+     "text": "9471"
+    },
+    "p": {
+     "raw": 1.9073486328125e-06,
+     "text": "0.00000191"
+    },
+    "sensitivity": {
+     "raw": [
+      0.1041203754347412,
+      0.21793114348039053
+     ],
+     "text": "[0.1041, 0.2179]"
+    },
+    "sensitivity_events": {
+     "raw": 20,
+     "text": "20"
+    },
+    "sensitivity_high": {
+     "raw": 0.21793114348039053,
+     "text": "0.2179"
+    },
+    "sensitivity_low": {
+     "raw": 0.1041203754347412,
+     "text": "0.1041"
+    },
+    "sensitivity_n": {
+     "raw": 6757,
+     "text": "6757"
+    },
+    "sensitivity_value": {
+     "raw": 0.16102575945756586,
+     "text": "0.1610"
+    },
+    "status": {
+     "raw": "complete",
+     "text": "complete"
+    },
+    "study": {
+     "raw": "S1",
+     "text": "S1"
+    },
+    "unavailable": {
+     "raw": 0,
+     "text": "0"
+    },
+    "value": {
+     "raw": 1.8529641674806192,
+     "text": "1.8530"
+    },
+    "verdict": {
+     "raw": "loses to naive",
+     "text": "loses to naive"
+    }
+   },
+   "group": "V3: Decision-focused studies",
+   "id": "v3.s1",
+   "kind": "row",
+   "manifest": "exp-v3-evaluate-2026-09-04-20261015T085141Z.json",
+   "selector": {},
+   "source": "results/v3_s1_summary.json",
+   "source_sha256": "567f406b46aff88ac8b7d6e6dbc566df1f6ff40eef3f7520de38e72fc27e686d"
+  },
+  {
+   "fields": {
+    "cal_ci": {
+     "raw": [
+      -0.004500558823363387,
+      0.004080350808763611
+     ],
+     "text": "[-0.0045, 0.0041]"
+    },
+    "cal_ci_high": {
+     "raw": 0.004080350808763611,
+     "text": "0.0041"
+    },
+    "cal_ci_low": {
+     "raw": -0.004500558823363387,
+     "text": "-0.0045"
+    },
+    "ci": {
+     "raw": [
+      -0.004024536973946786,
+      0.0034569320160610785
+     ],
+     "text": "[-0.0040, 0.0035]"
+    },
+    "ci_high": {
+     "raw": 0.0034569320160610785,
+     "text": "0.0035"
+    },
+    "ci_low": {
+     "raw": -0.004024536973946786,
+     "text": "-0.0040"
+    },
+    "level": {
+     "raw": 0.9833333333333333,
+     "text": "0.983333"
+    },
+    "n": {
+     "raw": 5325,
+     "text": "5325"
+    },
+    "status": {
+     "raw": "complete",
+     "text": "complete"
+    },
+    "study": {
+     "raw": "S2",
+     "text": "S2"
+    },
+    "value": {
+     "raw": -0.00032762209001451154,
+     "text": "-0.0003"
+    },
+    "verdict": {
+     "raw": "inconclusive",
+     "text": "inconclusive"
+    }
+   },
+   "group": "V3: Decision-focused studies",
+   "id": "v3.s2",
+   "kind": "row",
+   "manifest": "exp-v3-evaluate-2026-09-04-20261015T085141Z.json",
+   "selector": {},
+   "source": "results/v3_s2_summary.json",
+   "source_sha256": "f1ad1ca1d03cf190e971a504564a2d460b720fd446b507c7b245ace4041cdc53"
+  },
+  {
+   "fields": {
+    "cal_ci": {
+     "raw": [
+      0.054648242524348654,
+      0.09047712296528364
+     ],
+     "text": "[0.0546, 0.0905]"
+    },
+    "cal_ci_high": {
+     "raw": 0.09047712296528364,
+     "text": "0.0905"
+    },
+    "cal_ci_low": {
+     "raw": 0.054648242524348654,
+     "text": "0.0546"
+    },
+    "ci": {
+     "raw": [
+      0.06270230454434035,
+      0.08067236929678626
+     ],
+     "text": "[0.0627, 0.0807]"
+    },
+    "ci_high": {
+     "raw": 0.08067236929678626,
+     "text": "0.0807"
+    },
+    "ci_low": {
+     "raw": 0.06270230454434035,
+     "text": "0.0627"
+    },
+    "level": {
+     "raw": 0.9833333333333333,
+     "text": "0.983333"
+    },
+    "n": {
+     "raw": 13263,
+     "text": "13263"
+    },
+    "status": {
+     "raw": "complete",
+     "text": "complete"
+    },
+    "study": {
+     "raw": "S3",
+     "text": "S3"
+    },
+    "value": {
+     "raw": 0.07136412819273605,
+     "text": "0.0714"
+    },
+    "verdict": {
+     "raw": "loses to hold",
+     "text": "loses to hold"
+    }
+   },
+   "group": "V3: Decision-focused studies",
+   "id": "v3.s3",
+   "kind": "row",
+   "manifest": "exp-v3-evaluate-2026-09-04-20261015T085141Z.json",
+   "selector": {},
+   "source": "results/v3_s3_summary.json",
+   "source_sha256": "e3cc21bb5312428007014e6d68b138a19ea990f31420f4ceb288a419c312c1a2"
   }
  ],
  "schema": 1,
@@ -67157,6 +67545,11 @@
    "manifest": "latency-2026-09-04-20261012T031453Z.json",
    "sha256": "0c199bfe316f9910270673b27f0ef7e96c5fab63782eba7a87f71375b0bf3f77"
   },
+  "results/manifests/exp-v3-evaluate-2026-09-04-20261015T085141Z.json": {
+   "exemption": "committed evaluation manifest used as metadata; sha256 pinned here",
+   "manifest": null,
+   "sha256": "427de9e851c0f2ee6134d94f4647976c57b270cb0d475b7036392eda57b17798"
+  },
   "results/manifests/fetch-2026-09-04-20261010T160638Z.json": {
    "exemption": "committed run manifest used as a metadata source; sha256 pinned here",
    "manifest": null,
@@ -67172,6 +67565,26 @@
    "manifest": null,
    "sha256": "ca94469c87052cf95eb5160e6a28ae0fcac3477b1d0de2115928b6ecbb6e3901"
   },
+  "results/v3_model_behaviour.json": {
+   "exemption": null,
+   "manifest": "exp-v3-evaluate-2026-09-04-20261015T085141Z.json",
+   "sha256": "033c65dca69a7b92f33d2ce4bf0f057836e6a6362720ced542a4a928302e5f97"
+  },
+  "results/v3_s1_summary.json": {
+   "exemption": null,
+   "manifest": "exp-v3-evaluate-2026-09-04-20261015T085141Z.json",
+   "sha256": "567f406b46aff88ac8b7d6e6dbc566df1f6ff40eef3f7520de38e72fc27e686d"
+  },
+  "results/v3_s2_summary.json": {
+   "exemption": null,
+   "manifest": "exp-v3-evaluate-2026-09-04-20261015T085141Z.json",
+   "sha256": "f1ad1ca1d03cf190e971a504564a2d460b720fd446b507c7b245ace4041cdc53"
+  },
+  "results/v3_s3_summary.json": {
+   "exemption": null,
+   "manifest": "exp-v3-evaluate-2026-09-04-20261015T085141Z.json",
+   "sha256": "e3cc21bb5312428007014e6d68b138a19ea990f31420f4ceb288a419c312c1a2"
+  },
   "src/tfm3lab/calibration.py": {
    "exemption": "committed source constants (nominal interval level); sha256 pinned here",
    "manifest": null,
@@ -67181,6 +67594,21 @@
    "exemption": "committed source constants (cutoff, checkpoint ids); sha256 pinned here",
    "manifest": null,
    "sha256": "af8995e06140717def3dcd7287e02626e749cab388ce9de8dcee75d1f11d9875"
+  },
+  "src/tfm3lab/studies/eval_s1.py": {
+   "exemption": "committed study design constants; sha256 pinned here",
+   "manifest": null,
+   "sha256": "b4e8cf75268abc180f942356119a3f83353c236ad227bc52f3d005d003244742"
+  },
+  "src/tfm3lab/studies/eval_s2.py": {
+   "exemption": "committed study design constants; sha256 pinned here",
+   "manifest": null,
+   "sha256": "09e6f5e54ec381c3d8103cfbd67e69408c028da96641df62d07ea9dc3839e2b0"
+  },
+  "src/tfm3lab/studies/eval_s3.py": {
+   "exemption": "committed study design constants; sha256 pinned here",
+   "manifest": null,
+   "sha256": "1df4f55f61ba4b31203e7e084746de53ed0fa458713e32c8fff4f8ab0847e8ec"
   }
  }
 }
